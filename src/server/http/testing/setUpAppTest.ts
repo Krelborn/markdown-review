@@ -17,6 +17,11 @@ export const testToken = "a".repeat(64);
 
 export const testPlan = "# Plan\n\nWe cache results for 24h.\n\nRetries happen three times.\n";
 
+export const testShellHtml =
+  '<!doctype html><title>Markdown Review</title><script type="module" src="/assets/app.js"></script>\n';
+
+export const testAppScript = 'document.title = "Markdown Review";\n';
+
 /**
  * The app over a fresh repo, with helpers that send requests and what the tests inspect
  */
@@ -43,6 +48,7 @@ interface AppTest {
   store: ReviewStore;
   tabs: BrowserTabs;
   watched: string[];
+  webDirectory: string;
 }
 
 interface AppTestOptions {
@@ -53,8 +59,8 @@ interface AppTestOptions {
 }
 
 /**
- * Builds the app over a fresh repo in `directory`, holding `docs/plan.md`, with helpers that send requests the way
- * the CLI and the browser do
+ * Builds the app over a fresh repo in `directory`, holding `docs/plan.md`, and a built web app holding
+ * `assets/app.js`, with helpers that send requests the way the CLI and the browser do
  */
 export async function setUpAppTest(
   directory: string,
@@ -63,6 +69,10 @@ export async function setUpAppTest(
   const root = path.join(directory, "repo");
   await mkdir(path.join(root, "docs"), { recursive: true });
   await writeFile(path.join(root, "docs", "plan.md"), testPlan);
+  const webDirectory = path.join(directory, "web");
+  await mkdir(path.join(webDirectory, "assets"), { recursive: true });
+  await writeFile(path.join(webDirectory, "index.html"), testShellHtml);
+  await writeFile(path.join(webDirectory, "assets", "app.js"), testAppScript);
   const { entries, logger } = createMemoryLogger();
   const store = new ReviewStore(root, logger);
   await store.initialize();
@@ -97,6 +107,7 @@ export async function setUpAppTest(
     token: testToken,
     version: "0.0.0-test",
     watchDocument: (document) => watched.push(document),
+    webDirectory,
   });
   const request = async (method: string, url: string, headers: Record<string, string>, body?: unknown) =>
     app.request(`http://127.0.0.1:${testPort}${url}`, {
@@ -122,6 +133,7 @@ export async function setUpAppTest(
     store,
     tabs,
     watched,
+    webDirectory,
   };
 }
 

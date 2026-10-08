@@ -1,4 +1,4 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-  "entry": ["src/cli/main.ts"]
+  "entry": ["src/cli/main.ts", "src/web/main.tsx"]
 }

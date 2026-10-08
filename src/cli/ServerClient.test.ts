@@ -70,7 +70,11 @@ async function setUpTest() {
   const root = path.join(getDirectory(), "repo");
   await mkdir(path.join(root, "docs"), { recursive: true });
   await writeFile(path.join(root, "docs", "plan.md"), "# Plan\n");
-  const server = await runServer({ logger: createMemoryLogger().logger, root });
+  const server = await runServer({
+    logger: createMemoryLogger().logger,
+    root,
+    webDirectory: path.join(root, "unused-web"),
+  });
   running = server;
   const { port, token } = serverFileSchema.parse(JSON.parse(await readFile(serverFilePath(root), "utf8")));
   const client = new ServerClient(port, token);

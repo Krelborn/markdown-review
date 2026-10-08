@@ -104,7 +104,11 @@ describe("runCli", () => {
     await mkdir(path.join(otherRoot, "docs"), { recursive: true });
     await runCommand("git", ["init", "-q"], { cwd: otherRoot });
     await writeFile(path.join(otherRoot, "docs", "other.md"), "# Other\n");
-    running = await runServer({ logger: createMemoryLogger().logger, root: otherRoot });
+    running = await runServer({
+      logger: createMemoryLogger().logger,
+      root: otherRoot,
+      webDirectory: path.join(otherRoot, "unused-web"),
+    });
 
     const { exitCode, stdout } = await run(["open", "../other/docs/other.md"]);
 
@@ -183,7 +187,11 @@ async function setUpTest({ inGit = true, withServer = false }: SetUpOptions = {}
   }
   await writeFile(path.join(root, "docs", "plan.md"), "# Plan\n");
   if (withServer) {
-    running = await runServer({ logger: createMemoryLogger().logger, root });
+    running = await runServer({
+      logger: createMemoryLogger().logger,
+      root,
+      webDirectory: path.join(root, "unused-web"),
+    });
   }
   const start = (args: string[]) => {
     let stdout = "";

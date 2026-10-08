@@ -33,6 +33,11 @@ export interface RunServerOptions {
   idleMilliseconds?: number;
 
   pollKeepAliveMilliseconds?: number;
+
+  /**
+   * The built web app the server shows in the browser
+   */
+  webDirectory: string;
 }
 
 export interface RunningServer {
@@ -56,6 +61,7 @@ export async function runServer({
   logger,
   pollKeepAliveMilliseconds = 15_000,
   root,
+  webDirectory,
 }: RunServerOptions): Promise<RunningServer> {
   const store = new ReviewStore(root, logger);
   await store.initialize();
@@ -98,6 +104,7 @@ export async function runServer({
     token,
     version: packageVersion,
     watchDocument: (document) => watcher.watch(document),
+    webDirectory,
   });
   const server = createServer(getRequestListener(app.fetch));
   port = await listen(server, preferredPort(root));

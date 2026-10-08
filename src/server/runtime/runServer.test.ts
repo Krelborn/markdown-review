@@ -87,7 +87,12 @@ async function setUpTest({ idleMilliseconds, root }: { idleMilliseconds?: number
   server: RunningServer;
 }> {
   const repositoryRoot = root ?? (await createRepository());
-  const server = await runServer({ idleMilliseconds, logger: createMemoryLogger().logger, root: repositoryRoot });
+  const server = await runServer({
+    idleMilliseconds,
+    logger: createMemoryLogger().logger,
+    root: repositoryRoot,
+    webDirectory: path.join(getDirectory(), "web"),
+  });
   cleanUps.unshift(() => server.close());
   return { root: repositoryRoot, server };
 }

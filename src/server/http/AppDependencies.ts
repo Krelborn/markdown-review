@@ -38,4 +38,9 @@ export interface AppDependencies {
    * Starts watching a doc for edits, so connected tabs hear about them
    */
   watchDocument: (document: string) => void;
+
+  /**
+   * The built web app: `index.html` and its `assets/` directory
+   */
+  webDirectory: string;
 }

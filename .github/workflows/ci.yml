@@ -7,10 +7,14 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      # .npmrc reads it to install @krelborn/stylesui from GitHub Packages
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
 

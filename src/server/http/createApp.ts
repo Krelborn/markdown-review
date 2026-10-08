@@ -69,6 +69,6 @@ export function createApp(dependencies: AppDependencies): Hono {
   registerBrowserRoutes(app, dependencies);
   registerEventRoutes(app, dependencies);
   registerFileRoutes(app, dependencies);
-  registerShellRoutes(app);
+  registerShellRoutes(app, dependencies);
   return app;
 }

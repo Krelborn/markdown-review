@@ -4,7 +4,7 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 
 ## Commands
 
-- `pnpm build`: build the CLI and server into `dist/cli.js`
+- `pnpm build`: build the CLI and server into `dist/cli.js`, and the web app into `dist/web/`, which the server serves
 - `pnpm test`: all tests: the `node` project (`src/cli`, `src/server`, `src/shared`), the `web` project in jsdom (`src/web`), and the `integration` project, which builds `dist/cli.js` first and runs it as separate processes against temporary git repositories
 - `pnpm test:coverage`: tests with v8 coverage, written to `coverage/istanbul.json`
 - `pnpm verify`: lint, format check, typecheck and tests
@@ -16,7 +16,7 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 - `src/server/`: the anchorer and the review store; `http/` holds the Hono app (agent routes, browser routes, poll, event stream, repo files, app shell) and `runtime/` runs it as the per-repo server process.
 - `src/cli/`: the agent's CLI. `main.ts` is the bin entry; the CLI starts the server by running itself as `serve --root <root>`, detached.
 - `src/integration/`: tests that drive the built CLI the way an agent does.
-- `src/web/`: browser code: the walk that reads canonical text from rendered blocks, and the conformance test that checks it against `src/shared`.
+- `src/web/`: the React app the server serves, built with `vite.web.config.mts` from `src/web/index.html`. `components/` holds one folder per component; `rendering/` holds the walk that reads canonical text from rendered blocks, and the conformance test that checks it against `src/shared`.
 
 ## Protocol
 
@@ -26,7 +26,7 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 
 Comments anchor to offsets in a doc's canonical text, which `parseBlocks` computes from markdown-it tokens and the browser reads back from the rendered page with `layOutBlockText`. The two must agree exactly: run the `web` project's conformance test after any change to `createMarkdownIt`, the markdown plugins, Shiki or DOMPurify, and add a case to `src/web/rendering/testing/conformanceCorpus.md` for any new kind of content.
 
-Install dependencies with `pnpm add` and no hand-written version, then run `pnpm format`, which sorts `package.json`.
+Install dependencies with `pnpm add` and no hand-written version, then run `pnpm format`, which sorts `package.json`. `@krelborn/stylesui` comes from GitHub Packages, and `.npmrc` reads a token with `read:packages` from `GITHUB_TOKEN`, so run pnpm as `GITHUB_TOKEN=$(gh auth token) pnpm install`.
 
 ## Fallow
 

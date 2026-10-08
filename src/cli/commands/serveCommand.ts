@@ -1,3 +1,4 @@
+import path from "node:path";
 import { parseArgs } from "node:util";
 
 import { createConsoleLogger } from "../../server/runtime/createConsoleLogger";
@@ -8,12 +9,16 @@ import { CliError } from "../CliError";
 /**
  * Runs the review server in this process until it stops; the CLI starts it detached as `serve --root <root>`
  */
-export async function serveCommand(args: string[], _context: CliContext): Promise<number> {
+export async function serveCommand(args: string[], { cliPath }: CliContext): Promise<number> {
   const { values } = parseArgs({ args, options: { root: { type: "string" } } });
   if (values.root === undefined) {
     throw new CliError("serve needs --root <path>", "Run `markdown-review serve --root <repository root>`.", 2);
   }
-  const server = await runServer({ logger: createConsoleLogger(), root: values.root });
+  const server = await runServer({
+    logger: createConsoleLogger(),
+    root: values.root,
+    webDirectory: path.join(path.dirname(cliPath), "web"),
+  });
   const stop = (): void => {
     server
       .close()

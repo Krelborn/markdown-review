@@ -1,6 +1,8 @@
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  plugins: [react()],
   test: {
     coverage: {
       exclude: ["src/**/*.d.ts"],
@@ -38,6 +40,9 @@ export default defineConfig({
           environment: "jsdom",
           include: ["src/web/**/*.test.{ts,tsx}"],
           name: "web",
+          // StylesUI's modules import their own CSS, which Node cannot load, so Vite must transform them
+          server: { deps: { inline: [/@krelborn\/stylesui/] } },
+          setupFiles: ["src/web/testing/setup.ts"],
         },
       },
     ],

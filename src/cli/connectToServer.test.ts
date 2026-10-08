@@ -24,7 +24,11 @@ afterEach(async () => {
 describe("connectToServer", () => {
   test("must connect to the root's running server instead of starting another", async () => {
     const root = await createRoot();
-    const server = await runServer({ logger: createMemoryLogger().logger, root });
+    const server = await runServer({
+      logger: createMemoryLogger().logger,
+      root,
+      webDirectory: path.join(root, "unused-web"),
+    });
     cleanUps.push(() => server.close());
 
     const client = await connectToServer(root, path.join(root, "unused-cli.js"));
@@ -52,7 +56,11 @@ describe("connectToServer", () => {
 describe("waitUntilStopped", () => {
   test("must return once the server no longer answers after it has been asked to stop", async () => {
     const root = await createRoot();
-    const server = await runServer({ logger: createMemoryLogger().logger, root });
+    const server = await runServer({
+      logger: createMemoryLogger().logger,
+      root,
+      webDirectory: path.join(root, "unused-web"),
+    });
     const client = await connectToServer(root, path.join(root, "unused-cli.js"));
 
     await client.shutdown();
