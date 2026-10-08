@@ -18,5 +18,5 @@
     "noFallthroughCasesInSwitch": true,
     "resolveJsonModule": true
   },
-  "include": ["src/cli", "src/server", "src/shared"]
+  "include": ["src/cli", "src/integration", "src/server", "src/shared"]
 }

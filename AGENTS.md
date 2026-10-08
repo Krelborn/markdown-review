@@ -4,15 +4,23 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 
 ## Commands
 
-- `pnpm test`: unit tests (`node` project for `src/cli`, `src/server` and `src/shared`; `web` project in jsdom for `src/web`)
-- `pnpm test:coverage`: unit tests with v8 coverage, written to `coverage/istanbul.json`
+- `pnpm build`: build the CLI and server into `dist/cli.js`
+- `pnpm test`: all tests: the `node` project (`src/cli`, `src/server`, `src/shared`), the `web` project in jsdom (`src/web`), and the `integration` project, which builds `dist/cli.js` first and runs it as separate processes against temporary git repositories
+- `pnpm test:coverage`: tests with v8 coverage, written to `coverage/istanbul.json`
 - `pnpm verify`: lint, format check, typecheck and tests
+- Try the agent loop by hand: `pnpm build`, then in any git repository run `node <this repo>/dist/cli.js open <doc.md>`, `inbox`, `poll`, `reply`, `resolve` and `stop`. Set `MARKDOWN_REVIEW_NO_BROWSER=1` to keep `open` from launching a browser.
 
 ## Layout
 
 - `src/shared/`: code the server and the browser both run: the markdown-it configuration, blocks and canonical text, and the zod schemas of the review model. No Node or DOM APIs.
-- `src/server/`: the anchorer and the review store.
+- `src/server/`: the anchorer and the review store; `http/` holds the Hono app (agent routes, browser routes, poll, event stream, repo files, app shell) and `runtime/` runs it as the per-repo server process.
+- `src/cli/`: the agent's CLI. `main.ts` is the bin entry; the CLI starts the server by running itself as `serve --root <root>`, detached.
+- `src/integration/`: tests that drive the built CLI the way an agent does.
 - `src/web/`: browser code: the walk that reads canonical text from rendered blocks, and the conformance test that checks it against `src/shared`.
+
+## Protocol
+
+`protocolVersion` in `src/shared/api/protocolVersion.ts` versions the HTTP API and the store format together. Bump it for any change an older CLI or server could not handle: the CLI replaces a server of an older protocol and refuses to touch one of a newer protocol.
 
 ## Anchoring
 

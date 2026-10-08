@@ -24,6 +24,17 @@ export default defineConfig({
         extends: true,
         test: {
           env: { TZ: "UTC" },
+          environment: "node",
+          globalSetup: ["src/integration/testing/buildCli.ts"],
+          include: ["src/integration/**/*.test.ts"],
+          name: "integration",
+          testTimeout: 30_000,
+        },
+      },
+      {
+        extends: true,
+        test: {
+          env: { TZ: "UTC" },
           environment: "jsdom",
           include: ["src/web/**/*.test.{ts,tsx}"],
           name: "web",
