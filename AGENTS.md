@@ -6,6 +6,7 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 
 - `pnpm build`: build the CLI and server into `dist/cli.js`, and the web app into `dist/web/`, which the server serves
 - `pnpm test`: all tests: the `node` project (`src/cli`, `src/server`, `src/shared`), the `web` project in jsdom (`src/web`), and the `integration` project, which builds `dist/cli.js` first and runs it as separate processes against temporary git repositories
+- `pnpm test:e2e`: Playwright end-to-end tests in Chromium and WebKit. They build the package first, then run the CLI and the web app together against temporary git repositories. Install the browsers once with `pnpm exec playwright install chromium webkit`.
 - `pnpm test:coverage`: tests with v8 coverage, written to `coverage/istanbul.json`
 - `pnpm verify`: lint, format check, typecheck and tests
 - Try the agent loop by hand: `pnpm build`, then in any git repository run `node <this repo>/dist/cli.js open <doc.md>`, `inbox`, `poll`, `reply`, `resolve`, `stop` and `install-skill`. Set `MARKDOWN_REVIEW_NO_BROWSER=1` to keep `open` from launching a browser.
@@ -16,6 +17,7 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 - `src/server/`: the anchorer and the review store; `http/` holds the Hono app (agent routes, browser routes, poll, event stream, repo files, app shell) and `runtime/` runs it as the per-repo server process.
 - `src/cli/`: the agent's CLI. `main.ts` is the bin entry; the CLI starts the server by running itself as `serve --root <root>`, detached.
 - `src/integration/`: tests that drive the built CLI the way an agent does.
+- `src/e2e/`: Playwright tests in which a user reviews in the browser while the CLI plays the agent.
 - `skills/markdown-review/SKILL.md`: the skill that teaches agents the review loop. The build bundles it into `dist/cli.js`, and `install-skill` writes that copy.
 - `src/web/`: the React app the server serves, built with `vite.web.config.mts` from `src/web/index.html`. `components/` holds one folder per component; `rendering/` holds the walk that reads canonical text from rendered blocks, and the conformance test that checks it against `src/shared`.
 

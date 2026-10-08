@@ -1,36 +1,16 @@
-import type { ChildProcess } from "node:child_process";
-import { execFile, spawn } from "node:child_process";
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
 import { afterEach, beforeEach } from "vitest";
 
 import type { ServerFile } from "../../server/runtime/serverFileSchema";
 import { serverFileSchema } from "../../server/runtime/serverFileSchema";
 
-const runCommand = promisify(execFile);
-
-const cliPath = fileURLToPath(new URL("../../../dist/cli.js", import.meta.url));
+import { createGitRepository } from "./createGitRepository";
+import type { CliResult, RunningCli } from "./startCli";
+import { startCli } from "./startCli";
+import { stopReviewServer } from "./stopReviewServer";
 
 export const plan = "# Plan\n\nWe cache results for 24h.\n\nRetries happen three times.\n";
-
-export interface CliResult {
-  exitCode: number | null;
-  stderr: string;
-  stdout: string;
-}
-
-export interface RunningCli {
-  child: ChildProcess;
-  result: Promise<CliResult>;
-
-  /**
-   * Resolves once the command has written `text` to standard error
-   */
-  printedToStderr(text: string): Promise<void>;
-}
 
 export interface ReviewRepository {
   root: string;
@@ -54,22 +34,16 @@ export interface ReviewRepository {
  */
 export function setUpReviewRepository(): () => ReviewRepository {
   let repository: ReviewRepository | undefined;
-  let directory = "";
 
   beforeEach(async () => {
-    directory = await mkdtemp(path.join(os.tmpdir(), "markdown-review-integration-"));
-    const root = await realpath(directory);
-    await mkdir(path.join(root, "docs"));
-    await writeFile(path.join(root, "docs", "plan.md"), plan);
-    await runCommand("git", ["init", "-q"], { cwd: root });
-    repository = createRepository(root);
+    repository = createRepository(await createGitRepository({ "docs/plan.md": plan }));
   });
 
   afterEach(async () => {
     if (repository !== undefined) {
-      await stopServer(repository);
+      await stopReviewServer(repository.root);
+      await rm(repository.root, { force: true, recursive: true });
     }
-    await rm(directory, { force: true, recursive: true });
   });
 
   return () => {
@@ -83,37 +57,6 @@ export function setUpReviewRepository(): () => ReviewRepository {
 function createRepository(root: string): ReviewRepository {
   const readServerFile = async (): Promise<ServerFile> =>
     serverFileSchema.parse(JSON.parse(await readFile(path.join(root, ".markdown-review", "server.json"), "utf8")));
-  const start = (args: string[], input?: string): RunningCli => {
-    const child = spawn(process.execPath, [cliPath, ...args], {
-      cwd: root,
-      env: { ...process.env, MARKDOWN_REVIEW_NO_BROWSER: "1" },
-    });
-    let stdout = "";
-    let stderr = "";
-    const stderrWaiters: { resolve: () => void; text: string }[] = [];
-    child.stdout.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString("utf8");
-    });
-    child.stderr.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString("utf8");
-      for (const waiter of stderrWaiters.filter(({ text }) => stderr.includes(text))) {
-        waiter.resolve();
-      }
-    });
-    child.stdin.end(input ?? "");
-    const result = new Promise<CliResult>((resolve) => {
-      child.on("close", (exitCode) => resolve({ exitCode, stderr, stdout }));
-    });
-    const printedToStderr = (text: string): Promise<void> =>
-      new Promise((resolve) => {
-        if (stderr.includes(text)) {
-          resolve();
-          return;
-        }
-        stderrWaiters.push({ resolve, text });
-      });
-    return { child, printedToStderr, result };
-  };
   return {
     browser: async (method, url, body) => {
       const { port } = await readServerFile();
@@ -126,20 +69,8 @@ function createRepository(root: string): ReviewRepository {
     },
     readServerFile,
     root,
-    run: (args, input) => start(args, input).result,
-    start: (args) => start(args),
+    run: (args, input) => startCli(root, args, input).result,
+    start: (args) => startCli(root, args),
     writeDocument: (document, source) => writeFile(path.join(root, ...document.split("/")), source),
   };
-}
-
-async function stopServer(repository: ReviewRepository): Promise<void> {
-  await repository.run(["stop"]);
-  const recorded = await repository.readServerFile().catch(() => null);
-  if (recorded !== null && recorded.pid !== process.pid) {
-    try {
-      process.kill(recorded.pid);
-    } catch {
-      return;
-    }
-  }
 }

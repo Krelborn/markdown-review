@@ -29,7 +29,8 @@
     "test:watch": "vitest",
     "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
     "prepare": "husky",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm build",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.4",
@@ -44,6 +45,7 @@
   "devDependencies": {
     "@babel/core": "^8.0.7",
     "@krelborn/stylesui": "^0.2.1",
+    "@playwright/test": "^1.64.0",
     "@rolldown/plugin-babel": "^0.2.4",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
