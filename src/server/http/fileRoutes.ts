@@ -15,6 +15,9 @@ export function registerFileRoutes(app: Hono, { root }: AppDependencies): void {
     if (resolved.kind === "invalid" || resolved.kind === "outside") {
       throw new HttpError(403, "outside-root", `${relativePath} is not a file in the repo`);
     }
+    if (resolved.kind === "private") {
+      throw new HttpError(403, "private-file", `${relativePath} is in the review store`);
+    }
     if (resolved.kind === "missing" || !(await stat(resolved.absolutePath)).isFile()) {
       throw new HttpError(404, "missing-file", `${relativePath} does not exist`);
     }

@@ -36,6 +36,19 @@ describe("resolveRepositoryPath", () => {
 
     expect(await resolveRepositoryPath(root, "docs/linked.md")).toEqual({ kind: "outside" });
   });
+
+  test.each([
+    { condition: "the path is the review store", relativePath: ".markdown-review" },
+    { condition: "the path is in the review store", relativePath: ".markdown-review/server.json" },
+    { condition: "a symlink inside the repo leads into the review store", relativePath: "docs/token.json" },
+  ])("must refuse the path as private when $condition, which holds the server's token", async ({ relativePath }) => {
+    const { root } = await setUpTest();
+    await mkdir(path.join(root, ".markdown-review"));
+    await writeFile(path.join(root, ".markdown-review", "server.json"), "{}\n");
+    await symlink(path.join(root, ".markdown-review", "server.json"), path.join(root, "docs", "token.json"));
+
+    expect(await resolveRepositoryPath(root, relativePath)).toEqual({ kind: "private" });
+  });
 });
 
 async function setUpTest() {

@@ -23,6 +23,12 @@ describe("browserRoutes", () => {
   test.each([
     { condition: "the doc does not exist", document: "docs/missing.md", status: 404, reason: "missing-document" },
     { condition: "the path climbs out of the repo", document: "../secret.md", status: 400, reason: "invalid-input" },
+    {
+      condition: "the doc is in the review store",
+      document: ".markdown-review/review.json",
+      status: 403,
+      reason: "private-file",
+    },
   ])("must refuse to return a doc when $condition", async ({ document, status, reason }) => {
     const { browser } = await setUpAppTest(getDirectory());
 

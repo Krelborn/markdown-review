@@ -56,6 +56,16 @@ describe("fileRoutes", () => {
     expect((await request("GET", "/files/docs/secret.txt", {})).status).toBe(403);
   });
 
+  test("must refuse the server's token file when a request asks for a file in the review store", async () => {
+    const { request, root } = await setUpAppTest(getDirectory());
+    await writeFile(path.join(root, ".markdown-review", "server.json"), JSON.stringify({ token: "secret" }));
+
+    const response = await request("GET", "/files/.markdown-review/server.json", {});
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ error: { reason: "private-file" } });
+  });
+
   test.each([
     { condition: "nothing exists at the path", setUp: async () => {} },
     {

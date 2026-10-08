@@ -40,8 +40,8 @@ export function readThreadId(context: Context): number {
  * @param root the repo root
  * @param document a repo-relative POSIX path
  * @param allowMissing whether a doc that no longer exists is acceptable, as it is when reading its threads
- * @throws HttpError 400 for a path that is not repo-relative, 403 for one that leads out of the repo, and 404 for a
- *   missing doc unless `allowMissing` is set
+ * @throws HttpError 400 for a path that is not repo-relative, 403 for one that leads out of the repo or into the
+ *   review store, and 404 for a missing doc unless `allowMissing` is set
  */
 export async function checkDocumentPath(root: string, document: string, allowMissing: boolean): Promise<void> {
   const resolved = await resolveRepositoryPath(root, document);
@@ -50,6 +50,8 @@ export async function checkDocumentPath(root: string, document: string, allowMis
       throw new HttpError(400, "invalid-input", `${document} is not a repo-relative path`);
     case "outside":
       throw new HttpError(403, "outside-root", `${document} leads outside the repo`);
+    case "private":
+      throw new HttpError(403, "private-file", `${document} is in the review store`);
     case "missing":
       if (!allowMissing) {
         throw new HttpError(404, "missing-document", `${document} does not exist`);
