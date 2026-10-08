@@ -77,3 +77,19 @@ export async function setUpAppTest(directory: string) {
     watched,
   };
 }
+
+/**
+ * The comment the browser sends when the user selects "cache results for 24h" in the test plan
+ */
+export const cacheComment = {
+  anchor: {
+    document: "docs/plan.md",
+    endOffset: 29,
+    kind: "passage",
+    prefix: "Plan\nWe ",
+    quote: "cache results for 24h",
+    startOffset: 8,
+    suffix: ".\nRetries happen three times.",
+  },
+  body: "Why 24h?",
+};
