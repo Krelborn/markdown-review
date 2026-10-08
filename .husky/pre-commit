@@ -1,0 +1,4 @@
+pnpm exec lint-staged
+# The repository's first commit has no base branch for fallow to compare against
+git rev-parse --verify --quiet HEAD >/dev/null || exit 0
+pnpm exec fallow audit --quiet --gate-marker pre-commit

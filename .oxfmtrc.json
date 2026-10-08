@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 120,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "es5",
+  "ignorePatterns": [
+    "pnpm-lock.yaml",
+    "dist/**",
+    "docs/**",
+    ".superpowers/**",
+    // The conformance corpus keeps the exact markdown it was written with
+    "src/**/testing/*.md",
+    // Skill pointers written by `fallow agent install`, which rewrites them when they are reformatted
+    ".agents/skills/fallow/**",
+    ".agents/skills/fallow-setup/**",
+    ".claude/skills/fallow/**",
+    ".claude/skills/fallow-setup/**"
+  ]
+}
