@@ -38,6 +38,15 @@ describe("connectToServer", () => {
 
     await expect(connectToServer(root, path.join(root, "unused-cli.js"))).rejects.toBeInstanceOf(CliError);
   });
+
+  test("must refuse to replace a newer server when its records have fields this version does not know", async () => {
+    const root = await createRoot();
+    await startNewerServer(root, { features: ["threads"] });
+
+    await expect(connectToServer(root, path.join(root, "unused-cli.js"))).rejects.toThrow(
+      "A newer markdown-review (version 9.9.9, protocol 99)"
+    );
+  });
 });
 
 describe("waitUntilStopped", () => {
@@ -60,10 +69,12 @@ async function createRoot(): Promise<string> {
   return root;
 }
 
-async function startNewerServer(root: string): Promise<void> {
+async function startNewerServer(root: string, extraFields: Record<string, unknown> = {}): Promise<void> {
   const fake = createServer((_request, response) => {
     response.setHeader("content-type", "application/json");
-    response.end(JSON.stringify({ name: "markdown-review", pid: 999_999, protocol: 99, root, version: "9.9.9" }));
+    response.end(
+      JSON.stringify({ name: "markdown-review", pid: 999_999, protocol: 99, root, version: "9.9.9", ...extraFields })
+    );
   });
   await new Promise<void>((resolve) => fake.listen(0, "127.0.0.1", resolve));
   cleanUps.push(() => new Promise((resolve) => fake.close(() => resolve())));
@@ -77,6 +88,7 @@ async function startNewerServer(root: string): Promise<void> {
     startedAt: new Date().toISOString(),
     token: "b".repeat(64),
     version: "9.9.9",
+    ...extraFields,
   };
   await writeFile(serverFilePath(root), JSON.stringify(serverFile));
 }

@@ -20,7 +20,7 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 
 ## Protocol
 
-`protocolVersion` in `src/shared/api/protocolVersion.ts` versions the HTTP API and the store format together. Bump it for any change an older CLI or server could not handle: the CLI replaces a server of an older protocol and refuses to touch one of a newer protocol.
+`protocolVersion` in `src/shared/api/protocolVersion.ts` versions the HTTP API and the store format together. Bump it for any change an older CLI or server could not handle: the CLI replaces a server of an older protocol and refuses to touch one of a newer protocol. `server.json` and `GET /api/health` are how every version finds that protocol, so they may gain fields but must keep the ones they have.
 
 ## Anchoring
 

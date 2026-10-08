@@ -9,7 +9,11 @@ const reviewStateSchema = z.strictObject({
   requestedAt: z.iso.datetime().nullable(),
 }) satisfies z.ZodType<ReviewState>;
 
-export const healthSchema = z.strictObject({
+/**
+ * Not strict, so a newer server that reports more fields is still recognised by its protocol rather than mistaken for
+ * no server
+ */
+export const healthSchema = z.object({
   name: z.literal("markdown-review"),
   pid: z.int(),
   protocol: z.int(),
