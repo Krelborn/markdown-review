@@ -1,10 +1,11 @@
 import { Alert, Button, Cluster } from "@krelborn/stylesui";
 import type { JSX } from "react";
-import { useState } from "react";
+import { useContext, useState } from "react";
 
 import type { Thread } from "../../../shared/review/threadSchema";
 import { describeFailure } from "../../api/describeFailure";
 import { useReviewApi } from "../../api/useReviewApi";
+import { UnsentTextContext } from "../../review/UnsentTextContext";
 import { CommentForm } from "../CommentForm/CommentForm";
 
 export interface ThreadActionsProps {
@@ -21,9 +22,11 @@ export interface ThreadActionsProps {
  */
 export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.Element {
   const api = useReviewApi();
-  const [isReplying, setIsReplying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const { draft, id, status } = thread;
+  const replyKey = `reply:${id}`;
+  const kept = useContext(UnsentTextContext);
+  const [isReplying, setIsReplying] = useState(() => kept?.has(replyKey) === true);
+  const [error, setError] = useState<string | null>(null);
   const run = async (action: () => Promise<void>): Promise<void> => {
     try {
       await action();
@@ -52,6 +55,7 @@ export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.El
         onSubmit={saveDraft}
         shouldFocus={false}
         submitLabel="Save draft"
+        unsentTextKey={`draft:${id}`}
       >
         <Button onClick={() => void run(() => api.deleteDraft(id))} size="sm" variant="ghost">
           Discard draft
@@ -70,6 +74,7 @@ export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.El
         onSubmit={saveDraft}
         shouldFocus={true}
         submitLabel="Save reply"
+        unsentTextKey={replyKey}
       />
     );
   }

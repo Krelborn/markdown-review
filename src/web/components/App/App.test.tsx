@@ -13,7 +13,9 @@ const plan = "# Plan\n\nWe cache results for **24h** today.\n\nRetries happen th
 
 const spec = "# Spec\n\nResults are cached.\n";
 
-const planThread = buildThread({ anchor: buildPassageAnchor({ endOffset: 29, startOffset: 8 }), id: 1 });
+const planAnchor = buildPassageAnchor({ endOffset: 29, startOffset: 8 });
+
+const planThread = buildThread({ anchor: planAnchor, id: 1 });
 
 const specThread = buildThread({
   anchor: buildPassageAnchor({
@@ -98,6 +100,47 @@ describe("App", () => {
     expect(await screen.findByText("Changed to 1h")).toBeInTheDocument();
     expect(await elements.article().findByText("We cache results for 1h today.")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
+  });
+
+  test("must keep the user's unsent reply when the agent resolves the thread", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await startReply(user, "Half written");
+
+    fake.snapshot.threads[0] = { ...planThread, status: "resolved" };
+    fake.emit({ type: "threads-changed" });
+    const resolved = within(await screen.findByRole("region", { name: "Resolved" }));
+    await user.click(resolved.getByText("Resolved (1)"));
+
+    expect(resolved.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
+  });
+
+  test("must keep the user's unsent reply when an edit leaves its passage outdated", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await startReply(user, "Half written");
+
+    fake.snapshot.threads[0] = { ...planThread, anchor: { ...planAnchor, outdated: true } };
+    fake.emit({ type: "threads-changed" });
+    const outdated = within(await screen.findByRole("region", { name: "Outdated" }));
+
+    expect(outdated.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
+  });
+
+  test("must keep the user's unsent reply when the agent opens another doc and the user comes back", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await startReply(user, "Half written");
+
+    fake.emit({ type: "navigate", url: "http://127.0.0.1:4321/document/docs/spec.md" });
+    await screen.findByRole("heading", { level: 1, name: "docs/spec.md" });
+    history.back();
+    await screen.findByRole("heading", { level: 1, name: "docs/plan.md" });
+
+    expect(await screen.findByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
   });
 
   test("must show the agent's reply when the server says the threads changed", async () => {
@@ -212,6 +255,11 @@ function setUpTest({
     await screen.findByRole("textbox", { name: "Comment on the whole review" });
   };
   return { documents, fake, render };
+}
+
+async function startReply(user: ReturnType<typeof userEvent.setup>, text: string): Promise<void> {
+  await user.click(screen.getByRole("button", { name: "Reply" }));
+  await user.type(screen.getByRole("textbox", { name: "Reply" }), text);
 }
 
 function selectText(element: HTMLElement, length: number): void {

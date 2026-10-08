@@ -3,6 +3,7 @@ import type { FormEvent, JSX, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { describeFailure } from "../../api/describeFailure";
+import { useUnsentText } from "../../review/useUnsentText";
 
 export interface CommentFormProps {
   /**
@@ -30,6 +31,11 @@ export interface CommentFormProps {
   shouldFocus: boolean;
 
   submitLabel: string;
+
+  /**
+   * Names the box, so text the user has typed and not saved outlives it, as when its thread moves to another group
+   */
+  unsentTextKey?: string;
 }
 
 /**
@@ -44,8 +50,9 @@ export function CommentForm({
   onSubmit,
   shouldFocus,
   submitLabel,
+  unsentTextKey,
 }: CommentFormProps): JSX.Element {
-  const [body, setBody] = useState(initialBody);
+  const { body, change, forget } = useUnsentText(unsentTextKey, initialBody);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -61,8 +68,9 @@ export function CommentForm({
       await onSubmit(body);
       setError(null);
       if (clearOnSubmit) {
-        setBody("");
+        change("");
       }
+      forget();
     } catch (failure) {
       setError(describeFailure(failure));
     } finally {
@@ -72,7 +80,7 @@ export function CommentForm({
   return (
     <Stack as="form" gap={2} onSubmit={(event: FormEvent) => void submit(event)}>
       <Field label={label}>
-        <Textarea onChange={(event) => setBody(event.target.value)} ref={textareaRef} rows={3} value={body} />
+        <Textarea onChange={(event) => change(event.target.value)} ref={textareaRef} rows={3} value={body} />
       </Field>
       {error !== null && (
         <Alert role="alert" tone="danger">
@@ -84,7 +92,14 @@ export function CommentForm({
           {submitLabel}
         </Button>
         {onCancel !== undefined && (
-          <Button onClick={onCancel} size="sm" variant="ghost">
+          <Button
+            onClick={() => {
+              forget();
+              onCancel();
+            }}
+            size="sm"
+            variant="ghost"
+          >
             Cancel
           </Button>
         )}

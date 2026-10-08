@@ -6,6 +6,7 @@ import type { Thread } from "../../../shared/review/threadSchema";
 import { useReviewApi } from "../../api/useReviewApi";
 import { groupThreads } from "../../review/groupThreads";
 import type { NewComment } from "../../review/NewComment";
+import { UnsentTextContext } from "../../review/UnsentTextContext";
 import { useSeenMessages } from "../../review/useSeenMessages";
 import { CommentForm } from "../CommentForm/CommentForm";
 
@@ -62,6 +63,7 @@ export function ThreadSidebar({
   const api = useReviewApi();
   const seen = useSeenMessages();
   const [scope, setScope] = useState("document");
+  const [unsentText] = useState(() => new Map<string, string>());
   const showsEveryDocument = documentPath === null || scope === "all";
   const visible = showsEveryDocument
     ? threads
@@ -82,38 +84,40 @@ export function ThreadSidebar({
     onChanged();
   };
   return (
-    <Stack as="aside" gap={4} aria-label="Comments">
-      {newComment !== null && (
-        <NewCommentForm
-          key={JSON.stringify(newComment.anchor)}
-          newComment={newComment}
-          onChanged={onChanged}
-          onClose={onCloseNewComment}
+    <UnsentTextContext value={unsentText}>
+      <Stack as="aside" gap={4} aria-label="Comments">
+        {newComment !== null && (
+          <NewCommentForm
+            key={JSON.stringify(newComment.anchor)}
+            newComment={newComment}
+            onChanged={onChanged}
+            onClose={onCloseNewComment}
+          />
+        )}
+        <CommentForm
+          clearOnSubmit={true}
+          initialBody=""
+          label="Comment on the whole review"
+          onSubmit={commentOnReview}
+          shouldFocus={false}
+          submitLabel="Add comment"
         />
-      )}
-      <CommentForm
-        clearOnSubmit={true}
-        initialBody=""
-        label="Comment on the whole review"
-        onSubmit={commentOnReview}
-        shouldFocus={false}
-        submitLabel="Add comment"
-      />
-      {documentPath !== null && (
-        <SegmentedControl label="Show comments on" onValueChange={setScope} size="sm" value={scope}>
-          <Segment value="document">This doc</Segment>
-          <Segment value="all">All docs</Segment>
-        </SegmentedControl>
-      )}
-      {visible.length === 0 && (
-        <Text as="p" size="sm" tone="muted">
-          No comments yet. Select text in the doc, or press + beside a block, to comment on it.
-        </Text>
-      )}
-      <ThreadGroup isFolded={false} threads={groups.drafts} title="Drafts" {...listProps} />
-      <ThreadGroup isFolded={false} threads={groups.open} title="Open" {...listProps} />
-      <ThreadGroup isFolded={false} threads={groups.outdated} title="Outdated" {...listProps} />
-      <ThreadGroup isFolded={true} threads={groups.resolved} title="Resolved" {...listProps} />
-    </Stack>
+        {documentPath !== null && (
+          <SegmentedControl label="Show comments on" onValueChange={setScope} size="sm" value={scope}>
+            <Segment value="document">This doc</Segment>
+            <Segment value="all">All docs</Segment>
+          </SegmentedControl>
+        )}
+        {visible.length === 0 && (
+          <Text as="p" size="sm" tone="muted">
+            No comments yet. Select text in the doc, or press + beside a block, to comment on it.
+          </Text>
+        )}
+        <ThreadGroup isFolded={false} threads={groups.drafts} title="Drafts" {...listProps} />
+        <ThreadGroup isFolded={false} threads={groups.open} title="Open" {...listProps} />
+        <ThreadGroup isFolded={false} threads={groups.outdated} title="Outdated" {...listProps} />
+        <ThreadGroup isFolded={true} threads={groups.resolved} title="Resolved" {...listProps} />
+      </Stack>
+    </UnsentTextContext>
   );
 }
