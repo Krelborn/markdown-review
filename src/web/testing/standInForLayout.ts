@@ -16,3 +16,5 @@ Range.prototype.getBoundingClientRect = () => new DOMRect();
 Range.prototype.getClientRects = () => Object.assign([], { item: () => null });
 
 Element.prototype.scrollIntoView = () => {};
+
+globalThis.scrollTo = () => {};

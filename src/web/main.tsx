@@ -2,6 +2,8 @@ import "@krelborn/stylesui/styles.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { createReviewApi } from "./api/createReviewApi";
+import { ReviewApiContext } from "./api/ReviewApiContext";
 import { App } from "./components/App/App";
 import "./global.css";
 
@@ -12,6 +14,8 @@ if (rootElement === null) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <ReviewApiContext value={createReviewApi()}>
+      <App />
+    </ReviewApiContext>
   </StrictMode>
 );

@@ -1,0 +1,10 @@
+.main {
+  padding: var(--sui-space-4);
+}
+
+.sidebar {
+  max-block-size: 100dvh;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+}
