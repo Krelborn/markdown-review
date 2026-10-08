@@ -50,6 +50,9 @@ export function reanchorPassage(anchor: PassageAnchor, documentText: DocumentTex
 }
 
 function exactCandidates(pattern: string, text: string): Candidate[] {
+  if (pattern === "") {
+    return [];
+  }
   const candidates: Candidate[] = [];
   for (let start = text.indexOf(pattern); start !== -1; start = text.indexOf(pattern, start + 1)) {
     candidates.push({ end: start + pattern.length, errors: 0, start });

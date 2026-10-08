@@ -103,6 +103,12 @@ describe("reanchorPassage", () => {
 
     expect(reanchorPassage(anchor, createDocumentText(plan)).outdated).toBe(false);
   });
+
+  test("must mark the anchor outdated when its text is empty", () => {
+    const anchor = { ...anchorOn(plan, "cache results for 24h"), anchoredText: "" };
+
+    expect(reanchorPassage(anchor, createDocumentText(plan)).outdated).toBe(true);
+  });
 });
 
 function anchorOn(source: string, quote: string, occurrence = 0): PassageAnchor {
