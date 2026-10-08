@@ -6,6 +6,7 @@ import { StoreError } from "../store/StoreError";
 import type { AppDependencies } from "./AppDependencies";
 import { registerAgentRoutes } from "./agentRoutes";
 import { registerBrowserRoutes } from "./browserRoutes";
+import { registerEventRoutes } from "./eventRoutes";
 import { registerFileRoutes } from "./fileRoutes";
 import { registerHealthRoutes } from "./healthRoutes";
 import { HttpError } from "./HttpError";
@@ -66,6 +67,7 @@ export function createApp(dependencies: AppDependencies): Hono {
   registerAgentRoutes(app, dependencies);
   registerPollRoutes(app, dependencies);
   registerBrowserRoutes(app, dependencies);
+  registerEventRoutes(app, dependencies);
   registerFileRoutes(app, dependencies);
   registerShellRoutes(app);
   return app;
