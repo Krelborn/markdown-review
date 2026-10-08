@@ -1,0 +1,35 @@
+.documentButton {
+  align-self: start;
+}
+
+.view {
+  padding-inline: 2.5rem;
+  position: relative;
+}
+
+.content {
+  min-block-size: 50vh;
+}
+
+.content ::highlight(markdown-review-threads) {
+  background-color: var(--sui-color-warning-subtle);
+}
+
+.content ::highlight(markdown-review-selected) {
+  background-color: var(--sui-color-primary-subtle);
+}
+
+.blockButton,
+.marker,
+.selectionButton {
+  position: absolute;
+  user-select: none;
+}
+
+.blockButton {
+  inset-inline-start: 0;
+}
+
+.selectionButton {
+  z-index: 1;
+}
