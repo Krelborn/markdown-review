@@ -10,6 +10,10 @@ export function reviewFilePath(root: string): string {
   return path.join(storeDirectory(root), "review.json");
 }
 
+export function serverFilePath(root: string): string {
+  return path.join(storeDirectory(root), "server.json");
+}
+
 export function documentsDirectory(root: string): string {
   return path.join(storeDirectory(root), "documents");
 }

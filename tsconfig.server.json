@@ -15,7 +15,8 @@
     "noUnusedParameters": true,
     "noUncheckedIndexedAccess": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true
   },
   "include": ["src/cli", "src/server", "src/shared"]
 }
