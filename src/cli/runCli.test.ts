@@ -1,9 +1,10 @@
 import { execFile } from "node:child_process";
-import { mkdir, realpath, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import skill from "../../skills/markdown-review/SKILL.md?raw";
 import { createMemoryLogger } from "../server/logging/testing/createMemoryLogger";
 import { packageVersion } from "../server/runtime/packageVersion";
 import type { RunningServer } from "../server/runtime/runServer";
@@ -172,6 +173,40 @@ describe("runCli", () => {
     expect(exitCode).toBe(1);
     expect(stderr).toContain("is not a file inside the repository");
   });
+
+  test("must install the skill in the repository's skills directory when the agent installs it", async () => {
+    const { root, run } = await setUpTest();
+    const skillPath = path.join(root, ".claude", "skills", "markdown-review", "SKILL.md");
+
+    const { exitCode, stdout } = await run(["install-skill"]);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toBe(
+      `Installed the markdown-review skill at ${skillPath}\n\n` +
+        "next_step: The skill loads when an agent session starts. To start a review now, run `markdown-review open <doc.md>`.\n"
+    );
+    expect(await readFile(skillPath, "utf8")).toBe(skill);
+  });
+
+  test("must install the skill in the user's skills directory when the agent installs it with --global", async () => {
+    const { home, run } = await setUpTest();
+
+    await run(["install-skill", "--global"]);
+
+    expect(await readFile(path.join(home, ".claude", "skills", "markdown-review", "SKILL.md"), "utf8")).toBe(skill);
+  });
+
+  test("must replace the skill and say so when an older version is installed", async () => {
+    const { root, run } = await setUpTest();
+    const skillPath = path.join(root, ".claude", "skills", "markdown-review", "SKILL.md");
+    await mkdir(path.dirname(skillPath), { recursive: true });
+    await writeFile(skillPath, "---\nname: markdown-review\n---\n");
+
+    const { stdout } = await run(["install-skill"]);
+
+    expect(stdout.startsWith(`Updated the markdown-review skill at ${skillPath}\n`)).toBe(true);
+    expect(await readFile(skillPath, "utf8")).toBe(skill);
+  });
 });
 
 interface SetUpOptions {
@@ -181,6 +216,7 @@ interface SetUpOptions {
 
 async function setUpTest({ inGit = true, withServer = false }: SetUpOptions = {}) {
   const root = path.join(await realpath(getDirectory()), "repo");
+  const home = path.join(await realpath(getDirectory()), "home");
   await mkdir(path.join(root, "docs"), { recursive: true });
   if (inGit) {
     await runCommand("git", ["init", "-q"], { cwd: root });
@@ -200,7 +236,7 @@ async function setUpTest({ inGit = true, withServer = false }: SetUpOptions = {}
       cliPath: path.join(root, "unused-cli.js"),
       terminal: {
         workingDirectory: root,
-        env: { MARKDOWN_REVIEW_NO_BROWSER: "1" },
+        env: { HOME: home, MARKDOWN_REVIEW_NO_BROWSER: "1" },
         readStdin: async () => "",
         stderr: (text) => {
           stderr += text;
@@ -217,5 +253,5 @@ async function setUpTest({ inGit = true, withServer = false }: SetUpOptions = {}
     const exitCode = await started.exitCode;
     return { exitCode, stderr: started.stderr(), stdout: started.stdout() };
   };
-  return { root, run, start };
+  return { home, root, run, start };
 }

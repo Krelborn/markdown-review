@@ -3,6 +3,11 @@ const commandHelp: Record<string, string> = {
     "markdown-review inbox [--document <path>]",
     "  Print whether the review is approved and the threads that need you, then return at once.",
   ].join("\n"),
+  "install-skill": [
+    "markdown-review install-skill [--global]",
+    "  Install the skill that teaches agents this workflow in this repository's .claude/skills, or with --global in",
+    "  ~/.claude/skills. Claude Code and OpenCode both read skills from there.",
+  ].join("\n"),
   open: [
     "markdown-review open [path]",
     "  Start a review round and show the doc (or the docs list) in the user's browser. Prints the URL.",

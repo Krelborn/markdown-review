@@ -4,6 +4,7 @@ import type { CliContext } from "./CliContext";
 import { CliError } from "./CliError";
 import { replyCommand, resolveCommand } from "./commands/agentThreadCommands";
 import { inboxCommand } from "./commands/inboxCommand";
+import { installSkillCommand } from "./commands/installSkillCommand";
 import { openCommand } from "./commands/openCommand";
 import { pollCommand } from "./commands/pollCommand";
 import { serveCommand } from "./commands/serveCommand";
@@ -15,6 +16,7 @@ type Command = (args: string[], context: CliContext) => Promise<number>;
 
 const commands: Record<string, Command> = {
   inbox: inboxCommand,
+  "install-skill": installSkillCommand,
   open: openCommand,
   poll: pollCommand,
   reply: replyCommand,
