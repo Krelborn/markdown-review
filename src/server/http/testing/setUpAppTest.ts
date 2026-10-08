@@ -16,11 +16,18 @@ export const testToken = "a".repeat(64);
 
 export const testPlan = "# Plan\n\nWe cache results for 24h.\n\nRetries happen three times.\n";
 
+interface AppTestOptions {
+  /**
+   * How long the activity monitor waits before it counts the app as idle; an hour unless a test needs to see it
+   */
+  idleMilliseconds?: number;
+}
+
 /**
  * Builds the app over a fresh repo in `directory`, holding `docs/plan.md`, with helpers that send requests the way
  * the CLI and the browser do
  */
-export async function setUpAppTest(directory: string) {
+export async function setUpAppTest(directory: string, { idleMilliseconds = 60 * 60_000 }: AppTestOptions = {}) {
   const root = path.join(directory, "repo");
   await mkdir(path.join(root, "docs"), { recursive: true });
   await writeFile(path.join(root, "docs", "plan.md"), testPlan);
@@ -31,7 +38,14 @@ export async function setUpAppTest(directory: string) {
   const published: ServerEvent[] = [];
   events.subscribe((event) => published.push(event));
   const tabs = new BrowserTabs();
-  const activity = new ActivityMonitor({ events, idleMilliseconds: 60 * 60_000, onIdle: () => {} });
+  let idles = 0;
+  const activity = new ActivityMonitor({
+    events,
+    idleMilliseconds,
+    onIdle: () => {
+      idles += 1;
+    },
+  });
   const watched: string[] = [];
   const recentDocuments = new RecentDocuments();
   let shutdowns = 0;
@@ -67,6 +81,7 @@ export async function setUpAppTest(directory: string) {
     agent,
     browser,
     entries,
+    idleCount: () => idles,
     published,
     recentDocuments,
     request,

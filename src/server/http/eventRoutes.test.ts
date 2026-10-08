@@ -22,14 +22,18 @@ describe("eventRoutes", () => {
     await events.close();
   });
 
-  test("must stop sending to the tab and count it as gone when the tab disconnects", async () => {
-    const { activity, browser, tabs } = await setUpAppTest(getDirectory());
+  test("must stop sending to the tab and let the server go idle when the tab disconnects", async () => {
+    const { browser, idleCount, tabs } = await setUpAppTest(getDirectory(), { idleMilliseconds: 50 });
     const events = readServerSentEvents(await browser("GET", "/api/events"));
-    await events.next(1);
+    const firstEvents = await events.next(1);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const idlesWhileConnected = idleCount();
 
     await events.close();
 
-    await vi.waitFor(() => expect(tabs.navigateLatest("/")).toBe(false));
-    expect(activity.agentWaiting).toBe(false);
+    expect(firstEvents).toEqual([{ data: { agentWaiting: false }, event: "presence" }]);
+    expect(idlesWhileConnected).toBe(0);
+    await vi.waitFor(() => expect(idleCount()).toBe(1));
+    expect(tabs.navigateLatest("/")).toBe(false);
   });
 });
