@@ -4,10 +4,12 @@ import type { StoreErrorReason } from "../store/StoreError";
 import { StoreError } from "../store/StoreError";
 
 import type { AppDependencies } from "./AppDependencies";
+import { registerAgentRoutes } from "./agentRoutes";
 import { registerBrowserRoutes } from "./browserRoutes";
 import { registerFileRoutes } from "./fileRoutes";
 import { registerHealthRoutes } from "./healthRoutes";
 import { HttpError } from "./HttpError";
+import { registerPollRoutes } from "./pollRoutes";
 import { requireAgentToken, requireBrowserOrigin, requireLocalHost } from "./securityMiddleware";
 import { registerShellRoutes } from "./shellRoutes";
 
@@ -61,6 +63,8 @@ export function createApp(dependencies: AppDependencies): Hono {
     );
   });
   registerHealthRoutes(app, dependencies);
+  registerAgentRoutes(app, dependencies);
+  registerPollRoutes(app, dependencies);
   registerBrowserRoutes(app, dependencies);
   registerFileRoutes(app, dependencies);
   registerShellRoutes(app);
