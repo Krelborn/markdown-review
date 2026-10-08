@@ -16,11 +16,22 @@ const markdown = createMarkdownIt();
  * Splits a doc into the leaf blocks comments anchor to
  *
  * @param source the markdown source
- * @returns the leaf blocks in document order, each with its canonical text
+ * @returns the leaf blocks in document order, each with its canonical text; a block with no visible text, such as an
+ *   image on its own, takes whole-block comments only and its text is its source
  */
 export function parseBlocks(source: string): MarkdownBlock[] {
   const tokens = markdown.parse(source, {});
-  return findLeafBlocks(tokens, source).map((leafBlock) => toMarkdownBlock(tokens, leafBlock));
+  const sourceLines = source.split(/\r\n?|\n/);
+  return findLeafBlocks(tokens, source).map((leafBlock) => {
+    const block = toMarkdownBlock(tokens, leafBlock);
+    return block.text === "" ? toSourceTextBlock(block, sourceLines) : block;
+  });
+}
+
+function toSourceTextBlock({ endLine, startLine }: MarkdownBlock, sourceLines: readonly string[]): MarkdownBlock {
+  const text = sourceLines.slice(startLine - 1, endLine).join("\n");
+  const lineOffsets = codeLineOffsets(text, startLine, endLine);
+  return { endLine, exactLines: true, lineOffsets, startLine, text, wholeBlockOnly: true };
 }
 
 function toMarkdownBlock(tokens: readonly Token[], leafBlock: LeafBlock): MarkdownBlock {

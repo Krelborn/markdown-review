@@ -117,9 +117,26 @@ describe("parseBlocks", () => {
       ],
     },
     {
-      condition: "a fence is empty",
+      condition: "a fence is empty, so it has no visible text",
       source: "```\n```\n",
-      expected: [{ endLine: 2, lineOffsets: [], startLine: 1, text: "", exactLines: true, wholeBlockOnly: false }],
+      expected: [
+        {
+          endLine: 2,
+          exactLines: true,
+          lineOffsets: [
+            { line: 1, offset: 0 },
+            { line: 2, offset: 4 },
+          ],
+          startLine: 1,
+          text: "```\n```",
+          wholeBlockOnly: true,
+        },
+      ],
+    },
+    {
+      condition: "a paragraph holds only an image, so it has no visible text",
+      source: "![Architecture diagram](arch.png)\n",
+      expected: [{ ...oneLineBlock(1, "![Architecture diagram](arch.png)"), wholeBlockOnly: true }],
     },
     {
       condition: "a fence holds a Mermaid diagram",

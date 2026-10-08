@@ -267,7 +267,7 @@ Server and browser work in one plain-text model of the doc, computed by `blocks`
 - HTML blocks and Mermaid fences accept whole-block comments only. Their `text` is their source, used only for re-anchoring.
 - `lineOffsets` gives, for each source line that contributes text, its 1-based line number and the offset in `text` where that line's text starts. Any offset therefore maps to an exact source line: one line per softbreak in a paragraph, one per code line in a fence, one per table row.
 - A line break inside a code span, an HTML tag or an image leaves no trace in the tokens, so offsets after it would map one line too early. Such a block has `exactLines: false`, and a range whose last character is in it runs to the block's last line, so the reported range always contains the text.
-- `wholeBlockOnly` is true for HTML blocks and Mermaid fences.
+- `wholeBlockOnly` is true for HTML blocks and Mermaid fences. It is also true for a block with no visible text, such as an image on its own or an empty fence, whose `text` is then its source so a whole-block comment has something to quote. And it is true for a paragraph or heading holding inline HTML other than phrasing elements (for example `<div>` or `<script>`), because the browser may move part of it out of the block or the sanitizer may remove it, so the rendered text can differ from the canonical text.
 - The doc's canonical text is its blocks' texts joined with `\n`. Anchor offsets, `prefix` and `suffix` are positions and slices in this text.
 
 ### Rendering blocks to the DOM
