@@ -1,0 +1,11 @@
+.quote {
+  border-inline-start: 3px solid var(--sui-color-warning);
+  color: var(--sui-color-text-muted);
+  display: -webkit-box;
+  font-size: var(--sui-font-size-sm);
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding-inline-start: var(--sui-space-2);
+  white-space: pre-wrap;
+}

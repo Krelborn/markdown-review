@@ -1,0 +1,16 @@
+.card {
+  border-inline-start: 3px solid transparent;
+}
+
+.selected {
+  border-inline-start-color: var(--sui-color-primary);
+}
+
+.messages {
+  list-style: none;
+  padding: 0;
+}
+
+.body {
+  white-space: pre-wrap;
+}
