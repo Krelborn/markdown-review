@@ -5,6 +5,8 @@ import { buildThread, testTime } from "../review/testing/reviewBuilders";
 import type {
   AgentOpenResponse,
   AgentThreadResponse,
+  DocumentList,
+  DocumentSource,
   Health,
   PollResponse,
   ShutdownResponse,
@@ -14,6 +16,8 @@ import {
   agentOpenResponseSchema,
   agentThreadResponseSchema,
   apiErrorSchema,
+  documentListSchema,
+  documentSourceSchema,
   healthSchema,
   pollResponseSchema,
   shutdownResponseSchema,
@@ -31,6 +35,12 @@ describe("apiResponseSchemas", () => {
     const opened: AgentOpenResponse = { navigated: false, review, url: "http://127.0.0.1:50000/" };
     const acted: AgentThreadResponse = { inbox, thread: buildThread() };
     const stopping: ShutdownResponse = { stopping: true };
+    const documents: DocumentList = {
+      documents: [{ document: "docs/plan.md", draftCount: 1, openCount: 2 }],
+      problems: [],
+      recent: ["docs/spec.md"],
+    };
+    const source: DocumentSource = { hash: "a".repeat(64), path: "docs/plan.md", source: "# Plan\n" };
 
     expect(healthSchema.parse(health)).toEqual(health);
     expect(threadsSnapshotSchema.parse(inbox)).toEqual(inbox);
@@ -38,6 +48,8 @@ describe("apiResponseSchemas", () => {
     expect(agentOpenResponseSchema.parse(opened)).toEqual(opened);
     expect(agentThreadResponseSchema.parse(acted)).toEqual(acted);
     expect(shutdownResponseSchema.parse(stopping)).toEqual(stopping);
+    expect(documentListSchema.parse(documents)).toEqual(documents);
+    expect(documentSourceSchema.parse(source)).toEqual(source);
   });
 
   test("must recognise an error response when the server refuses a request", () => {

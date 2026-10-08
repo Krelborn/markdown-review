@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { documentPathSchema } from "../review/anchorSchema";
 import type { ReviewState } from "../review/ReviewState";
 import { threadSchema } from "../review/threadSchema";
 
@@ -39,6 +40,20 @@ export const agentThreadResponseSchema = z.strictObject({ inbox: threadsSnapshot
 
 export const shutdownResponseSchema = z.strictObject({ stopping: z.literal(true) });
 
+export const documentListSchema = z.strictObject({
+  documents: z.array(
+    z.strictObject({
+      document: documentPathSchema,
+      draftCount: z.int().nonnegative(),
+      openCount: z.int().nonnegative(),
+    })
+  ),
+  problems: z.array(z.string()),
+  recent: z.array(documentPathSchema),
+});
+
+export const documentSourceSchema = z.strictObject({ hash: z.string(), path: documentPathSchema, source: z.string() });
+
 export const apiErrorSchema = z.strictObject({ error: z.strictObject({ message: z.string(), reason: z.string() }) });
 
 export type Health = z.infer<typeof healthSchema>;
@@ -47,3 +62,6 @@ export type PollResponse = z.infer<typeof pollResponseSchema>;
 export type AgentOpenResponse = z.infer<typeof agentOpenResponseSchema>;
 export type AgentThreadResponse = z.infer<typeof agentThreadResponseSchema>;
 export type ShutdownResponse = z.infer<typeof shutdownResponseSchema>;
+export type DocumentList = z.infer<typeof documentListSchema>;
+export type DocumentCount = DocumentList["documents"][number];
+export type DocumentSource = z.infer<typeof documentSourceSchema>;

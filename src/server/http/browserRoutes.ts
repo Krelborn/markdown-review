@@ -4,6 +4,7 @@ import path from "node:path";
 import type { Hono } from "hono";
 
 import { messageRequestSchema, submitRequestSchema } from "../../shared/api/apiRequestSchemas";
+import type { DocumentCount, DocumentList, DocumentSource } from "../../shared/api/apiResponseSchemas";
 import { newThreadSchema } from "../../shared/review/newThreadSchema";
 import type { Thread } from "../../shared/review/threadSchema";
 import { hashSource } from "../store/hashSource";
@@ -18,7 +19,8 @@ export function registerBrowserRoutes(app: Hono, dependencies: AppDependencies):
 
   app.get("/api/documents", async (context) => {
     const { problems, threads } = await store.readThreads(null);
-    return context.json({ documents: countByDocument(threads), problems, recent: recentDocuments.list() });
+    const response: DocumentList = { documents: countByDocument(threads), problems, recent: recentDocuments.list() };
+    return context.json(response);
   });
 
   app.get("/api/document", async (context) => {
@@ -27,7 +29,8 @@ export function registerBrowserRoutes(app: Hono, dependencies: AppDependencies):
     const source = await readFile(path.join(root, ...document.split("/")), "utf8");
     recentDocuments.add(document);
     watchDocument(document);
-    return context.json({ hash: hashSource(source), path: document, source });
+    const response: DocumentSource = { hash: hashSource(source), path: document, source };
+    return context.json(response);
   });
 
   app.get("/api/threads", async (context) => {
@@ -81,7 +84,7 @@ export function registerBrowserRoutes(app: Hono, dependencies: AppDependencies):
   });
 }
 
-function countByDocument(threads: readonly Thread[]): { document: string; draftCount: number; openCount: number }[] {
+function countByDocument(threads: readonly Thread[]): DocumentCount[] {
   const counts = new Map<string, { draftCount: number; openCount: number }>();
   for (const thread of threads) {
     if (thread.anchor.kind === "review") {
