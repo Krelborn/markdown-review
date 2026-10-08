@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 
+import { buildThread } from "../../shared/review/testing/reviewBuilders";
 import { setUpTemporaryDirectory } from "../testing/setUpTemporaryDirectory";
 
 import { StoreFiles } from "./StoreFiles";
@@ -41,6 +42,14 @@ describe("StoreFiles", () => {
 
     expect(await files.listDocuments()).toEqual(["docs/Design Notes café.md"]);
     expect(await files.readDocumentFile("docs/Design Notes café.md")).toEqual({ kind: "valid", value: file });
+  });
+
+  test("must refuse to write a threads file when it would not read back", async () => {
+    const files = new StoreFiles(getDirectory());
+    const file = { document: "docs/plan.md", sourceHash: null, threads: [buildThread()], version: 1 as const };
+
+    await expect(files.writeDocumentFile(file)).rejects.toMatchObject({ reason: "invalid-input" });
+    expect(await files.listDocuments()).toEqual([]);
   });
 
   test("must list no docs when the store has no documents directory", async () => {

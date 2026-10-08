@@ -1,10 +1,13 @@
 import type { Anchor } from "../../shared/review/anchorSchema";
+import { documentPathSchema } from "../../shared/review/anchorSchema";
 import type { DocumentThreadsFile } from "../../shared/review/documentThreadsFileSchema";
 import type { NewThread } from "../../shared/review/newThreadSchema";
+import { newThreadSchema } from "../../shared/review/newThreadSchema";
 import type { ReviewFile } from "../../shared/review/reviewFileSchema";
 import type { ReviewState } from "../../shared/review/ReviewState";
 import { storeFileVersion } from "../../shared/review/storeFileVersion";
 import type { Thread } from "../../shared/review/threadSchema";
+import { messageBodySchema } from "../../shared/review/threadSchema";
 import { anchorNewPassage } from "../anchoring/anchorNewPassage";
 import { reanchorDocumentThreads } from "../anchoring/reanchorDocumentThreads";
 import type { Logger } from "../logging/Logger";
@@ -13,6 +16,7 @@ import { emptyReviewFile } from "./emptyReviewFile";
 import { hashSource } from "./hashSource";
 import { needsAgent } from "./needsAgent";
 import { OperationQueue } from "./OperationQueue";
+import { parseStoreInput } from "./parseStoreInput";
 import { renumberDuplicateThreads } from "./renumberDuplicateThreads";
 import { StoreError } from "./StoreError";
 import type { StoredThreads } from "./StoredThreads";
@@ -107,13 +111,13 @@ export class ReviewStore {
    *
    * @param newThread the comment and what it is on
    * @returns the draft thread
-   * @throws StoreError "missing-document" when the comment is on a doc that does not exist
+   * @throws StoreError "invalid-input" when the comment is malformed, or "missing-document" when its doc does not exist
    */
   public createDraftThread(newThread: NewThread): Promise<Thread> {
     return this.queue.enqueue(async () => {
+      const { anchor, body, renderedHash } = parseStoreInput(newThreadSchema, newThread, "The new thread");
       const at = new Date().toISOString();
       const id = await this.nextThreadId();
-      const { anchor, body, renderedHash } = newThread;
       if (anchor.kind === "review") {
         const review = requireValid(await this.files.readReviewFile());
         const thread = createDraftThread(id, anchor, body, at);
@@ -134,10 +138,12 @@ export class ReviewStore {
   /**
    * Sets the user's unsubmitted comment or reply on a thread
    *
-   * @throws StoreError "unknown-thread" when no thread has the ID
+   * @throws StoreError "unknown-thread" when no thread has the ID, or "invalid-input" when the text is blank
    */
   public writeDraft(id: number, body: string): Promise<Thread> {
-    return this.changeThread(id, "user", (thread, at) => writeDraft(thread, body, at));
+    return this.changeThread(id, "user", (thread, at) =>
+      writeDraft(thread, parseStoreInput(messageBodySchema, body, "The draft"), at)
+    );
   }
 
   /**
@@ -190,18 +196,24 @@ export class ReviewStore {
   }
 
   /**
-   * @throws StoreError "unknown-thread" when no thread has the ID or the thread is a draft
+   * @throws StoreError "unknown-thread" when no thread has the ID or the thread is a draft, or "invalid-input" when
+   *   the reply is blank
    */
   public replyAsAgent(id: number, body: string): Promise<Thread> {
-    return this.changeThread(id, "agent", (thread, at) => replyAsAgent(thread, body, at));
+    return this.changeThread(id, "agent", (thread, at) =>
+      replyAsAgent(thread, parseStoreInput(messageBodySchema, body, "The reply"), at)
+    );
   }
 
   /**
    * @param body what the agent changed, or null to resolve without a message
-   * @throws StoreError "unknown-thread" when no thread has the ID or the thread is a draft
+   * @throws StoreError "unknown-thread" when no thread has the ID or the thread is a draft, or "invalid-input" when
+   *   the message is blank
    */
   public resolveAsAgent(id: number, body: string | null): Promise<Thread> {
-    return this.changeThread(id, "agent", (thread, at) => resolveAsAgent(thread, body, at));
+    return this.changeThread(id, "agent", (thread, at) =>
+      resolveAsAgent(thread, body === null ? null : parseStoreInput(messageBodySchema, body, "The message"), at)
+    );
   }
 
   /**
@@ -209,6 +221,7 @@ export class ReviewStore {
    *
    * @param document the doc whose threads to read, alongside the review's, or null for every thread
    * @returns the review state, the threads in ID order, and any store files that could not be read
+   * @throws StoreError "invalid-input" when the doc path is not a repo-relative POSIX path
    */
   public readThreads(document: string | null): Promise<ThreadsSnapshot> {
     return this.queue.enqueue(() => this.readSnapshot(document));
@@ -219,6 +232,7 @@ export class ReviewStore {
    *
    * @param document the doc to limit the threads to, or null for every thread including the review's
    * @returns the review state and the threads that need the agent
+   * @throws StoreError "invalid-input" when the doc path is not a repo-relative POSIX path
    */
   public readInbox(document: string | null): Promise<ThreadsSnapshot> {
     return this.queue.enqueue(async () => {
@@ -231,10 +245,14 @@ export class ReviewStore {
   }
 
   private async readSnapshot(document: string | null): Promise<ThreadsSnapshot> {
+    const documents =
+      document === null
+        ? await this.files.listDocuments()
+        : [parseStoreInput(documentPathSchema, document, "The doc path")];
     const problems: string[] = [];
     const review = await this.readReviewFileOrReport(problems);
     const threads = [...review.threads];
-    for (const name of document === null ? await this.files.listDocuments() : [document]) {
+    for (const name of documents) {
       threads.push(...(await this.readDocumentThreadsOrReport(name, problems)));
     }
     return { problems, review: toReviewState(review), threads: threads.sort((left, right) => left.id - right.id) };
@@ -341,6 +359,9 @@ export class ReviewStore {
     document: string
   ): Promise<{ file: DocumentThreadsFile; source: string | null }> {
     const stored = requireValid(await this.files.readDocumentFile(document));
+    if (stored !== null && stored.document !== document) {
+      throw new StoreError("invalid-input", `${document} has its threads stored as ${stored.document}; use that name`);
+    }
     const source = await this.files.readDocumentSource(document);
     const sourceHash = source === null ? null : hashSource(source);
     if (stored === null) {

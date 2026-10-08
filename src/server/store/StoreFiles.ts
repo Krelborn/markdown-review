@@ -11,6 +11,7 @@ import { writeJsonAtomically } from "../files/writeJsonAtomically";
 import { writeTextFileUnlessExists } from "../files/writeTextFileUnlessExists";
 
 import { emptyReviewFile } from "./emptyReviewFile";
+import { parseStoreInput } from "./parseStoreInput";
 import { readStoreFile } from "./readStoreFile";
 import type { StoreFileResult } from "./StoreFileResult";
 import {
@@ -47,8 +48,11 @@ export class StoreFiles {
     return result.kind === "valid" ? { kind: "valid", value: result.value ?? emptyReviewFile } : result;
   }
 
-  public writeReviewFile(file: ReviewFile): Promise<void> {
-    return writeJsonAtomically(reviewFilePath(this.root), file);
+  /**
+   * @throws StoreError "invalid-input" when the file would not pass validation when read back
+   */
+  public async writeReviewFile(file: ReviewFile): Promise<void> {
+    await writeJsonAtomically(reviewFilePath(this.root), parseStoreInput(reviewFileSchema, file, "The review file"));
   }
 
   /**
@@ -78,8 +82,12 @@ export class StoreFiles {
     return readStoreFile(documentThreadsFilePath(this.root, document), documentThreadsFileSchema);
   }
 
-  public writeDocumentFile(file: DocumentThreadsFile): Promise<void> {
-    return writeJsonAtomically(documentThreadsFilePath(this.root, file.document), file);
+  /**
+   * @throws StoreError "invalid-input" when the file would not pass validation when read back
+   */
+  public async writeDocumentFile(file: DocumentThreadsFile): Promise<void> {
+    const valid = parseStoreInput(documentThreadsFileSchema, file, `The threads file for ${file.document}`);
+    await writeJsonAtomically(documentThreadsFilePath(this.root, valid.document), valid);
   }
 
   /**

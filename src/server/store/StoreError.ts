@@ -1,4 +1,9 @@
-export type StoreErrorReason = "invalid-file" | "invalid-state" | "missing-document" | "unknown-thread";
+export type StoreErrorReason =
+  | "invalid-file"
+  | "invalid-input"
+  | "invalid-state"
+  | "missing-document"
+  | "unknown-thread";
 
 /**
  * A store operation that cannot be carried out; `reason` says why

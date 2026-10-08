@@ -134,6 +134,47 @@ describe("ReviewStore", () => {
     await expect(store.submit("request-changes")).rejects.toMatchObject({ reason: "invalid-state" });
   });
 
+  test("must refuse a comment when its body is blank", async () => {
+    const { store } = await setUpLoadedTest();
+
+    const comment = store.createDraftThread({ anchor: { kind: "review" }, body: "  " });
+
+    await expect(comment).rejects.toMatchObject({ reason: "invalid-input" });
+  });
+
+  test("must refuse a blank agent reply and keep the thread readable when the agent sends an empty reply", async () => {
+    const { store } = await setUpLoadedTest();
+    await store.createDraftThread({ anchor: { kind: "review" }, body: "Why?" });
+    await store.submit("request-changes");
+
+    const reply = store.replyAsAgent(1, "");
+
+    await expect(reply).rejects.toMatchObject({ reason: "invalid-input" });
+    expect((await store.readThreads(null)).threads.map((thread) => thread.id)).toEqual([1]);
+  });
+
+  test("must refuse a doc path when it leads outside the repo", async () => {
+    const { store } = await setUpLoadedTest();
+
+    const read = store.readThreads("../secret.md");
+    const comment = store.createDraftThread({ anchor: { document: "../secret.md", kind: "document" }, body: "?" });
+
+    await expect(read).rejects.toMatchObject({ reason: "invalid-input" });
+    await expect(comment).rejects.toMatchObject({ reason: "invalid-input" });
+  });
+
+  test("must refuse a comment and keep the threads file when the file records the doc under another spelling", async () => {
+    const { root, store } = await setUpLoadedTest();
+    const threadsFilePath = path.join(root, ".markdown-review", "documents", "docs", "Plan.md.json");
+    const stored = { document: "docs/plan.md", sourceHash: null, threads: [], version: 1 };
+    await writeJson(threadsFilePath, stored);
+
+    const comment = store.createDraftThread({ anchor: { document: "docs/Plan.md", kind: "document" }, body: "?" });
+
+    await expect(comment).rejects.toMatchObject({ reason: "invalid-input" });
+    expect(JSON.parse(await readFile(threadsFilePath, "utf8"))).toEqual(stored);
+  });
+
   test("must refuse a comment when its doc does not exist", async () => {
     const { store } = await setUpLoadedTest();
 
