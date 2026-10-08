@@ -60,6 +60,8 @@ graph TD
 
 Inline <span class="note">HTML</span> and an autolink <https://example.com>.
 
+Wrap the form in a <div> element so it lays out.
+
 ***
 
 Last paragraph.

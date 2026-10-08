@@ -3,6 +3,7 @@ import type { Token } from "markdown-it";
 import { createMarkdownIt } from "./createMarkdownIt";
 import { fenceLanguage } from "./fenceLanguage";
 import { findLeafBlocks } from "./findLeafBlocks";
+import { hasStructuralHtml } from "./hasStructuralHtml";
 import { inlineText } from "./inlineText";
 import type { LeafBlock } from "./LeafBlock";
 import type { LineOffset, MarkdownBlock } from "./MarkdownBlock";
@@ -26,12 +27,13 @@ function toMarkdownBlock(tokens: readonly Token[], leafBlock: LeafBlock): Markdo
   const { endLine, kind, startLine, token, tokenIndex } = leafBlock;
   switch (kind) {
     case "inline": {
-      const { lineStartOffsets, text } = inlineText(tokenAt(tokens, tokenIndex + 1).children ?? []);
+      const children = tokenAt(tokens, tokenIndex + 1).children ?? [];
+      const { lineStartOffsets, text } = inlineText(children);
       const lineOffsets = [0, ...lineStartOffsets].map((offset, index) => ({ line: startLine + index, offset }));
       const isSetextHeading = token.markup === "=" || token.markup === "-";
       const textLineCount = endLine - startLine + (isSetextHeading ? 0 : 1);
       const exactLines = lineOffsets.length === textLineCount;
-      return { endLine, exactLines, lineOffsets, startLine, text, wholeBlockOnly: false };
+      return { endLine, exactLines, lineOffsets, startLine, text, wholeBlockOnly: hasStructuralHtml(children) };
     }
     case "tableRow": {
       const text = tableRowCells(tokens, tokenIndex).join("\t");

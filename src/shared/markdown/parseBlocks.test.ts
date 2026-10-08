@@ -76,6 +76,16 @@ describe("parseBlocks", () => {
       expected: [oneLineBlock(1, "A © B  c")],
     },
     {
+      condition: "a paragraph holds an HTML tag the browser moves out of the paragraph",
+      source: "Wrap the form in a <div> element so it lays out.\n",
+      expected: [{ ...oneLineBlock(1, "Wrap the form in a  element so it lays out."), wholeBlockOnly: true }],
+    },
+    {
+      condition: "a heading holds a script tag the sanitizer removes with its content",
+      source: "# Run <script>setUp()</script> first\n",
+      expected: [{ ...oneLineBlock(1, "Run setUp() first"), wholeBlockOnly: true }],
+    },
+    {
       condition: "a fence holds two lines of code",
       source: "```ts\nconst a = 1;\nconst b = 2;\n```\n",
       expected: [

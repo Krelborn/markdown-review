@@ -31,7 +31,8 @@ export interface MarkdownBlock {
   exactLines: boolean;
 
   /**
-   * True for HTML blocks and Mermaid fences, which take whole-block comments only and whose text is their source
+   * True for blocks that take whole-block comments only: HTML blocks and Mermaid fences, whose text is their source,
+   * and paragraphs or headings holding inline HTML the browser may restructure
    */
   wholeBlockOnly: boolean;
 }
