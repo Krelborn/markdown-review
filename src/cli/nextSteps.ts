@@ -1,6 +1,6 @@
 import { formatIdList } from "./formatIdList";
 
-const pollTimeoutAdvice =
+export const pollTimeoutAdvice =
   "Give the shell command a timeout of at least 600000 ms, or in Claude Code run it with run_in_background and `--timeout 7080`.";
 
 export const waitForCommentsStep = `Run \`markdown-review poll\` to wait for the user's comments. ${pollTimeoutAdvice}`;

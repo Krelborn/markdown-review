@@ -7,12 +7,19 @@
     "type": "git",
     "url": "git+https://github.com/Krelborn/markdown-review.git"
   },
+  "bin": {
+    "markdown-review": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
+    "build": "vite build",
     "typecheck": "tsc -b",
     "lint": "oxlint",
     "format": "oxfmt",
@@ -30,6 +37,7 @@
     "chokidar": "^5.0.0",
     "hono": "^4.13.13",
     "markdown-it": "^15.0.2",
+    "open": "^11.0.4",
     "zod": "^4.6.5"
   },
   "devDependencies": {
