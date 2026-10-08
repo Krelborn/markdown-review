@@ -8,7 +8,7 @@ import type { CliContext } from "../CliContext";
 import { CliError } from "../CliError";
 import { connectToServer } from "../connectToServer";
 import { findRoot } from "../findRoot";
-import { waitForCommentsStep } from "../nextSteps";
+import { waitForCommentsInRootStep, waitForCommentsStep } from "../nextSteps";
 import { toRepositoryPath } from "../toRepositoryPath";
 
 export async function openCommand(args: string[], { cliPath, terminal }: CliContext): Promise<number> {
@@ -17,16 +17,14 @@ export async function openCommand(args: string[], { cliPath, terminal }: CliCont
     throw new CliError("open takes at most one path", "Run `markdown-review open [path]`.", 2);
   }
   const target = positionals[0];
+  const workingRoot = await findRoot(terminal.workingDirectory);
   const { document, root } =
-    target === undefined
-      ? { document: null, root: await findRoot(terminal.workingDirectory) }
-      : await locate(terminal.workingDirectory, target);
+    target === undefined ? { document: null, root: workingRoot } : await locate(terminal.workingDirectory, target);
   const client = await connectToServer(root, cliPath);
   const { navigated, url } = await client.open(document);
   const shown = navigated ? "Shown in the browser tab that was already open." : await openUrl(url, terminal.env);
-  terminal.stdout(
-    `Opened ${document ?? "the docs list"} for review: ${url}\n${shown}\n\nnext_step: ${waitForCommentsStep}\n`
-  );
+  const nextStep = root === workingRoot ? waitForCommentsStep : waitForCommentsInRootStep(root);
+  terminal.stdout(`Opened ${document ?? "the docs list"} for review: ${url}\n${shown}\n\nnext_step: ${nextStep}\n`);
   return 0;
 }
 
@@ -36,7 +34,7 @@ async function locate(workingDirectory: string, target: string): Promise<{ docum
   if (found === null || !found.isFile()) {
     throw new CliError(`${target} is not a file`, "Check the path and run `markdown-review open <path>` again.");
   }
-  const root = await findRoot(path.dirname(absolutePath));
+  const root = await findRoot(path.dirname(absolutePath), workingDirectory);
   return { document: toRepositoryPath(root, await realpath(absolutePath)), root };
 }
 

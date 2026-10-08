@@ -10,6 +10,7 @@ import type { RunningServer } from "../server/runtime/runServer";
 import { runServer } from "../server/runtime/runServer";
 import { setUpTemporaryDirectory } from "../server/testing/setUpTemporaryDirectory";
 
+import { waitForCommentsStep } from "./nextSteps";
 import { runCli } from "./runCli";
 
 const runCommand = promisify(execFile);
@@ -71,6 +72,49 @@ describe("runCli", () => {
     );
   });
 
+  test("must use the working directory as the root when the doc is in a subdirectory outside git", async () => {
+    const { run } = await setUpTest({ inGit: false, withServer: true });
+
+    const { exitCode, stdout } = await run(["open", "docs/plan.md"]);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toBe(
+      `Opened docs/plan.md for review: http://127.0.0.1:${running?.port}/document/docs/plan.md\n` +
+        "Not opened in a browser because MARKDOWN_REVIEW_NO_BROWSER is set; give the user the URL.\n\n" +
+        `next_step: ${waitForCommentsStep}\n`
+    );
+  });
+
+  test("must refuse the doc when it is outside the working directory and neither is in git", async () => {
+    const { root, run } = await setUpTest({ inGit: false });
+    await writeFile(path.join(root, "..", "elsewhere.md"), "# Elsewhere\n");
+
+    const { exitCode, stderr } = await run(["open", "../elsewhere.md"]);
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toBe(
+      `error: ${path.join(path.dirname(root), "elsewhere.md")} is not a file inside the repository at ${root}\n\n` +
+        "next_step: Pass a path to a markdown file inside the repository.\n"
+    );
+  });
+
+  test("must tell the agent which directory to work from when the doc is in another git repository", async () => {
+    const { root, run } = await setUpTest();
+    const otherRoot = path.join(path.dirname(root), "other");
+    await mkdir(path.join(otherRoot, "docs"), { recursive: true });
+    await runCommand("git", ["init", "-q"], { cwd: otherRoot });
+    await writeFile(path.join(otherRoot, "docs", "other.md"), "# Other\n");
+    running = await runServer({ logger: createMemoryLogger().logger, root: otherRoot });
+
+    const { exitCode, stdout } = await run(["open", "../other/docs/other.md"]);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain(
+      `next_step: This doc belongs to the repository at ${otherRoot}, so run markdown-review commands from that ` +
+        "directory. Run `markdown-review poll`"
+    );
+  });
+
   test("must use the running server and print the inbox when the agent checks it", async () => {
     const { run } = await setUpTest({ withServer: true });
 
@@ -124,10 +168,17 @@ describe("runCli", () => {
   });
 });
 
-async function setUpTest({ withServer = false }: { withServer?: boolean } = {}) {
-  const root = await realpath(getDirectory());
-  await runCommand("git", ["init", "-q"], { cwd: root });
-  await mkdir(path.join(root, "docs"));
+interface SetUpOptions {
+  inGit?: boolean;
+  withServer?: boolean;
+}
+
+async function setUpTest({ inGit = true, withServer = false }: SetUpOptions = {}) {
+  const root = path.join(await realpath(getDirectory()), "repo");
+  await mkdir(path.join(root, "docs"), { recursive: true });
+  if (inGit) {
+    await runCommand("git", ["init", "-q"], { cwd: root });
+  }
   await writeFile(path.join(root, "docs", "plan.md"), "# Plan\n");
   if (withServer) {
     running = await runServer({ logger: createMemoryLogger().logger, root });

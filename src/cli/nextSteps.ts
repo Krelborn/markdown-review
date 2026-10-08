@@ -5,6 +5,16 @@ export const pollTimeoutAdvice =
 
 export const waitForCommentsStep = `Run \`markdown-review poll\` to wait for the user's comments. ${pollTimeoutAdvice}`;
 
+/**
+ * @param root the root of a doc opened from outside its repository
+ */
+export function waitForCommentsInRootStep(root: string): string {
+  return (
+    `This doc belongs to the repository at ${root}, so run markdown-review commands from that directory. ` +
+    waitForCommentsStep
+  );
+}
+
 export const approvedStep =
   "The user approved the review. Carry on with your task; do not run `markdown-review poll` again for this review.";
 

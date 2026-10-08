@@ -26,4 +26,11 @@ describe("findRoot", () => {
 
     expect(await findRoot(directory)).toBe(directory);
   });
+
+  test("must return the given directory when the directory is not in a git repository and another is given", async () => {
+    const directory = await realpath(getDirectory());
+    await mkdir(path.join(directory, "docs"));
+
+    expect(await findRoot(path.join(directory, "docs"), directory)).toBe(directory);
+  });
 });

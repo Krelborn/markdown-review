@@ -8,14 +8,16 @@ const runCommand = promisify(execFile);
  * Finds the root a directory's reviews belong to
  *
  * @param directory an existing directory
- * @returns the real path of the git repository (or worktree) root holding the directory, or of the directory itself
+ * @param outsideGitDirectory the root to use when `directory` is not in a git repository; `directory` itself unless
+ *   given
+ * @returns the real path of the git repository (or worktree) root holding the directory, or of `outsideGitDirectory`
  *   when it is not in a git repository
  */
-export async function findRoot(directory: string): Promise<string> {
+export async function findRoot(directory: string, outsideGitDirectory = directory): Promise<string> {
   try {
     const { stdout } = await runCommand("git", ["rev-parse", "--show-toplevel"], { cwd: directory });
     return await realpath(stdout.trim());
   } catch {
-    return realpath(directory);
+    return realpath(outsideGitDirectory);
   }
 }
