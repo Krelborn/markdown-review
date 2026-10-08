@@ -1,12 +1,10 @@
 import path from "node:path";
 
 const contentTypes: Partial<Record<string, string>> = {
-  ".css": "text/css; charset=utf-8",
   ".gif": "image/gif",
   ".html": "text/html; charset=utf-8",
   ".jpeg": "image/jpeg",
   ".jpg": "image/jpeg",
-  ".js": "text/javascript; charset=utf-8",
   ".json": "application/json",
   ".md": "text/markdown; charset=utf-8",
   ".pdf": "application/pdf",
@@ -14,7 +12,6 @@ const contentTypes: Partial<Record<string, string>> = {
   ".svg": "image/svg+xml",
   ".txt": "text/plain; charset=utf-8",
   ".webp": "image/webp",
-  ".woff2": "font/woff2",
 };
 
 /**

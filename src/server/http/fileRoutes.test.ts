@@ -48,6 +48,18 @@ describe("fileRoutes", () => {
     expect(response.headers.get("content-security-policy")).toBe("sandbox");
   });
 
+  test.each(["docs/evil.js", "docs/evil.css"])(
+    "must serve %s as plain bytes when a page loads it from the repo, so it cannot run as the app's own code",
+    async (file) => {
+      const { request, root } = await setUpAppTest(getDirectory());
+      await writeFile(path.join(root, ...file.split("/")), "fetch('/api/submit')\n");
+
+      const response = await request("GET", `/files/${file}`, {});
+
+      expect(response.headers.get("content-type")).toBe("application/octet-stream");
+    }
+  );
+
   test("must refuse a file when a symlink in the repo leads out of it", async () => {
     const { request, root } = await setUpAppTest(getDirectory());
     await writeFile(path.join(getDirectory(), "secret.txt"), "secret\n");

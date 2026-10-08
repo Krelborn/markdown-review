@@ -8,8 +8,13 @@ import { isFileNotFound } from "../files/isFileNotFound";
 import { readTextFileOrNull } from "../files/readTextFileOrNull";
 
 import type { AppDependencies } from "./AppDependencies";
-import { contentTypeFor } from "./contentTypeFor";
 import { HttpError } from "./HttpError";
+
+// Only the built app's own files are served as code; a repo file with the same extension gets no runnable type
+const assetContentTypes: Partial<Record<string, string>> = {
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+};
 
 const contentSecurityPolicy =
   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; " +
@@ -41,7 +46,7 @@ export function registerShellRoutes(app: Hono, { webDirectory }: AppDependencies
       throw error;
     }
     return context.body(new Uint8Array(contents), 200, {
-      "Content-Type": contentTypeFor(name),
+      "Content-Type": assetContentTypes[path.extname(name)] ?? "application/octet-stream",
       "X-Content-Type-Options": "nosniff",
     });
   });
