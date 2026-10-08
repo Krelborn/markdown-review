@@ -14,6 +14,14 @@ export function serverFilePath(root: string): string {
   return path.join(storeDirectory(root), "server.json");
 }
 
+export function serverLockPath(root: string): string {
+  return path.join(storeDirectory(root), "server.lock");
+}
+
+export function serverLogPath(root: string): string {
+  return path.join(storeDirectory(root), "server.log");
+}
+
 export function documentsDirectory(root: string): string {
   return path.join(storeDirectory(root), "documents");
 }
