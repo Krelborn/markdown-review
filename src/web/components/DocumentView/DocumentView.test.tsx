@@ -1,6 +1,6 @@
 import { render as renderBase, screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, onTestFinished, test, vi } from "vitest";
 
 import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
 import { buildPassageAnchor, buildThread } from "../../../shared/review/testing/reviewBuilders";
@@ -179,6 +179,30 @@ describe("DocumentView", () => {
 
     expect(await within(elements.article()).findByText("Another paragraph.")).toBeInTheDocument();
     expect(scrolledTo).toEqual(["goals"]);
+  });
+
+  test("must keep showing the doc when the address names a heading with a malformed escape", async () => {
+    const { render } = setUpTest({ hash: "#%E0%A4%A" });
+
+    await render();
+
+    expect(within(elements.article()).getByRole("heading", { level: 2, name: "Goals" })).toBeInTheDocument();
+  });
+
+  test("must scroll to the doc's heading when the app's page has an element with the same id", async () => {
+    const appRoot = document.createElement("div");
+    appRoot.id = "goals";
+    document.body.prepend(appRoot);
+    onTestFinished(() => appRoot.remove());
+    const scrolledTo: string[] = [];
+    vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function recordScroll(this: Element) {
+      scrolledTo.push(`${this.tagName}#${this.id}`);
+    });
+    const { render } = setUpTest({ hash: "#goals" });
+
+    await render();
+
+    await waitFor(() => expect(scrolledTo).toEqual(["H2#goals"]));
   });
 
   test("must show the new text in place when the doc's source changes", async () => {

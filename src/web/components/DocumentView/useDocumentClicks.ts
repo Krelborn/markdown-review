@@ -51,10 +51,13 @@ export function useDocumentClicks(
 }
 
 /**
- * Scrolls to the heading a link such as "#retry-policy" names, and puts it in the page's address
+ * Scrolls to the doc's heading that a link such as "#retry-policy" names, and puts it in the page's address
+ *
+ * @param hash the fragment; one that is not valid percent-encoding is matched as written
  */
 export function scrollToHeading(content: HTMLElement, hash: string): void {
-  content.ownerDocument.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView();
+  const id = decodeFragment(hash.slice(1));
+  [...content.querySelectorAll("[id]")].find((element) => element.id === id)?.scrollIntoView();
   history.replaceState(history.state, "", hash);
 }
 
@@ -70,5 +73,13 @@ function followLink(
   } else if (href.startsWith("/document/") && isPlainLeftClick(event)) {
     event.preventDefault();
     onNavigate(href);
+  }
+}
+
+function decodeFragment(fragment: string): string {
+  try {
+    return decodeURIComponent(fragment);
+  } catch {
+    return fragment;
   }
 }
