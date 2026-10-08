@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
+import { rm } from "node:fs/promises";
 import type { Server } from "node:http";
 import { createServer } from "node:http";
-import { rm } from "node:fs/promises";
 
 import { getRequestListener } from "@hono/node-server";
 

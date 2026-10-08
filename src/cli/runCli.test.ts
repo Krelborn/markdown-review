@@ -10,7 +10,7 @@ import type { RunningServer } from "../server/runtime/runServer";
 import { runServer } from "../server/runtime/runServer";
 import { setUpTemporaryDirectory } from "../server/testing/setUpTemporaryDirectory";
 
-import { waitForCommentsStep } from "./nextSteps";
+import { pollTimeoutAdvice, waitForCommentsStep } from "./nextSteps";
 import { runCli } from "./runCli";
 
 const runCommand = promisify(execFile);
@@ -37,7 +37,7 @@ describe("runCli", () => {
     const { exitCode, stdout } = await run(["poll", "--help"]);
 
     expect(exitCode).toBe(0);
-    expect(stdout).toMatch(/^markdown-review poll \[--document <path>\] \[--timeout <seconds>\]\n/);
+    expect(stdout.split("\n")[0]).toBe("markdown-review poll [--document <path>] [--timeout <seconds>]");
   });
 
   test.each([
@@ -121,7 +121,7 @@ describe("runCli", () => {
     const { exitCode, stdout } = await run(["inbox"]);
 
     expect(exitCode).toBe(0);
-    expect(stdout).toMatch(/^No threads need you\.\n\nnext_step: Run `markdown-review poll`/);
+    expect(stdout).toBe(`No threads need you.\n\nnext_step: ${waitForCommentsStep}\n`);
   });
 
   test("must say there are no comments yet when the poll times out", async () => {
@@ -131,7 +131,9 @@ describe("runCli", () => {
 
     expect(exitCode).toBe(0);
     expect(stderr).toContain("Waiting up to 1s for review comments.");
-    expect(stdout).toMatch(/^No comments yet\./);
+    expect(stdout).toBe(
+      `No comments yet.\n\nnext_step: Run \`markdown-review poll\` again to keep waiting. ${pollTimeoutAdvice}\n`
+    );
   });
 
   test("must tell the agent to poll again when the server stops while the poll waits", async () => {

@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vitest";
 
+import { approvedStep, pollTimeoutAdvice, waitForCommentsStep } from "../cli/nextSteps";
+
 import { plan, setUpReviewRepository } from "./testing/setUpReviewRepository";
 
 const getRepository = setUpReviewRepository();
@@ -38,7 +40,9 @@ describe("agent loop", () => {
     const { exitCode, stdout } = await repository.run(["poll", "--timeout", "1"]);
 
     expect(exitCode).toBe(0);
-    expect(stdout).toMatch(/^No comments yet\.\n\nnext_step: Run `markdown-review poll` again/);
+    expect(stdout).toBe(
+      `No comments yet.\n\nnext_step: Run \`markdown-review poll\` again to keep waiting. ${pollTimeoutAdvice}\n`
+    );
   });
 
   test("must return the same threads when the poll is run again before the agent acts", async () => {
@@ -77,8 +81,8 @@ describe("agent loop", () => {
     await repository.run(["open", "docs/plan.md"]);
     const nextRound = await repository.run(["inbox"]);
 
-    expect(approved.stdout).toMatch(/^Review approved\. No threads need you\./);
-    expect(nextRound.stdout).toMatch(/^No threads need you\./);
+    expect(approved.stdout).toBe(`Review approved. No threads need you.\n\nnext_step: ${approvedStep}\n`);
+    expect(nextRound.stdout).toBe(`No threads need you.\n\nnext_step: ${waitForCommentsStep}\n`);
   });
 
   test("must say what is left after each reply and resolve", async () => {

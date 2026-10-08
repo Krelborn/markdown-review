@@ -1,8 +1,8 @@
-import type { Health } from "../shared/api/apiResponseSchemas";
-import { protocolVersion } from "../shared/api/protocolVersion";
 import { serverFileSchema } from "../server/runtime/serverFileSchema";
 import { readStoreFile } from "../server/store/readStoreFile";
 import { serverFilePath } from "../server/store/storePaths";
+import type { Health } from "../shared/api/apiResponseSchemas";
+import { protocolVersion } from "../shared/api/protocolVersion";
 
 import { ServerClient } from "./ServerClient";
 
