@@ -1,23 +1,16 @@
-import { createHighlighter } from "shiki";
 import { beforeAll, describe, expect, test } from "vitest";
 
-import { createMarkdownIt } from "../../shared/markdown/createMarkdownIt";
 import { parseBlocks } from "../../shared/markdown/parseBlocks";
 
 import { layOutBlockText } from "./layOutBlockText";
-import { sanitizeRenderedHtml } from "./sanitizeRenderedHtml";
+import { renderDocument } from "./renderDocument";
 import conformanceCorpus from "./testing/conformanceCorpus.md?raw";
 
 const blocks = parseBlocks(conformanceCorpus).map((block, index) => ({ ...block, index }));
 
 describe("rendered blocks", () => {
   beforeAll(async () => {
-    const highlighter = await createHighlighter({ langs: ["ts"], themes: ["github-light"] });
-    const markdown = createMarkdownIt({
-      highlight: (code, language) =>
-        language === "ts" ? highlighter.codeToHtml(code, { lang: language, theme: "github-light" }) : null,
-    });
-    document.body.innerHTML = sanitizeRenderedHtml(markdown.render(conformanceCorpus));
+    document.body.innerHTML = await renderDocument(conformanceCorpus, "docs/corpus.md");
   });
 
   test.each(blocks)("must tag exactly one element with block $index and its lines", ({ index, startLine, endLine }) => {

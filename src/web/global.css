@@ -1,0 +1,8 @@
+/* Shiki writes the dark theme's colours into custom properties, which take over when the system is in dark mode */
+@media (prefers-color-scheme: dark) {
+  .shiki,
+  .shiki span {
+    background-color: var(--shiki-dark-bg) !important;
+    color: var(--shiki-dark) !important;
+  }
+}
