@@ -1,0 +1,8 @@
+.summary {
+  cursor: pointer;
+  margin-block-end: var(--sui-space-2);
+}
+
+.summary > .heading {
+  display: inline;
+}
