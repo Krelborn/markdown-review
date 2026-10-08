@@ -21,16 +21,16 @@ export async function withStartLock<Result>(root: string, task: () => Promise<Re
   const lockPath = serverLockPath(root);
   const deadline = Date.now() + lockWaitMilliseconds;
   while (!(await tryCreateLock(lockPath))) {
-    if (await isStaleLock(lockPath)) {
-      await rm(lockPath, { force: true });
-    } else if (Date.now() > deadline) {
+    if (await removeStaleLock(lockPath)) {
+      continue;
+    }
+    if (Date.now() > deadline) {
       throw new CliError(
         `Another markdown-review command has been starting the server for ${root} for over 15 seconds`,
         `Wait for it to finish, or delete ${lockPath} if no other markdown-review command is running, then try again.`
       );
-    } else {
-      await delay(lockRetryMilliseconds);
     }
+    await delay(lockRetryMilliseconds);
   }
   try {
     return await task();
@@ -48,6 +48,31 @@ async function tryCreateLock(lockPath: string): Promise<boolean> {
       return false;
     }
     throw error;
+  }
+}
+
+/**
+ * Removes the lock when its owner has exited without removing it. Commands check and remove it one at a time, under
+ * a second lock, so a command that found the lock stale cannot then remove the lock another command has just taken.
+ *
+ * @returns whether the lock was removed
+ */
+async function removeStaleLock(lockPath: string): Promise<boolean> {
+  const checkPath = `${lockPath}.check`;
+  if (!(await tryCreateLock(checkPath))) {
+    if (await isStaleLock(checkPath)) {
+      await rm(checkPath, { force: true });
+    }
+    return false;
+  }
+  try {
+    if (!(await isStaleLock(lockPath))) {
+      return false;
+    }
+    await rm(lockPath, { force: true });
+    return true;
+  } finally {
+    await rm(checkPath, { force: true });
   }
 }
 
