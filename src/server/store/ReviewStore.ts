@@ -1,3 +1,5 @@
+import type { Verdict } from "../../shared/api/apiRequestSchemas";
+import type { ThreadsSnapshot } from "../../shared/api/apiResponseSchemas";
 import type { Anchor } from "../../shared/review/anchorSchema";
 import { documentPathSchema } from "../../shared/review/anchorSchema";
 import type { DocumentThreadsFile } from "../../shared/review/documentThreadsFileSchema";
@@ -32,18 +34,6 @@ import {
   writeDraft,
 } from "./threadTransitions";
 import { toReviewState } from "./toReviewState";
-
-export type Verdict = "request-changes" | "approve";
-
-export interface ThreadsSnapshot {
-  review: ReviewState;
-  threads: Thread[];
-
-  /**
-   * Store files that could not be read, and so were left out
-   */
-  problems: string[];
-}
 
 export interface SubmitResult {
   review: ReviewState;

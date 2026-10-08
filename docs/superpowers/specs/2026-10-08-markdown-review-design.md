@@ -122,8 +122,8 @@ Sharing `markdown-config` and `blocks` between server and browser lets both side
   - File missing, process dead, health failing, or a different root: start a new server.
   - Older protocol: ask it to shut down (`POST /api/shutdown`), wait for the port to free, start the current version.
   - Newer protocol: leave it running and exit non-zero, with a `next_step` telling the agent to run the newer version.
-- Starting a server happens under `.markdown-review/server.lock`, created exclusively and holding the CLI's pid. The CLI holding the lock re-checks health, starts the server detached with its output going to `.markdown-review/server.log`, waits for health, then removes the lock. A CLI that finds the lock waits for it to go, then re-checks health. A lock whose pid is dead is removed.
-- The server shuts itself down after 30 minutes with no browser connected (SSE) and no poll waiting.
+- Starting a server happens under `.markdown-review/server.lock`, created exclusively and holding the CLI's pid. The CLI holding the lock re-checks health, starts the server detached (as `markdown-review serve --root <root>`) with its output going to `.markdown-review/server.log`, waits for health, then removes the lock. A CLI that finds the lock waits for it to go, then re-checks health. A lock whose pid is dead is removed.
+- The server shuts itself down after 30 minutes with no browser connected (SSE), no poll waiting and no request.
 
 ## 6. Storage and data model
 
@@ -410,7 +410,7 @@ All routes are under `/api` except static assets, the app shell and repo files.
 | `POST /api/agent/open` | CLI | `{ path? }`: set `requestedAt`; navigate a connected tab if there is one; return `{ url, navigated }` |
 | `GET /api/documents` | browser | Docs with draft or open threads (with counts) plus recently opened docs |
 | `GET /api/document?path=` | browser | `{ path, source, hash }`, or 404 with doc-missing |
-| `GET /api/threads?document=` / `?all=1` | browser | `{ review: { requestedAt, approvedAt }, threads }`: threads for one doc plus review threads, or all threads |
+| `GET /api/threads?document=` / `?all=1` | browser | `{ review: { requestedAt, approvedAt, approved }, threads, problems }`: threads for one doc plus review threads, or all threads, and any store files that could not be read |
 | `POST /api/threads` | browser | Create a draft thread `{ anchor, body, renderedHash? }` |
 | `PUT /api/threads/:id/draft` | browser | Write the thread's draft `{ body }`: creates a draft reply, or edits a draft comment or reply |
 | `DELETE /api/threads/:id/draft` | browser | Delete the thread's draft (on a draft thread, deletes the thread) |
@@ -418,8 +418,8 @@ All routes are under `/api` except static assets, the app shell and repo files.
 | `POST /api/submit` | browser | Submit all drafts, with `verdict` of `"request-changes"` or `"approve"` |
 | `GET /api/inbox?document=` | CLI | Approval state and threads needing the agent |
 | `GET /api/poll?document=&timeout=` | CLI | Waiting variant of inbox |
-| `POST /api/agent/threads/:id/reply` | CLI | Agent reply |
-| `POST /api/agent/threads/:id/resolve` | CLI | Agent resolve |
+| `POST /api/agent/threads/:id/reply` | CLI | Agent reply; returns `{ thread, inbox }` so the CLI can say what is left |
+| `POST /api/agent/threads/:id/resolve` | CLI | Agent resolve; returns `{ thread, inbox }` |
 | `GET /api/events` | browser | SSE stream (`hono/streaming` `streamSSE`): `document-changed`, `threads-changed`, `presence`, `navigate` |
 | `GET /files/*` | browser | Raw repo files (images and other linked files), confined to root and sandboxed (section 13) |
 | `GET /*` | browser | App shell (built React app) |
@@ -511,7 +511,7 @@ Comments are instructions to an agent that has a shell, so the comment channel i
 
 - Listen on `127.0.0.1` only.
 - Check the `Host` header on every request against `127.0.0.1:<port>` and `localhost:<port>` (blocks DNS rebinding).
-- Browser routes (mutations) require an `Origin` header equal to the server's own origin.
+- Browser routes (mutations) require an `Origin` header equal to the server's own origin and `Content-Type: application/json`, which an HTML form on another page cannot send.
 - Agent routes (`/api/agent/*`, `/api/poll`, `/api/inbox`, `/api/shutdown`) require `Authorization: Bearer <token>` with the token from `server.json`, and reject any request that carries an `Origin` header. A web page cannot read `server.json`, so it cannot act as the agent, including through a no-cors GET, which browsers send without an `Origin` header. Because `server.json` has file mode 0600, other local users are kept out too.
 - File serving resolves real paths and rejects anything outside the root, including via `..` or symlinks. Every `/files/*` response carries `Content-Security-Policy: sandbox` and `X-Content-Type-Options: nosniff`, so a linked `.html` or `.svg` file cannot run script on the server's origin, where it could otherwise post comments.
 - The app shell is served with a Content Security Policy that allows scripts only from its own origin.
