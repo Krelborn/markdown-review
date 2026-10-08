@@ -226,6 +226,30 @@ describe("ReviewStore", () => {
     expect(await readFile(invalidPath, "utf8")).toBe("{ broken");
   });
 
+  test("must renumber the later of two threads that share an ID when the duplicate arrives while the store runs", async () => {
+    const { advanceClock, entries, root, store } = await setUpLoadedTest();
+    await store.createDraftThread({ anchor: { kind: "review" }, body: "Overall?" });
+    advanceClock();
+    const pulled = buildThread({
+      anchor: { document: "docs/plan.md", kind: "document" },
+      createdAt: new Date().toISOString(),
+      id: 1,
+    });
+    await writeJson(path.join(root, ".markdown-review", "documents", "docs", "plan.md.json"), {
+      document: "docs/plan.md",
+      sourceHash: null,
+      threads: [pulled],
+      version: 1,
+    });
+
+    const snapshot = await store.readThreads(null);
+
+    expect(snapshot.threads.map((thread) => thread.id)).toEqual([1, 2]);
+    expect(entries).toEqual([
+      { level: "info", message: "Thread #1 in docs/plan.md was renumbered to #2 because its ID was taken" },
+    ]);
+  });
+
   test("must renumber the later of two threads that share an ID and log it when the store is initialized", async () => {
     const { entries, root, store } = setUpTest();
     const shared = buildThread({ createdAt: "2026-10-08T08:00:00.000Z", id: 1 });

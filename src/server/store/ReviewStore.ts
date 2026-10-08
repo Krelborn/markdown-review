@@ -75,20 +75,8 @@ export class ReviewStore {
   public initialize(): Promise<void> {
     return this.queue.enqueue(async () => {
       await this.files.ensureStoreDirectory();
-      const { files, problems } = await this.readAllStoredThreads();
+      const { problems } = await this.readAllStoredThreads();
       problems.forEach((problem) => this.logger.warn(problem));
-      const { files: renumbered, renumberings } = renumberDuplicateThreads(files);
-      const changedDocuments = new Set(renumberings.map(({ document }) => document));
-      for (const { document, threads } of renumbered) {
-        if (changedDocuments.has(document)) {
-          await this.replaceThreads(document, threads);
-        }
-      }
-      for (const { document, from, to } of renumberings) {
-        this.logger.info(
-          `Thread #${from} in ${document ?? "the review"} was renumbered to #${to} because its ID was taken`
-        );
-      }
     });
   }
 
@@ -249,6 +237,7 @@ export class ReviewStore {
       document === null
         ? await this.files.listDocuments()
         : [parseStoreInput(documentPathSchema, document, "The doc path")];
+    await this.readAllStoredThreads();
     const problems: string[] = [];
     const review = await this.readReviewFileOrReport(problems);
     const threads = [...review.threads];
@@ -318,7 +307,28 @@ export class ReviewStore {
     return Math.max(0, ...files.flatMap((file) => file.threads.map((thread) => thread.id))) + 1;
   }
 
+  /**
+   * Reads the threads of every readable store file, first giving threads that share an ID, after a merge or a pull,
+   * unique IDs, so an ID always names one thread
+   */
   private async readAllStoredThreads(): Promise<{ files: StoredThreads[]; problems: string[] }> {
+    const { files, problems } = await this.readStoredThreadFiles();
+    const { files: renumbered, renumberings } = renumberDuplicateThreads(files);
+    const changedDocuments = new Set(renumberings.map(({ document }) => document));
+    for (const { document, threads } of renumbered) {
+      if (changedDocuments.has(document)) {
+        await this.replaceThreads(document, threads);
+      }
+    }
+    for (const { document, from, to } of renumberings) {
+      this.logger.info(
+        `Thread #${from} in ${document ?? "the review"} was renumbered to #${to} because its ID was taken`
+      );
+    }
+    return { files: renumbered, problems };
+  }
+
+  private async readStoredThreadFiles(): Promise<{ files: StoredThreads[]; problems: string[] }> {
     const files: StoredThreads[] = [];
     const problems: string[] = [];
     const review = await this.files.readReviewFile();
