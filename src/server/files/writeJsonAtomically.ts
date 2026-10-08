@@ -7,11 +7,12 @@ import path from "node:path";
  *
  * @param filePath the file to write; missing parent directories are created
  * @param value the value to serialise
+ * @param mode the file's permissions, e.g. 0o600 to keep other users out; the platform default when omitted
  */
-export async function writeJsonAtomically(filePath: string, value: unknown): Promise<void> {
+export async function writeJsonAtomically(filePath: string, value: unknown, mode?: number): Promise<void> {
   const contents = `${JSON.stringify(value, null, 2)}\n`;
   await mkdir(path.dirname(filePath), { recursive: true });
   const temporaryPath = `${filePath}.${randomUUID()}.tmp`;
-  await writeFile(temporaryPath, contents, "utf8");
+  await writeFile(temporaryPath, contents, { encoding: "utf8", mode });
   await rename(temporaryPath, filePath);
 }

@@ -1,4 +1,4 @@
-import { open, readdir, readFile, writeFile } from "node:fs/promises";
+import { open, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 
@@ -48,5 +48,13 @@ describe("writeJsonAtomically", () => {
 
     expect(await readFile(filePath, "utf8")).toBe("old");
     expect(await readdir(getDirectory())).toEqual(["value.json"]);
+  });
+
+  test("must give the file the requested permissions when a mode is passed", async () => {
+    const filePath = path.join(getDirectory(), "secret.json");
+
+    await writeJsonAtomically(filePath, { token: "abc" }, 0o600);
+
+    expect((await stat(filePath)).mode & 0o777).toBe(0o600);
   });
 });
