@@ -20,6 +20,22 @@ export function requireLocalHost(port: () => number): MiddlewareHandler {
 }
 
 /**
+ * Refuses requests a browser sends from a page on another site, so such a page can neither read the review nor connect
+ * to the event stream as if it were a review tab
+ *
+ * @param port the port the server listens on
+ */
+export function refuseOtherOrigins(port: () => number): MiddlewareHandler {
+  return async (context, next) => {
+    const origin = context.req.header("origin");
+    if (origin !== undefined && !ownOrigins(port()).includes(origin)) {
+      throw new HttpError(403, "forbidden", "Requests must come from this server's own pages");
+    }
+    await next();
+  };
+}
+
+/**
  * Lets only the CLI through: the request must carry the server's token and no Origin header, which browsers add
  *
  * @param token the secret from `server.json`
@@ -47,8 +63,7 @@ export function requireBrowserOrigin(port: () => number): MiddlewareHandler {
       await next();
       return;
     }
-    const allowedOrigins = [`http://127.0.0.1:${port()}`, `http://localhost:${port()}`];
-    if (!allowedOrigins.includes(context.req.header("origin") ?? "")) {
+    if (!ownOrigins(port()).includes(context.req.header("origin") ?? "")) {
       throw new HttpError(403, "forbidden", "Changes must come from this server's own pages");
     }
     if (!(context.req.header("content-type") ?? "").startsWith("application/json")) {
@@ -56,6 +71,10 @@ export function requireBrowserOrigin(port: () => number): MiddlewareHandler {
     }
     await next();
   };
+}
+
+function ownOrigins(port: number): string[] {
+  return [`http://127.0.0.1:${port}`, `http://localhost:${port}`];
 }
 
 function isExpectedToken(authorization: string | undefined, token: string): boolean {

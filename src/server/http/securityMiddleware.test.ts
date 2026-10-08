@@ -45,6 +45,34 @@ describe("securityMiddleware", () => {
     expect(response.status).toBe(403);
   });
 
+  test.each(["/", "/api/threads?all=1", "/files/docs/plan.md"])(
+    "must refuse a page on another site when it requests %s",
+    async (url) => {
+      const { request } = await setUpTest();
+
+      const response = await request("GET", url, { origin: "http://evil.example" });
+
+      expect(response.status).toBe(403);
+    }
+  );
+
+  test("must not count a page on another site as a review tab when it opens the event stream", async () => {
+    const { request, tabs } = await setUpTest();
+
+    const response = await request("GET", "/api/events", { origin: "http://evil.example" });
+
+    expect(response.status).toBe(403);
+    expect(tabs.navigateLatest("/")).toBe(false);
+  });
+
+  test("must answer the server's own page when it was opened on localhost", async () => {
+    const { request } = await setUpTest();
+
+    const response = await request("GET", "/api/threads?all=1", { origin: `http://localhost:${testPort}` });
+
+    expect(response.status).toBe(200);
+  });
+
   test("must refuse a browser change when it is not sent as JSON, as an HTML form would send it", async () => {
     const { request } = await setUpTest();
 

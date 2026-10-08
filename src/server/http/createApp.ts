@@ -11,7 +11,7 @@ import { registerFileRoutes } from "./fileRoutes";
 import { registerHealthRoutes } from "./healthRoutes";
 import { HttpError } from "./HttpError";
 import { registerPollRoutes } from "./pollRoutes";
-import { requireAgentToken, requireBrowserOrigin, requireLocalHost } from "./securityMiddleware";
+import { refuseOtherOrigins, requireAgentToken, requireBrowserOrigin, requireLocalHost } from "./securityMiddleware";
 import { registerShellRoutes } from "./shellRoutes";
 
 const statusForStoreError = {
@@ -32,6 +32,7 @@ export function createApp(dependencies: AppDependencies): Hono {
   const { activity, logger, port, token } = dependencies;
   const app = new Hono();
   app.use("*", requireLocalHost(port));
+  app.use("*", refuseOtherOrigins(port));
   app.use("*", async (_context, next) => {
     activity.touch();
     await next();
