@@ -1,0 +1,9 @@
+.topBar {
+  border-block-end: var(--sui-border-width) solid var(--sui-color-border);
+  padding: var(--sui-space-2) var(--sui-space-4);
+}
+
+.path {
+  font-family: var(--sui-font-mono);
+  overflow-wrap: anywhere;
+}
