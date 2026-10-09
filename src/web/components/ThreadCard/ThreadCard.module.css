@@ -9,6 +9,12 @@
   --sui-card-shadow: inset 3px 0 0 var(--sui-color-primary);
 }
 
+/* The ring marks the one editor that is open */
+.editing {
+  --sui-card-border: var(--sui-color-primary);
+  --sui-card-shadow: 0 0 0 3px var(--sui-color-primary-subtle);
+}
+
 .location {
   background: none;
   border: none;

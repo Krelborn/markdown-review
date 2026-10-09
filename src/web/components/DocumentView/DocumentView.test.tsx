@@ -75,16 +75,6 @@ describe("DocumentView", () => {
     );
   });
 
-  test("must start a comment on the whole doc when the user asks to", async () => {
-    const { onComment, render } = setUpTest();
-    const user = userEvent.setup();
-    await render();
-
-    await user.click(screen.getByRole("button", { name: "Comment on this doc" }));
-
-    expect(onComment).toHaveBeenCalledWith({ anchor: { document: "docs/plan.md", kind: "document" } });
-  });
-
   test("must highlight open and draft passages, and the selected thread's apart, but not resolved or outdated ones", async () => {
     const { render } = setUpTest({
       selectedThreadId: 2,
@@ -136,17 +126,6 @@ describe("DocumentView", () => {
     await user.click(within(elements.article()).getByRole("link", { name: "spec" }));
 
     expect(onNavigate).toHaveBeenCalledWith("/document/docs/spec.md#goals");
-  });
-
-  test("must still offer a comment on the whole doc when the doc is empty", async () => {
-    const { onComment, render } = setUpTest();
-    const user = userEvent.setup();
-    await render({ ...plan, source: "" });
-
-    await user.click(screen.getByRole("button", { name: "Comment on this doc" }));
-
-    expect(elements.article()).toBeEmptyDOMElement();
-    expect(onComment).toHaveBeenCalledWith({ anchor: { document: "docs/plan.md", kind: "document" } });
   });
 
   test("must stop offering Comment when the user selects text outside the doc", async () => {

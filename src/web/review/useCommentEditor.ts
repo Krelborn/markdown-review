@@ -18,7 +18,7 @@ interface CommentEditorOptions {
   threads: readonly Thread[];
 }
 
-interface CommentEditor {
+export interface CommentEditor {
   /**
    * The open editor's text
    */

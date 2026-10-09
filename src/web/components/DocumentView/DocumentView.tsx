@@ -1,4 +1,4 @@
-import { Alert, Button, Prose, Stack } from "@krelborn/stylesui";
+import { Alert, Prose, Stack } from "@krelborn/stylesui";
 import type { JSX } from "react";
 import { useMemo, useRef } from "react";
 
@@ -28,7 +28,7 @@ export interface DocumentViewProps {
   hash: string;
 
   /**
-   * Called when the user starts a comment on a passage, a block or the whole doc
+   * Called when the user starts a comment on a passage or a block
    */
   onComment: (newComment: NewComment) => void;
 
@@ -90,14 +90,6 @@ export function DocumentView({
   useMermaidDiagrams(contentRef, rendered);
   return (
     <Stack gap={3}>
-      <Button
-        className={styles.documentButton}
-        onClick={() => onComment({ anchor: { document: shown.path, kind: "document" } })}
-        size="sm"
-        variant="ghost"
-      >
-        Comment on this doc
-      </Button>
       {error !== null && (
         <Alert role="alert" title="The doc could not be shown" tone="danger">
           {error}

@@ -113,7 +113,7 @@ describe("App", () => {
     expect(screen.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
   });
 
-  test("must keep the user's unsent reply when the agent resolves the thread", async () => {
+  test("must keep the user's unsent reply in view when the agent resolves the thread", async () => {
     const { fake, render } = setUpTest();
     const user = userEvent.setup();
     await render();
@@ -121,9 +121,9 @@ describe("App", () => {
 
     fake.snapshot.threads[0] = { ...planThread, status: "resolved" };
     fake.emit({ type: "threads-changed" });
-    const resolved = within(await screen.findByRole("region", { name: "Resolved" }));
-    await user.click(resolved.getByRole("heading", { name: "Resolved 1" }));
 
+    const resolved = within(await screen.findByRole("region", { name: "Resolved" }));
+    expect(resolved.getByRole("textbox", { name: "Reply" })).toBeVisible();
     expect(resolved.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
   });
 
@@ -226,7 +226,7 @@ describe("App", () => {
     selectText(elements.article().getByText("Retries happen three times."), "Retries".length);
     await user.click(await screen.findByRole("button", { name: "Comment" }));
     await user.keyboard("Three is too many");
-    await user.click(screen.getByRole("button", { name: "Save draft" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
 
     const drafts = within(await screen.findByRole("region", { name: "Drafts" }));
     expect(drafts.getByRole("article", { name: "Thread #1" })).toHaveTextContent("Retries");
@@ -244,12 +244,14 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "docs/spec.md" })).toBeInTheDocument();
   });
 
-  test("must open the comments when the user starts a comment on the doc", async () => {
+  test("must open the comments when the user starts a comment in the doc", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
     await render();
+    await elements.article().findByText("Retries happen three times.");
 
-    await user.click(await screen.findByRole("button", { name: "Comment on this doc" }));
+    selectText(elements.article().getByText("Retries happen three times."), "Retries".length);
+    await user.click(await screen.findByRole("button", { name: "Comment" }));
 
     expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "true");
   });
@@ -350,7 +352,7 @@ function setUpTest({
         <App />
       </ReviewApiContext>
     );
-    await screen.findByRole("textbox", { name: "Comment on the whole review" });
+    await screen.findByRole("complementary", { name: "Comments" });
   };
   return { documents, fake, render };
 }

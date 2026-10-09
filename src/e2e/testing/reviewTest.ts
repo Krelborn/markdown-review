@@ -124,7 +124,7 @@ export async function writeDraftComment(page: Page, from: string, through: strin
   await selectText(page, from, through);
   await page.getByRole("button", { exact: true, name: "Comment" }).click();
   await page.keyboard.type(body);
-  await page.getByRole("button", { name: "Save draft" }).click();
+  await page.getByRole("region", { name: "New comment" }).getByRole("button", { exact: true, name: "Save" }).click();
   await expect(page.getByRole("region", { name: "Drafts" })).toBeVisible();
 }
 

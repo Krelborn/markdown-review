@@ -1,46 +1,63 @@
-import { Card, Stack } from "@krelborn/stylesui";
+import { Card, Cluster, Stack, Text } from "@krelborn/stylesui";
 import type { JSX } from "react";
 
-import { useReviewApi } from "../../api/useReviewApi";
 import type { NewComment } from "../../review/NewComment";
 import { CommentForm } from "../CommentForm/CommentForm";
 import { Quote } from "../Quote/Quote";
 
-export interface NewCommentFormProps {
-  newComment: NewComment;
-  onChanged: () => void;
+import styles from "./NewCommentForm.module.css";
 
+export interface NewCommentFormProps {
   /**
-   * Called when the user saves or cancels the comment
+   * The doc on screen, or null on the docs list
    */
-  onClose: () => void;
+  documentPath: string | null;
+
+  newComment: NewComment;
 }
 
 /**
- * Asks the user to write the comment they started in the doc, and saves it as a draft
+ * The composer for a comment the user has started: what it is on, and the editor
  */
-export function NewCommentForm({ newComment, onChanged, onClose }: NewCommentFormProps): JSX.Element {
-  const api = useReviewApi();
-  const { anchor } = newComment;
-  const save = async (body: string): Promise<void> => {
-    await api.createThread({ ...newComment, body });
-    onChanged();
-    onClose();
-  };
+export function NewCommentForm({ documentPath, newComment: { anchor } }: NewCommentFormProps): JSX.Element {
+  const location = locationOf(anchor, documentPath);
   return (
-    <Card as="section" padding="sm" aria-label="New comment">
+    <Card as="section" className={styles.composer} padding="sm" aria-label="New comment">
       <Stack gap={2}>
-        {anchor.kind === "passage" && <Quote text={anchor.quote} />}
-        <CommentForm
-          clearOnSubmit={false}
-          initialBody=""
-          label={anchor.kind === "document" ? "Comment on the whole doc" : "Comment"}
-          onCancel={onClose}
-          onSubmit={save}
-          shouldFocus={true}
-          submitLabel="Save draft"
-        />
+        <Cluster gap={2} justify="between">
+          <Text size="sm" weight="bold">
+            New comment
+          </Text>
+          {location !== null && (
+            <Text size="sm" tone="muted">
+              {location}
+            </Text>
+          )}
+        </Cluster>
+        {anchor.kind === "passage" && <Quote isPending={true} text={anchor.quote} />}
+        <CommentForm label={labelOf(anchor)} />
       </Stack>
     </Card>
   );
+}
+
+function locationOf(anchor: NewComment["anchor"], documentPath: string | null): string | null {
+  if (anchor.kind === "review") {
+    return "Whole review";
+  }
+  if (anchor.document !== documentPath) {
+    return anchor.document;
+  }
+  return anchor.kind === "document" ? "Whole doc" : null;
+}
+
+function labelOf(anchor: NewComment["anchor"]): string {
+  switch (anchor.kind) {
+    case "review":
+      return "Comment on the whole review";
+    case "document":
+      return "Comment on the whole doc";
+    case "passage":
+      return "Comment";
+  }
 }

@@ -5,7 +5,7 @@ import { describe, expect, test, vi } from "vitest";
 import { buildPassageAnchor, buildThread, testTime } from "../../../shared/review/testing/reviewBuilders";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { ReviewApiContext } from "../../api/ReviewApiContext";
-import type { NewComment } from "../../review/NewComment";
+import { CommentEditorHarness } from "../../testing/CommentEditorHarness";
 import { createFakeReviewApi } from "../../testing/createFakeReviewApi";
 
 import { ThreadSidebar } from "./ThreadSidebar";
@@ -64,48 +64,69 @@ describe("ThreadSidebar", () => {
     expect(elements.threadsIn("Open")).toEqual(["Thread #5", "Thread #2", "Thread #6"]);
   });
 
-  test("must save the user's comment on the whole review as a draft when the user adds one", async () => {
-    const { fake, onChanged, render } = setUpTest({ threads: [] });
+  test("must save a comment on the whole review as a draft when the user starts one from + Comment", async () => {
+    const { fake, render } = setUpTest({ threads: [] });
     const user = userEvent.setup();
     render();
 
-    await user.type(
-      screen.getByRole("textbox", { name: "Comment on the whole review" }),
-      "The spec and plan disagree."
-    );
-    await user.click(screen.getByRole("button", { name: "Add comment" }));
+    await user.click(screen.getByRole("button", { name: "+ Comment" }));
+    await user.click(screen.getByRole("button", { name: "On the whole review" }));
+    await user.keyboard("The spec and plan disagree.");
+    await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(fake.snapshot.threads).toMatchObject([
-      { anchor: { kind: "review" }, draft: { body: "The spec and plan disagree." } },
+      { anchor: { kind: "review" }, draft: { body: "The spec and plan disagree." }, status: "draft" },
     ]);
-    expect(onChanged).toHaveBeenCalled();
-    expect(screen.getByRole("textbox", { name: "Comment on the whole review" })).toHaveValue("");
+    expect(screen.queryByRole("region", { name: "New comment" })).not.toBeInTheDocument();
   });
 
-  test("must ask for the comment with the text box ready when the user starts one in the doc", async () => {
-    const newComment: NewComment = {
-      anchor: {
-        document: "docs/plan.md",
-        endOffset: 29,
-        kind: "passage",
-        prefix: "",
-        quote: "cache results for 24h",
-        startOffset: 8,
-        suffix: "",
-      },
-      renderedHash: "hash of docs/plan.md",
-    };
-    const { fake, onCloseNewComment, render } = setUpTest({ newComment, threads: [] });
+  test("must start a comment on the whole doc, with its text box ready, when the user picks On this doc", async () => {
+    const { render } = setUpTest({ threads: [] });
     const user = userEvent.setup();
     render();
 
-    await user.keyboard("Too long?");
-    await user.click(screen.getByRole("button", { name: "Save draft" }));
+    await user.click(screen.getByRole("button", { name: "+ Comment" }));
+    await user.click(screen.getByRole("button", { name: "On this doc" }));
 
-    expect(fake.snapshot.threads).toMatchObject([
-      { anchor: { quote: "cache results for 24h", startLine: 3 }, draft: { body: "Too long?" }, status: "draft" },
-    ]);
-    expect(onCloseNewComment).toHaveBeenCalled();
+    const composer = within(screen.getByRole("region", { name: "New comment" }));
+    expect(composer.getByText("Whole doc")).toBeInTheDocument();
+    expect(composer.getByRole("textbox", { name: "Comment on the whole doc" })).toHaveFocus();
+  });
+
+  test("must start a comment on the whole review straight away when the docs list is on screen", async () => {
+    const { render } = setUpTest({ documentPath: null, threads: [] });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(screen.getByRole("button", { name: "+ Review comment" }));
+
+    expect(screen.getByRole("textbox", { name: "Comment on the whole review" })).toHaveFocus();
+  });
+
+  test("must close the composer without saving when the user cancels it", async () => {
+    const { fake, render } = setUpTest({ threads: [] });
+    const user = userEvent.setup();
+    render();
+    await user.click(screen.getByRole("button", { name: "+ Comment" }));
+    await user.click(screen.getByRole("button", { name: "On the whole review" }));
+    await user.keyboard("Never mind");
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("region", { name: "New comment" })).not.toBeInTheDocument();
+    expect(fake.snapshot.threads).toEqual([]);
+  });
+
+  test("must keep one editor open when the user starts a reply while editing a draft", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+
+    await user.click(within(elements.thread(1)).getByRole("button", { name: "Edit" }));
+    await user.click(within(elements.thread(2)).getByRole("button", { name: "Reply" }));
+
+    expect(screen.getAllByRole("textbox")).toHaveLength(1);
+    expect(within(elements.thread(2)).getByRole("textbox", { name: "Reply" })).toBeInTheDocument();
   });
 
   test("must stop marking the agent's reply as new when the user selects its thread", async () => {
@@ -117,7 +138,7 @@ describe("ThreadSidebar", () => {
     const { onSelectThread, render } = setUpTest({ threads: [replied] });
     const user = userEvent.setup();
     render();
-    const card = within(screen.getByRole("article", { name: "Thread #2" }));
+    const card = within(elements.thread(2));
     const wasNew = card.queryByText("New reply") !== null;
 
     await user.click(card.getByRole("button", { name: "#2 Line 3" }));
@@ -139,34 +160,37 @@ describe("ThreadSidebar", () => {
 });
 
 function setUpTest({
-  newComment = null,
+  documentPath = "docs/plan.md",
   threads: shown = threads,
-}: { newComment?: NewComment | null; threads?: Thread[] } = {}) {
+}: { documentPath?: string | null; threads?: Thread[] } = {}) {
   localStorage.clear();
   const fake = createFakeReviewApi({ threads: shown });
   const onChanged = vi.fn();
-  const onCloseNewComment = vi.fn();
   const onSelectThread = vi.fn();
   const render = (): void => {
     renderBase(
       <ReviewApiContext value={fake.api}>
-        <ThreadSidebar
-          documentPath="docs/plan.md"
-          newComment={newComment}
-          onChanged={onChanged}
-          onCloseNewComment={onCloseNewComment}
-          onSelectThread={onSelectThread}
-          selectedThreadId={null}
-          threads={shown}
-        />
+        <CommentEditorHarness onChanged={onChanged} threads={shown}>
+          {(editor) => (
+            <ThreadSidebar
+              documentPath={documentPath}
+              editor={editor}
+              onChanged={onChanged}
+              onSelectThread={onSelectThread}
+              selectedThreadId={null}
+              threads={shown}
+            />
+          )}
+        </CommentEditorHarness>
       </ReviewApiContext>
     );
   };
-  return { fake, onChanged, onCloseNewComment, onSelectThread, render };
+  return { fake, onChanged, onSelectThread, render };
 }
 
 const elements = {
   groupTitles: (): string[] => screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent),
+  thread: (id: number) => screen.getByRole("article", { name: `Thread #${id}` }),
   threadsIn: (group: string): string[] =>
     within(screen.getByRole("region", { name: group }))
       .getAllByRole("article")

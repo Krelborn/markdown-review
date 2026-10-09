@@ -1,14 +1,13 @@
-import { Segment, SegmentedControl, Stack, Text } from "@krelborn/stylesui";
+import { Counter, Segment, SegmentedControl, Stack, Text } from "@krelborn/stylesui";
 import type { JSX } from "react";
 import { useState } from "react";
 
 import type { Thread } from "../../../shared/review/threadSchema";
-import { useReviewApi } from "../../api/useReviewApi";
+import { CommentEditorContext } from "../../review/CommentEditorContext";
 import { groupThreads } from "../../review/groupThreads";
-import type { NewComment } from "../../review/NewComment";
-import { UnsentTextContext } from "../../review/UnsentTextContext";
+import type { CommentEditor } from "../../review/useCommentEditor";
 import { useSeenMessages } from "../../review/useSeenMessages";
-import { CommentForm } from "../CommentForm/CommentForm";
+import { CommentsHeader } from "../CommentsHeader/CommentsHeader";
 
 import { NewCommentForm } from "./NewCommentForm";
 import { ThreadGroup } from "./ThreadGroup";
@@ -20,19 +19,14 @@ export interface ThreadSidebarProps {
   documentPath: string | null;
 
   /**
-   * A comment the user started in the doc, which the sidebar asks them to write
+   * The page's comment editor, which the sidebar shows as the composer or inside the card of the thread it writes to
    */
-  newComment: NewComment | null;
+  editor: CommentEditor;
 
   /**
    * Called after the sidebar changes threads on the server
    */
   onChanged: () => void;
-
-  /**
-   * Called when the user saves or cancels the new comment
-   */
-  onCloseNewComment: () => void;
 
   /**
    * Called when the user asks to see a thread in its doc
@@ -48,22 +42,19 @@ export interface ThreadSidebarProps {
 }
 
 /**
- * The comments beside the doc: a box for commenting on the whole review, and the threads grouped as drafts, open,
- * outdated and resolved, for this doc or for every doc
+ * The comments beside the doc: a header that starts comments on the doc or the review, the composer while the user
+ * writes one, and the threads grouped as drafts, open, outdated and resolved, for this doc or for every doc
  */
 export function ThreadSidebar({
   documentPath,
-  newComment,
+  editor,
   onChanged,
-  onCloseNewComment,
   onSelectThread,
   selectedThreadId,
   threads,
 }: ThreadSidebarProps): JSX.Element {
-  const api = useReviewApi();
   const seen = useSeenMessages();
   const [scope, setScope] = useState("document");
-  const [unsentText] = useState(() => new Map<string, string>());
   const showsEveryDocument = documentPath === null || scope === "all";
   const visible = showsEveryDocument
     ? threads
@@ -79,29 +70,25 @@ export function ThreadSidebar({
     selectedThreadId,
     showsDocuments: showsEveryDocument,
   };
-  const commentOnReview = async (body: string): Promise<void> => {
-    await api.createThread({ anchor: { kind: "review" }, body });
-    onChanged();
-  };
   return (
-    <UnsentTextContext value={unsentText}>
+    <CommentEditorContext value={editor}>
       <Stack as="aside" gap={4} aria-label="Comments">
-        {newComment !== null && (
+        <CommentsHeader
+          documentPath={documentPath}
+          onComment={(comment) => editor.request({ comment, kind: "new" })}
+          title={
+            <Text weight="bold">
+              Comments <Counter count={visible.length} />
+            </Text>
+          }
+        />
+        {editor.newComment !== null && (
           <NewCommentForm
-            key={JSON.stringify(newComment.anchor)}
-            newComment={newComment}
-            onChanged={onChanged}
-            onClose={onCloseNewComment}
+            documentPath={documentPath}
+            key={JSON.stringify(editor.newComment.anchor)}
+            newComment={editor.newComment}
           />
         )}
-        <CommentForm
-          clearOnSubmit={true}
-          initialBody=""
-          label="Comment on the whole review"
-          onSubmit={commentOnReview}
-          shouldFocus={false}
-          submitLabel="Add comment"
-        />
         {documentPath !== null && (
           <SegmentedControl label="Show comments on" onValueChange={setScope} size="sm" value={scope}>
             <Segment value="document">This doc</Segment>
@@ -116,8 +103,13 @@ export function ThreadSidebar({
         <ThreadGroup isFolded={false} threads={groups.drafts} title="Drafts" {...listProps} />
         <ThreadGroup isFolded={false} threads={groups.open} title="Open" {...listProps} />
         <ThreadGroup isFolded={false} threads={groups.outdated} title="Outdated" {...listProps} />
-        <ThreadGroup isFolded={true} threads={groups.resolved} title="Resolved" {...listProps} />
+        <ThreadGroup
+          isFolded={!groups.resolved.some((thread) => thread.id === editor.editingThreadId)}
+          threads={groups.resolved}
+          title="Resolved"
+          {...listProps}
+        />
       </Stack>
-    </UnsentTextContext>
+    </CommentEditorContext>
   );
 }

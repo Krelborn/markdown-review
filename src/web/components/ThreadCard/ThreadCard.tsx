@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import type { Anchor } from "../../../shared/review/anchorSchema";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { describeLocation } from "../../review/describeLocation";
+import { useCommentEditorContext } from "../../review/useCommentEditorContext";
 import { Quote } from "../Quote/Quote";
 
 import { Message } from "./Message";
@@ -41,6 +42,7 @@ export function ThreadCard({
 }: ThreadCardProps): JSX.Element {
   const { anchor, id, messages } = thread;
   const cardRef = useRef<HTMLElement>(null);
+  const editor = useCommentEditorContext();
   useEffect(() => {
     if (isSelected) {
       cardRef.current?.scrollIntoView({ block: "nearest" });
@@ -49,7 +51,10 @@ export function ThreadCard({
   return (
     <Card
       as="article"
-      className={clsx(styles.card, { [styles.selected ?? ""]: isSelected })}
+      className={clsx(styles.card, {
+        [styles.editing ?? ""]: editor.editingThreadId === id,
+        [styles.selected ?? ""]: isSelected,
+      })}
       padding="sm"
       ref={cardRef}
       aria-label={`Thread #${id}`}

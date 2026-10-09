@@ -57,8 +57,10 @@ test("must keep the user's place in a long doc when the agent edits it", async (
 test("must keep Submit and its menu in full view when the comments outgrow their column", async ({ page, review }) => {
   await review.open("docs/plan.md");
   for (let count = 1; count <= 12; count++) {
-    await page.getByRole("textbox", { name: "Comment on the whole review" }).fill(`Note ${count}`);
-    await page.getByRole("button", { name: "Add comment" }).click();
+    await page.getByRole("button", { name: "+ Comment" }).click();
+    await page.getByRole("button", { name: "On the whole review" }).click();
+    await page.keyboard.type(`Note ${count}`);
+    await page.getByRole("button", { exact: true, name: "Save" }).click();
     await expect(page.getByRole("button", { exact: true, name: `Submit (${count})` })).toBeVisible();
   }
 
@@ -171,7 +173,7 @@ test("must open the comments at a new comment when the user starts one in a narr
   await commentsToggle(page).click();
 
   await expect(commentBox).toHaveValue("Why 24h?");
-  await page.getByRole("button", { name: "Save draft" }).click();
+  await page.getByRole("button", { exact: true, name: "Save" }).click();
   await expect(page.getByRole("button", { name: "Submit (1)" })).toBeInViewport();
 });
 

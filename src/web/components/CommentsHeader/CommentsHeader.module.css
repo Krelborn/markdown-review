@@ -1,0 +1,10 @@
+.header {
+  align-items: center;
+  display: flex;
+  gap: var(--sui-space-2);
+  justify-content: space-between;
+}
+
+.title {
+  min-inline-size: 0;
+}

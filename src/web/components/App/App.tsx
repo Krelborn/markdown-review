@@ -1,7 +1,7 @@
 import { IconButton, PageLayout, Theme } from "@krelborn/stylesui";
 import { clsx } from "clsx";
 import type { JSX } from "react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 
 import type { ReviewState } from "../../../shared/review/ReviewState";
 import type { Thread } from "../../../shared/review/threadSchema";
@@ -11,6 +11,7 @@ import { documentPathOf } from "../../navigation/documentPathOf";
 import { usePageLocation } from "../../navigation/usePageLocation";
 import { countDrafts } from "../../review/countDrafts";
 import type { NewComment } from "../../review/NewComment";
+import { useCommentEditor } from "../../review/useCommentEditor";
 import { useDocumentSource } from "../../review/useDocumentSource";
 import { useThreads } from "../../review/useThreads";
 import { useThreadSelection } from "../../review/useThreadSelection";
@@ -41,7 +42,6 @@ export function App(): JSX.Element {
   const threads = useThreads(api);
   const documentSource = useDocumentSource(api, documentPath);
   const selection = useThreadSelection(documentPath, navigate);
-  const [newComment, setNewComment] = useState<NewComment | null>(null);
   const { closeButtonRef, closePanel, isPanelOpen, openPanel, panelRef, panelToggleRef, togglePanel } =
     useCommentsPanel();
   const connection = useReviewEvents(api, {
@@ -65,8 +65,9 @@ export function App(): JSX.Element {
     () => allThreads.filter(({ anchor }) => anchor.kind !== "review" && anchor.document === documentPath),
     [allThreads, documentPath]
   );
+  const editor = useCommentEditor({ onChanged: threads.refresh, threads: allThreads });
   const startComment = (comment: NewComment): void => {
-    setNewComment(comment);
+    editor.request({ comment, kind: "new" });
     openPanel();
   };
   const selectThreadInDocument = (threadId: number): void => {
@@ -112,9 +113,8 @@ export function App(): JSX.Element {
             </div>
             <ThreadSidebar
               documentPath={documentPath}
-              newComment={newComment}
+              editor={editor}
               onChanged={threads.refresh}
-              onCloseNewComment={() => setNewComment(null)}
               onSelectThread={showThreadInDocument}
               selectedThreadId={selection.selectedThreadId}
               threads={allThreads}
