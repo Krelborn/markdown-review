@@ -6,6 +6,7 @@ import { offsetAtPoint } from "../../anchoring/offsetAtPoint";
 import { isPlainLeftClick } from "../../navigation/isPlainLeftClick";
 import { threadAtOffset } from "../../review/threadAtOffset";
 
+import { copyHeadingLink } from "./copyHeadingLink";
 import type { RenderedDocument } from "./useRenderedDocument";
 
 export interface DocumentClickHandlers {
@@ -34,6 +35,9 @@ export function useDocumentClicks(
       const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
       if (link !== null) {
         followLink(event, content, link.getAttribute("href") ?? "", onNavigate);
+        if (link.hasAttribute("data-heading-link")) {
+          copyHeadingLink(link);
+        }
         return;
       }
       const offset =

@@ -81,6 +81,25 @@
     center / contain no-repeat;
 }
 
+.content [data-heading-link] {
+  color: var(--sui-color-text-muted);
+  margin-inline-start: var(--sui-space-2);
+  opacity: 0;
+  text-decoration-line: none;
+  user-select: none;
+}
+
+.content :is(h1, h2, h3, h4, h5, h6):hover > [data-heading-link],
+.content [data-heading-link]:focus-visible,
+.content [data-heading-link][data-copied] {
+  opacity: 1;
+}
+
+.content [data-heading-link][data-copied]::after {
+  color: var(--sui-color-success-text);
+  content: " ✓";
+}
+
 .content ::highlight(markdown-review-threads) {
   background-color: color-mix(in srgb, var(--sui-color-warning) 30%, transparent);
   text-decoration-color: var(--sui-color-warning-text);

@@ -352,6 +352,30 @@ describe("DocumentView", () => {
     expect(onNavigate).toHaveBeenCalledWith("/document/docs/spec.md#goals");
   });
 
+  test("must copy the page's address, holding the heading, when the user clicks a heading's link", async () => {
+    onTestFinished(() => history.replaceState(null, "", "/"));
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(within(elements.article()).getByRole("link", { name: "Link to Goals" }));
+
+    expect(location.hash).toBe("#goals");
+    expect(await navigator.clipboard.readText()).toBe(location.href);
+  });
+
+  test("must still put the heading in the address when the browser refuses the copy", async () => {
+    onTestFinished(() => history.replaceState(null, "", "/"));
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new DOMException("Denied", "NotAllowedError"));
+
+    await user.click(within(elements.article()).getByRole("link", { name: "Link to Goals" }));
+
+    expect(location.hash).toBe("#goals");
+  });
+
   test("must stop offering Comment when the user selects text outside the doc", async () => {
     const { render } = setUpTest();
     await render();
@@ -518,11 +542,13 @@ function setUpTestWithScrollContainer({ passageTop }: { passageTop: number }) {
 }
 
 /**
- * Moves keyboard focus from the start of the page to the + beside the hovered block, past the doc's one link
+ * Moves keyboard focus from the start of the page to the + beside the hovered block, past each of the doc's links
  */
 async function tabToBlockButton(user: UserEvent): Promise<void> {
-  await user.tab();
-  await user.tab();
+  const linkCount = within(elements.article()).getAllByRole("link").length;
+  for (let tabCount = 0; tabCount <= linkCount; tabCount += 1) {
+    await user.tab();
+  }
 }
 
 function selectText(from: string, through: string): void {

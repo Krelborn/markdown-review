@@ -84,6 +84,26 @@ describe("renderDocument", () => {
       "notes-1",
     ]);
   });
+
+  test("must give each heading a link to itself that the walk of its text skips when the doc has headings", async () => {
+    const page = await renderPage("# Retry Policy\n\n## Notes\n");
+
+    const links = [...page.querySelectorAll("h1 > a, h2 > a")].map((link) => [
+      link.getAttribute("href"),
+      link.getAttribute("aria-label"),
+      link.hasAttribute("data-md-ignore"),
+    ]);
+    expect(links).toEqual([
+      ["#retry-policy", "Link to Retry Policy", true],
+      ["#notes", "Link to Notes", true],
+    ]);
+  });
+
+  test("must name a heading by its text alone when it has a link", async () => {
+    const page = await renderPage("# Retry `Policy`\n");
+
+    expect(page.querySelector("h1")?.getAttribute("aria-label")).toBe("Retry Policy");
+  });
 });
 
 async function renderPage(source: string): Promise<HTMLElement> {
