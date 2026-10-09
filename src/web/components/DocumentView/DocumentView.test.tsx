@@ -291,6 +291,33 @@ describe("DocumentView", () => {
     await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
   });
 
+  test("must report no hovered thread when the last highlighted thread goes away while the pointer is on it", async () => {
+    const { onHoverThread, render, rerender } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+
+    await rerender(plan, { threads: [] });
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
+  test("must not look for a highlight under the pointer when the doc has no highlighted threads", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    const caretPositionFromPoint = vi.fn();
+    Object.assign(document, { caretPositionFromPoint });
+    await render();
+
+    await user.hover(within(elements.article()).getByText("We cache results for", { exact: false }));
+    await new Promise(requestAnimationFrame);
+
+    expect(caretPositionFromPoint).not.toHaveBeenCalled();
+  });
+
   test("must emphasise the passage of the thread the user points at in the comments", async () => {
     const { render } = setUpTest({
       hoveredThreadId: 1,
@@ -487,7 +514,7 @@ function setUpTest({
   const onHoverThread = vi.fn();
   const onNavigate = vi.fn();
   const onSelectThread = vi.fn();
-  const view = (shown: DocumentSource, shownSelectedThreadId: number | null) => (
+  const view = (shown: DocumentSource, shownSelectedThreadId: number | null, shownThreads: Thread[]) => (
     <HoveredThreadContext value={{ hoveredThreadId, onHoverThread }}>
       <DocumentView
         document={shown}
@@ -498,22 +525,25 @@ function setUpTest({
         pendingPassage={pendingPassage}
         revealCount={0}
         selectedThreadId={shownSelectedThreadId}
-        threads={threads}
+        threads={shownThreads}
       />
     </HoveredThreadContext>
   );
   let rerenderBase: (ui: ReturnType<typeof view>) => void = () => {};
   const render = async (shown = plan): Promise<void> => {
-    rerenderBase = renderBase(view(shown, selectedThreadId), { container }).rerender;
+    rerenderBase = renderBase(view(shown, selectedThreadId, threads), { container }).rerender;
     if (shown.source !== "") {
       await within(elements.article()).findByRole("heading", { level: 1, name: "Plan" });
     }
   };
   const rerender = async (
     shown: DocumentSource,
-    { selectedThreadId: rerenderedSelectedThreadId = selectedThreadId }: { selectedThreadId?: number | null } = {}
+    {
+      selectedThreadId: rerenderedSelectedThreadId = selectedThreadId,
+      threads: rerenderedThreads = threads,
+    }: { selectedThreadId?: number | null; threads?: Thread[] } = {}
   ): Promise<void> => {
-    rerenderBase(view(shown, rerenderedSelectedThreadId));
+    rerenderBase(view(shown, rerenderedSelectedThreadId, rerenderedThreads));
     await within(elements.article()).findByRole("heading", { level: 1, name: "Plan" });
   };
   return { onComment, onHoverThread, onNavigate, onSelectThread, render, rerender };

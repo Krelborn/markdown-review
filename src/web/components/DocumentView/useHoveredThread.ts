@@ -37,6 +37,11 @@ export function useHoveredThread(
         onHoverThread(threadId);
       }
     };
+    if (highlightedThreads.length === 0) {
+      // With no highlights there is nothing to look up on each move, but a hover set before the last one went must end
+      report(null);
+      return;
+    }
     const move = ({ clientX, clientY }: PointerEvent): void => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
