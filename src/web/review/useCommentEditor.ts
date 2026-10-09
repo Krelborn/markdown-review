@@ -112,9 +112,9 @@ export interface CommentEditor {
   questionRevision: number;
 
   /**
-   * Asks for an editor on the target. It opens at once when the open editor holds nothing unsaved, and takes focus
-   * when it is the open editor. Otherwise it waits while the open editor asks what to do with its text, or while it
-   * saves.
+   * Asks for an editor on the target. It opens at once when the open editor holds nothing unsaved. When it is the open
+   * editor, that editor keeps its text, takes the target, which may carry the hash of a newer render of the doc, and
+   * takes focus. Otherwise it waits while the open editor asks what to do with its text, or while it saves.
    */
   request: (target: EditorTarget) => void;
 
@@ -276,7 +276,7 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
     questionRevision: state.questionRevision,
     request: (target) => {
       if (open !== null && isSameTarget(open.target, target)) {
-        show(open);
+        show({ ...open, target });
       } else if (hasUnsavedText || state.isSaving) {
         ask(target);
       } else {

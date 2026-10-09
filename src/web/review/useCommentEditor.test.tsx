@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 
 import { buildPassageAnchor, buildThread, testTime } from "../../shared/review/testing/reviewBuilders";
+import type { NewPassageAnchor } from "../../shared/review/newThreadSchema";
 import type { Thread } from "../../shared/review/threadSchema";
 import { ReviewApiContext } from "../api/ReviewApiContext";
 import { ReviewApiError } from "../api/ReviewApiError";
@@ -27,6 +28,16 @@ const openThread = buildThread({ anchor: buildPassageAnchor({ startOffset: 40 })
 const editDraft: EditorTarget = { kind: "thread", threadId: 1 };
 
 const reply: EditorTarget = { kind: "thread", threadId: 2 };
+
+const passage: NewPassageAnchor = {
+  document: "docs/plan.md",
+  endOffset: 29,
+  kind: "passage",
+  prefix: "",
+  quote: "cache results for 24h",
+  startOffset: 8,
+  suffix: "",
+};
 
 describe("useCommentEditor", () => {
   test("must open an empty editor with nothing unsaved when the user starts a new comment", () => {
@@ -524,6 +535,17 @@ describe("useCommentEditor", () => {
 
     expect(result.current.body).toBe("Hourly");
     expect(result.current.focusRevision).toBeGreaterThan(focusRevision);
+  });
+
+  test("must keep the text and take the newer render's hash when the user selects the same passage after the doc reloads", () => {
+    const { render } = setUpTest();
+    const { result } = render();
+    act(() => result.current.request({ comment: { anchor: passage, renderedHash: "hash-0" }, kind: "new" }));
+    act(() => result.current.changeBody("Why 24h?"));
+
+    act(() => result.current.request({ comment: { anchor: passage, renderedHash: "hash-1" }, kind: "new" }));
+
+    expect(result.current).toMatchObject({ body: "Why 24h?", newComment: { renderedHash: "hash-1" } });
   });
 
   test.each([
