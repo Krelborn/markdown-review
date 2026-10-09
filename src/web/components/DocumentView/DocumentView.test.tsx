@@ -233,6 +233,7 @@ function setUpTest({ hash = "", selectedThreadId = null, threads = [] }: SetUpOp
       onComment={onComment}
       onNavigate={onNavigate}
       onSelectThread={onSelectThread}
+      revealCount={0}
       selectedThreadId={selectedThreadId}
       threads={threads}
     />

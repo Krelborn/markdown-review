@@ -12,6 +12,12 @@ export interface DocumentPaneProps {
   onComment: (newComment: NewComment) => void;
   onNavigate: (pagePath: string) => void;
   onSelectThread: (threadId: number) => void;
+
+  /**
+   * Counts the user's requests to see the selected thread in its doc; each new one scrolls its passage into view
+   */
+  revealCount: number;
+
   selectedThreadId: number | null;
 
   /**

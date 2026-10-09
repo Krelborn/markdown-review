@@ -3,16 +3,15 @@ import type { JSX } from "react";
 import { useMemo, useState } from "react";
 
 import type { ReviewState } from "../../../shared/review/ReviewState";
-import type { Thread } from "../../../shared/review/threadSchema";
 import { useReviewApi } from "../../api/useReviewApi";
 import { useReviewEvents } from "../../api/useReviewEvents";
-import { documentPagePath } from "../../navigation/documentPagePath";
 import { documentPathOf } from "../../navigation/documentPathOf";
 import { usePageLocation } from "../../navigation/usePageLocation";
 import { countDrafts } from "../../review/countDrafts";
 import type { NewComment } from "../../review/NewComment";
 import { useDocumentSource } from "../../review/useDocumentSource";
 import { useThreads } from "../../review/useThreads";
+import { useThreadSelection } from "../../review/useThreadSelection";
 import { DocumentsPage } from "../DocumentsPage/DocumentsPage";
 import { ThreadSidebar } from "../ThreadSidebar/ThreadSidebar";
 import { TopBar } from "../TopBar/TopBar";
@@ -31,7 +30,7 @@ export function App(): JSX.Element {
   const documentPath = documentPathOf(location.pathname);
   const threads = useThreads(api);
   const documentSource = useDocumentSource(api, documentPath);
-  const [selectedThreadId, setSelectedThreadId] = useState<number | null>(null);
+  const selection = useThreadSelection(documentPath, navigate);
   const [newComment, setNewComment] = useState<NewComment | null>(null);
   const connection = useReviewEvents(api, {
     onDocumentChanged: (document) => {
@@ -55,12 +54,6 @@ export function App(): JSX.Element {
     [allThreads, documentPath]
   );
   const problems = [...(threads.error === null ? [] : [threads.error]), ...(threads.snapshot?.problems ?? [])];
-  const selectThread = (thread: Thread): void => {
-    setSelectedThreadId(thread.id);
-    if (thread.anchor.kind !== "review" && thread.anchor.document !== documentPath) {
-      navigate(documentPagePath(thread.anchor.document));
-    }
-  };
   return (
     <Theme mode="system">
       <PageLayout>
@@ -93,8 +86,9 @@ export function App(): JSX.Element {
                 hash={location.hash}
                 onComment={setNewComment}
                 onNavigate={navigate}
-                onSelectThread={setSelectedThreadId}
-                selectedThreadId={selectedThreadId}
+                onSelectThread={selection.selectThread}
+                revealCount={selection.revealCount}
+                selectedThreadId={selection.selectedThreadId}
                 state={documentSource.state}
                 threads={documentThreads}
               />
@@ -106,8 +100,8 @@ export function App(): JSX.Element {
               newComment={newComment}
               onChanged={threads.refresh}
               onCloseNewComment={() => setNewComment(null)}
-              onSelectThread={selectThread}
-              selectedThreadId={selectedThreadId}
+              onSelectThread={selection.revealThread}
+              selectedThreadId={selection.selectedThreadId}
               threads={allThreads}
             />
           </div>

@@ -22,6 +22,12 @@ export interface DocumentNavigation {
 
   onNavigate: (pagePath: string) => void;
   onSelectThread: (threadId: number) => void;
+
+  /**
+   * Counts the user's requests to see the selected thread in its doc; each new one scrolls its passage into view
+   */
+  revealCount: number;
+
   selectedThreadId: number | null;
 }
 
@@ -32,9 +38,17 @@ export interface DocumentNavigation {
 export function useDocumentNavigation(
   contentRef: RefObject<HTMLElement | null>,
   rendered: RenderedDocument | null,
-  { documentPath, hash, highlightedThreads, onNavigate, onSelectThread, selectedThreadId }: DocumentNavigation
+  {
+    documentPath,
+    hash,
+    highlightedThreads,
+    onNavigate,
+    onSelectThread,
+    revealCount,
+    selectedThreadId,
+  }: DocumentNavigation
 ): void {
   useDocumentClicks(contentRef, rendered, highlightedThreads, { onNavigate, onSelectThread });
-  useRevealSelectedThread(contentRef, rendered, highlightedThreads, selectedThreadId);
+  useRevealSelectedThread(contentRef, rendered, highlightedThreads, selectedThreadId, revealCount);
   useScrollToHeading(contentRef, rendered, documentPath, hash);
 }
