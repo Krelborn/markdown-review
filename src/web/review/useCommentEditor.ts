@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import type { Thread } from "../../shared/review/threadSchema";
 import { useReviewApi } from "../api/useReviewApi";
@@ -174,6 +174,10 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
   const savedBody = open === null ? null : savedBodyOf(open.target, threads);
   const hasUnsavedText = open !== null && differsFromSaved(open.body, savedBody);
   const canSave = open !== null && hasUnsavedText && open.body.trim() !== "";
+  const threadsRef = useRef(threads);
+  useLayoutEffect(() => {
+    threadsRef.current = threads;
+  }, [threads]);
   useLeavePageWarning(hasUnsavedText);
   const show = (next: OpenEditor | null): void => {
     setState((current) => ({ ...current, focusRevision: current.focusRevision + 1, open: next }));
@@ -188,16 +192,17 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
   const update = (change: Partial<OpenEditor>): void => {
     setState((current) => ({ ...current, open: current.open && { ...current.open, ...change } }));
   };
-  // Reads the request on hold from the latest state, not this render's, because the user can make one while a save is
-  // in flight
+  // Reads the request on hold from the latest state, and opens it on the latest threads, not this render's, because the
+  // user can make one, and the threads can change, while a save is in flight
   const openHeldRequest = (): void => {
+    const latestThreads = threadsRef.current;
     setState((current) => {
       const held = current.open?.question?.held ?? null;
       return {
         ...current,
         focusRevision: current.focusRevision + 1,
         isSaving: false,
-        open: held === null ? null : editorFor(held, threads),
+        open: held === null ? null : editorFor(held, latestThreads),
       };
     });
   };

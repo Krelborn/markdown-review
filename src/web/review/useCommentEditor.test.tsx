@@ -291,6 +291,32 @@ describe("useCommentEditor", () => {
     expect(result.current).toMatchObject({ body: "Why 24h?", editingThreadId: 1, isSaving: false, question: null });
   });
 
+  test("must open the request on hold with the latest draft when the draft arrives while the save is in flight", async () => {
+    const { fake, render } = setUpTest();
+    let finishSave = (): void => {};
+    fake.api.createThread.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishSave = () => resolve();
+      })
+    );
+    const { rerender, result } = render();
+    act(() => result.current.request(reviewComment));
+    act(() => result.current.changeBody("Overall?"));
+    let saving = Promise.resolve();
+    act(() => {
+      saving = result.current.save();
+    });
+    rerender({ shown: [draftComment, { ...openThread, draft: { at: testTime, body: "Hourly" } }] });
+    act(() => result.current.request(reply));
+
+    await act(async () => {
+      finishSave();
+      await saving;
+    });
+
+    expect(result.current).toMatchObject({ body: "Hourly", editingThreadId: 2, hasUnsavedText: false });
+  });
+
   test("must hold a request until the save ends when the saved text arrives before the save does", () => {
     const { fake, render } = setUpTest();
     fake.api.writeDraft.mockReturnValueOnce(new Promise(() => {}));
