@@ -18,6 +18,20 @@ export const plan = [
   "",
 ].join("\n");
 
+/**
+ * @returns the doc's source followed by paragraphs numbered from "Paragraph 1.", enough of them to make it scroll
+ */
+export function withParagraphs(source: string, count: number): string {
+  return [source, ...Array.from({ length: count }, (_, index) => `Paragraph ${index + 1}.`)].join("\n\n");
+}
+
+/**
+ * Scrolls the doc column to its end, as dragging its scrollbar to the bottom would
+ */
+export function scrollDocumentToEnd(page: Page): Promise<void> {
+  return page.getByRole("main").evaluate((main) => main.scrollTo(0, main.scrollHeight));
+}
+
 const spec = "# Spec\n\n## Goals\n\nResults are cached.\n";
 
 export interface ReviewFixture {

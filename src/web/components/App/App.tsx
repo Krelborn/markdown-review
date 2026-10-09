@@ -1,6 +1,6 @@
-import { Alert, PageLayout, Sidebar, Stack, Theme } from "@krelborn/stylesui";
+import { PageLayout, Theme } from "@krelborn/stylesui";
 import type { JSX } from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import type { ReviewState } from "../../../shared/review/ReviewState";
 import { useReviewApi } from "../../api/useReviewApi";
@@ -18,15 +18,18 @@ import { TopBar } from "../TopBar/TopBar";
 
 import styles from "./App.module.css";
 import { DocumentPane } from "./DocumentPane";
+import { PageAlerts } from "./PageAlerts";
 
 const unrequestedReview: ReviewState = { approved: false, approvedAt: null, requestedAt: null };
 
 /**
- * The review page: the docs list or a doc, the comments beside it, and the bar across the top
+ * The review page: the bar across the top and any alerts, then the docs list or a doc beside the comments, each
+ * scrolling on its own
  */
 export function App(): JSX.Element {
   const api = useReviewApi();
-  const { location, navigate } = usePageLocation();
+  const documentColumnRef = useRef<HTMLElement>(null);
+  const { location, navigate } = usePageLocation(documentColumnRef);
   const documentPath = documentPathOf(location.pathname);
   const threads = useThreads(api);
   const documentSource = useDocumentSource(api, documentPath);
@@ -53,10 +56,9 @@ export function App(): JSX.Element {
     () => allThreads.filter(({ anchor }) => anchor.kind !== "review" && anchor.document === documentPath),
     [allThreads, documentPath]
   );
-  const problems = [...(threads.error === null ? [] : [threads.error]), ...(threads.snapshot?.problems ?? [])];
   return (
     <Theme mode="system">
-      <PageLayout>
+      <PageLayout className={styles.page}>
         <TopBar
           agentWaiting={connection.agentWaiting}
           documentPath={documentPath}
@@ -65,19 +67,9 @@ export function App(): JSX.Element {
           onSubmitted={threads.refresh}
           review={threads.snapshot?.review ?? unrequestedReview}
         />
-        <Sidebar align="start" as="main" className={styles.main} sideWidth="24rem">
-          <Stack gap={3}>
-            {!connection.isConnected && (
-              <Alert role="alert" title="Lost the connection to the review server" tone="warning">
-                Trying again. If the server has stopped, ask the agent to run <code>markdown-review open</code>, which
-                starts it again.
-              </Alert>
-            )}
-            {problems.length > 0 && (
-              <Alert title="Some comments could not be read" tone="danger">
-                {problems.join(" ")}
-              </Alert>
-            )}
+        <PageAlerts isConnected={connection.isConnected} threads={threads} />
+        <div className={styles.columns}>
+          <main className={styles.documentColumn} ref={documentColumnRef}>
             {documentPath === null ? (
               <DocumentsPage onNavigate={navigate} threads={allThreads} />
             ) : (
@@ -93,8 +85,8 @@ export function App(): JSX.Element {
                 threads={documentThreads}
               />
             )}
-          </Stack>
-          <div className={styles.sidebar}>
+          </main>
+          <div className={styles.commentsPanel}>
             <ThreadSidebar
               documentPath={documentPath}
               newComment={newComment}
@@ -105,7 +97,7 @@ export function App(): JSX.Element {
               threads={allThreads}
             />
           </div>
-        </Sidebar>
+        </div>
       </PageLayout>
     </Theme>
   );

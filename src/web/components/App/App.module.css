@@ -1,10 +1,29 @@
-.main {
+.page {
+  block-size: 100dvh;
+}
+
+.pageAlerts {
+  padding: var(--sui-space-2) var(--sui-space-4);
+}
+
+.columns {
+  display: grid;
+  flex-grow: 1;
+  grid-template-areas: "document comments";
+  grid-template-columns: minmax(0, 1fr) clamp(18rem, 30vw, 24rem);
+  grid-template-rows: minmax(0, 1fr);
+  min-block-size: 0;
+}
+
+.documentColumn {
+  grid-area: document;
+  overflow-y: auto;
   padding: var(--sui-space-4);
 }
 
-.sidebar {
-  max-block-size: 100dvh;
+.commentsPanel {
+  border-inline-start: var(--sui-border-width) solid var(--sui-color-border);
+  grid-area: comments;
   overflow-y: auto;
-  position: sticky;
-  top: 0;
+  padding: var(--sui-space-4);
 }

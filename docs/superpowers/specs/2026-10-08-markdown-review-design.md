@@ -428,7 +428,7 @@ Presence is `{ agentWaiting: boolean }`: true while at least one poll request is
 
 ## 10. Browser UI
 
-Layout: top bar, document view, fixed right sidebar, built from StylesUI components (for example `PageLayout`, `Sidebar`, `Prose`, `SegmentedControl` and `Popover`).
+Layout: a page exactly the height of the window, which itself never scrolls. It holds the top bar, any page alerts beneath it, and then the document view beside the sidebar, each scrolling on its own. It is built from StylesUI components (for example `PageLayout`, `Prose`, `SegmentedControl` and `Popover`) and a CSS grid. See the [two-column layout spec](2026-10-09-two-column-layout-design.md).
 
 ### Top bar
 

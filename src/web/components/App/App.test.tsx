@@ -85,6 +85,17 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "docs/plan.md" })).toBeInTheDocument();
   });
 
+  test("must show the doc the agent opens from its top when the user had scrolled down the last one", async () => {
+    const { fake, render } = setUpTest();
+    await render();
+    elements.documentColumn().scrollTop = 400;
+
+    fake.emit({ type: "navigate", url: "http://127.0.0.1:4321/document/docs/spec.md" });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "docs/spec.md" })).toBeInTheDocument();
+    expect(elements.documentColumn().scrollTop).toBe(0);
+  });
+
   test("must keep the user's unsent reply when the agent edits the doc and answers", async () => {
     const { documents, fake, render } = setUpTest();
     const user = userEvent.setup();
@@ -273,4 +284,5 @@ function selectText(element: HTMLElement, length: number): void {
 
 const elements = {
   article: () => within(screen.getByRole("article", { name: "docs/plan.md" })),
+  documentColumn: () => screen.getByRole("main"),
 };
