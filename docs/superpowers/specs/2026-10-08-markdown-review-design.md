@@ -456,7 +456,7 @@ Below 48rem the sidebar becomes a drawer over the right of the document view. Th
 - **Passage:** select text, including across blocks; a Comment button appears next to the selection; clicking it opens a draft in the sidebar with focus in it.
 - **Block:** hovering a block shows a "+" in the left gutter; the whole block becomes the quote. Used for code blocks, tables, diagrams and HTML blocks.
 - **Doc** and **review:** the **+ Comment** menu at the top of the sidebar offers **On this doc** and **On the whole review**. On the docs list, where only the review can take a comment, it is a **+ Review comment** button.
-- **The composer** opens at the top of the sidebar with focus in it. While it is open, its passage stays highlighted in the doc.
+- **The composer** opens at the top of the sidebar, scrolled into view below the header, with focus in it. While it is open, its passage stays highlighted in the doc.
 - **One editor at a time.** A new comment, a reply and a draft being edited all use the same editor, with Cancel and Save on the right.
   - Starting another while the open editor holds unsaved text asks whether to save or discard that text first. An empty or unchanged editor just closes.
   - Cmd+Enter saves. Escape closes the editor, or asks first when it holds unsaved text.
@@ -475,7 +475,7 @@ Current versions of Chrome, Firefox and Safari. The CSS Custom Highlight API set
 ### Sidebar
 
 - Groups: Drafts, Open, Outdated, Resolved (Resolved collapsed by default).
-- **This doc / All docs** tabs in the sidebar's header, each with a count, shown only when a doc other than the one on screen has threads. All docs lists every thread grouped by doc; this is how the user reviews the set as a whole. This doc also lists the thread whose reply or draft is being edited, wherever it is.
+- **This doc / All docs** tabs on their own row of the sidebar's header, under the title and the buttons, each with a count, shown only when a doc other than the one on screen has threads. While they show, the title carries no count. All docs lists every thread grouped by doc; this is how the user reviews the set as a whole. This doc also lists the thread whose reply or draft is being edited, wherever it is.
 - Clicking a thread scrolls to its passage (navigating to its doc if needed) and highlights it; clicking a highlight or numbered marker selects its thread.
 - Each thread shows its messages, each with an avatar, who wrote it and when. The user's draft shows as text with a Draft badge until they press **Edit**. **Reply** opens the editor for a draft reply, and **Resolve** resolves an open thread.
 - A passage thread whose `anchoredText` differs from its `quote` shows both.
@@ -546,7 +546,7 @@ Vitest runs as projects, as in pull-request-assistant: a `node` project for `src
   - CLI output formatting for each thread shape and each approval state.
 - **Conformance (Vitest, `web` project):** render a fixture corpus with `markdown-config` (including tight and loose lists, nested lists, tables, fences highlighted by Shiki, HTML blocks, task lists and entities) and check, for every entry in `blocks`, that exactly one element carries its index and line range and that the text walk of that element equals the block's `text`.
 - **Integration (Vitest, real server on a temp git repo, driven through the CLI):** poll returns on submit; poll timeout exits cleanly; kill and re-run returns the same threads; approval ends a poll and a new `open` starts a new round; a doc edited while the server is stopped is re-anchored on the next `inbox`; protocol mismatch in both directions; concurrent CLI commands start one server; one server per root; host, origin and token checks; `/files/*` security headers.
-- **Component (Vitest + Testing Library, `web` project):** sidebar grouping, This doc / All docs toggle, draft create/edit/delete, Submit count, Request changes and Approve.
+- **Component (Vitest + Testing Library, `web` project):** sidebar grouping, This doc / All docs tabs, draft create/edit/delete, Submit count, Request changes and Approve.
 - **End-to-end (Playwright):** select text, draft, submit; `poll` returns the comment; agent edits the file and the highlight follows the text; `resolve` moves the thread to Resolved; Approve ends the agent's poll; a relative link opens the linked doc.
 
 ## 15. Tech stack

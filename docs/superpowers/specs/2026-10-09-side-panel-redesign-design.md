@@ -47,7 +47,7 @@ Version 0.1.0 works, but the comments panel is clumsy. Reviewing it in the brows
 | Unsaved text | The editor that holds it asks, inline, whether to save it or discard it | A modal sheet | The question appears beside the text it is about, works the same in the narrow-layout drawer, and needs no new Dialog component |
 | Starting doc and review comments | A **+ Comment** menu in the panel header | The ghost button in the doc column; the review box that is always open | One place for the comments that have no passage to select |
 | Drafts | Read-only, with Edit | A live text box | Chosen by the user |
-| Filter | Underline tabs in the panel header, with counts, shown only when another doc has threads | A smaller segmented control; the title as a menu | Reads as two views of one list, costs no extra row, and the counts show what the other view holds |
+| Filter | Underline tabs on a second row of the panel header, with counts, shown only when another doc has threads | A smaller segmented control; the title as a menu; tabs in place of the title, on its row | Reads as two views of one list, and the counts show what the other view holds. The row appears only when there is a choice. Tabs beside the buttons wrapped unpredictably, so the tabs get a row of their own |
 | Submit | A popover listing the drafts by doc, a choice of verdict, then Submit | Two action buttons | Shows what is about to be sent. The follow-up spec adds a third verdict to the same list |
 | Navigating with an editor open | The editor stays open, and its thread stays in view | Ask before navigating | The agent's `open` can navigate at any time, and back and forward can't be held |
 
@@ -78,13 +78,16 @@ Version 0.1.0 works, but the comments panel is clumsy. Reviewing it in the brows
 +-------------------------------------+
 ```
 
-When another doc has threads, the header's title becomes tabs:
+When another doc has threads, the header has two rows. The first holds the title, without a count since each tab carries one, and the buttons. The second holds the tabs across the full width, with their underline on the header's bottom border:
 
 ```text
-| This doc (5)  All docs (8)  [+ Comment v] |
++-------------------------------------+
+| Comments              [+ Comment v] |
+| This doc (5)  All docs (8)          |
++-------------------------------------+
 ```
 
-- In the narrow layout the header also holds the **Hide comments** button, which replaces the drawer's separate header row.
+- In the narrow layout the first row also holds the **Hide comments** button, after **+ Comment**. It replaces the drawer's separate header row.
 - The review bar is one row at every width. In the narrow layout the **Comments** toggle comes first, as now.
 
 ## 5. Editors
@@ -180,14 +183,14 @@ While a new comment on a passage or block of the doc on screen is open, the doc 
   - **On this doc**, with the doc's path beneath it
   - **On the whole review**, with "Every doc in this review" beneath it
 - **On the docs list,** where only a review comment is possible, the button is **+ Review comment** and requests one directly.
-- **The composer** sits at the top of the list, above the groups. It shows "New comment", the location ("Whole doc" or "Whole review"; a passage shows its quote instead) and the text box. Its text box is named for screen readers, for example "Comment on the whole review". Opening it scrolls the list to the top and focuses the text box.
+- **The composer** sits at the top of the list, above the groups. It shows "New comment", the location ("Whole doc" or "Whole review"; a passage shows its quote instead) and the text box. Its text box is named for screen readers, for example "Comment on the whole review". Opening it, or asking for it again, scrolls it into view at the top of the list, just below the header, and focuses the text box.
 - The ghost **Comment on this doc** button above the doc's title is removed.
 
 ## 7. Thread cards
 
 - **Surface.** Cards sit on `--sui-color-background` with a `--sui-color-border` border, on a panel body of `--sui-color-surface`. The selected card keeps its primary bar on the inline start. Both light and dark modes must be checked.
 - **Header.**
-  - **On the left:** `#id` in a muted colour, then the location. For a passage or a doc, the location is a link-styled button that reveals the thread, as now. Its accessible name stays "#5 Line 9". "Whole review" is plain text.
+  - **On the left:** `#id` in a muted colour, then the location. For a passage or a doc, the location is a link-styled button that reveals the thread, as now. Its accessible name stays "#5 Line 9". The whole-review location is a button too, so selecting it marks its new reply seen.
   - **On the right:** badges for **Draft**, **New reply** (was "New"), **Outdated** and **Resolved**.
 - **Group headings:** small, muted, uppercase labels with a count, such as "DRAFTS 1". Resolved stays folded.
 - **A draft comment** shows its quote and its text, with **Edit** (`secondary`) on the right.
@@ -211,10 +214,10 @@ While a new comment on a passage or block of the doc on screen is open, the doc 
 
 ## 8. Panel header and filter
 
-- **Title.** "Comments" with a count of the threads listed.
-- **Tabs.** When any thread is on a doc other than the one on screen, StylesUI's underline `Tabs` replace the title: "This doc" and "All docs", each with a count of the threads it lists. Otherwise the tabs are hidden and the panel shows This doc. If the tabs hide while All docs is chosen, the panel goes back to This doc.
+- **Title.** "Comments" with a count of the threads listed. The count goes while the tabs show.
+- **Tabs.** When any thread is on a doc other than the one on screen, the header gains a second row with StylesUI's underline `Tabs`: "This doc" and "All docs", each with a count of the threads it lists. The first row keeps the title, with **+ Comment** and, in the narrow layout, **Hide comments** at its end. DOM order matches the visual order. Otherwise the header is one row, the tabs are hidden and the panel shows This doc. If the tabs hide while All docs is chosen, the panel goes back to This doc.
 - **On the docs list** there are no tabs, and the panel lists every thread under its doc, as now.
-- **Scrolling.** The header stays in view while the list scrolls.
+- **Scrolling.** The header stays in view while the list scrolls. What the panel scrolls to, such as a selected thread's card or the composer, stops below the header, not under it.
 
 ## 9. Review bar and Submit
 
@@ -262,7 +265,7 @@ o The agent is listening and will hear at once.
 | --- | --- |
 | `App` | Holds the open editor, its text, the request on hold, and the question's state, in place of `newComment`. A hook such as `useCommentEditor` in `src/web/review/` owns the rules in section 5. Registers `beforeunload` while there is unsaved text. Passes the pending passage to the doc view |
 | `ThreadSidebar` | Drops the always-open review box and the "Show comments on" control. Gains the panel header. Keeps the editor's thread in the This doc view |
-| Panel header (new) | Title or tabs, the **+ Comment** menu or the **+ Review comment** button, and in the narrow layout the Hide comments button |
+| Panel header (new) | The title, with a row of tabs under it when they show, the **+ Comment** menu or the **+ Review comment** button, and in the narrow layout the Hide comments button |
 | `NewCommentForm` | The composer from section 6 |
 | `CommentForm` | Right-aligned buttons in Mac order, `outline` secondary buttons, an optional left-hand slot (the hint or Discard), Cmd+Enter and Escape, and the question banner. Loses `clearOnSubmit` and `unsentTextKey` |
 | `ThreadCard`, `ThreadActions` | Read-only drafts, message avatars and times, and the actions table from section 7 |
