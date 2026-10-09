@@ -1,3 +1,8 @@
+---
+title: Conformance corpus
+tags: [one, two]
+---
+
 # Conformance corpus
 
 A paragraph with *emphasis*, **strong**, ~~strike~~, `code`, a [link](other.md) and an image ![alt text](image.png).

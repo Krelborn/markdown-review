@@ -5,6 +5,7 @@ import type { MarkdownIt, RendererRule, StateCore } from "markdown-it";
 
 import { fenceLanguage } from "./fenceLanguage";
 import { findLeafBlocks } from "./findLeafBlocks";
+import { frontMatterRule } from "./frontMatterRule";
 import { tokenAt } from "./tokenAt";
 import { withoutFinalNewline } from "./withoutFinalNewline";
 
@@ -46,11 +47,20 @@ export function createMarkdownIt({ highlight }: MarkdownRenderingOptions = {}): 
     return `<div${renderer.renderAttrs(token)}><pre><code>${escapeHtml(withoutFinalNewline(token.content))}</code></pre></div>\n`;
   };
 
+  // The browser replaces this code with a Properties panel; the server only needs the block
+  const renderFrontMatterBlock: RendererRule = (tokens, index, _options, _environment, renderer) => {
+    const token = tokenAt(tokens, index);
+    const yaml = escapeHtml(withoutFinalNewline(token.content));
+    return `<div${renderer.renderAttrs(token)} data-front-matter=""><pre><code>${yaml}</code></pre></div>\n`;
+  };
+
+  markdown.block.ruler.before("table", "front_matter", frontMatterRule);
   markdown.core.ruler.push("tag_leaf_blocks", tagLeafBlocks);
   markdown.renderer.rules.paragraph_open = renderParagraphOpen;
   markdown.renderer.rules.paragraph_close = renderParagraphClose;
   markdown.renderer.rules.fence = renderFence;
   markdown.renderer.rules.code_block = renderCodeBlock;
+  markdown.renderer.rules.front_matter = renderFrontMatterBlock;
   markdown.renderer.rules.html_block = renderHtmlBlock;
   return markdown;
 }

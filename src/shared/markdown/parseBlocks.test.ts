@@ -199,6 +199,72 @@ describe("parseBlocks", () => {
       ],
     },
     {
+      condition: "the doc starts with frontmatter",
+      source: "---\ntitle: Plan\ntags: [a, b]\n---\n\n# Plan\n",
+      expected: [
+        {
+          endLine: 4,
+          exactLines: true,
+          lineOffsets: [
+            { line: 2, offset: 0 },
+            { line: 3, offset: 12 },
+          ],
+          startLine: 1,
+          text: "title: Plan\ntags: [a, b]",
+          wholeBlockOnly: true,
+        },
+        oneLineBlock(6, "Plan"),
+      ],
+    },
+    {
+      condition: "the frontmatter has Windows line endings",
+      source: "---\r\ntitle: Plan\r\n---\r\n\r\n# Plan\r\n",
+      expected: [
+        {
+          endLine: 3,
+          exactLines: true,
+          lineOffsets: [{ line: 2, offset: 0 }],
+          startLine: 1,
+          text: "title: Plan",
+          wholeBlockOnly: true,
+        },
+        oneLineBlock(5, "Plan"),
+      ],
+    },
+    {
+      condition: "the frontmatter is empty, so it has no visible text",
+      source: "---\n---\n# Plan\n",
+      expected: [
+        {
+          endLine: 2,
+          exactLines: true,
+          lineOffsets: [
+            { line: 1, offset: 0 },
+            { line: 2, offset: 4 },
+          ],
+          startLine: 1,
+          text: "---\n---",
+          wholeBlockOnly: true,
+        },
+        oneLineBlock(3, "Plan"),
+      ],
+    },
+    {
+      condition: "the doc starts with a horizontal rule and has another one later",
+      source: "---\n\n# Plan\n\n---\n",
+      expected: [oneLineBlock(3, "Plan")],
+    },
+    {
+      condition: "the doc's first --- is never closed",
+      source: "---\ntitle: Plan\n",
+      expected: [oneLineBlock(2, "title: Plan")],
+    },
+    {
+      condition: "a blockquote at the start of the doc holds --- lines",
+      source: "> ---\n> title: Plan\n> ---\n",
+      expected: [{ ...oneLineBlock(2, "title: Plan"), endLine: 3 }],
+    },
+    {
       condition: "the source has Windows line endings",
       source: "a\r\nb\r\n\r\nc\r\n",
       expected: [
