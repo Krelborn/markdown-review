@@ -174,12 +174,12 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
     open: null,
     questionRevision: 0,
   });
-  const isOpenGone = state.open !== null && !isStillOpen(state.open, threads);
-  // Forgets an editor whose thread or draft has gone, so that a draft made later on the thread does not bring it back
-  if (isOpenGone) {
-    setState((current) => ({ ...current, open: null }));
+  const open = reconcile(state.open, threads);
+  // Stores what the threads changed, so that a draft made later on a closed editor's thread does not bring it back, and
+  // text that has come to match the saved draft keeps following it
+  if (open !== state.open) {
+    setState((current) => ({ ...current, open }));
   }
-  const open = isOpenGone ? null : state.open;
   const savedBody = open === null ? null : savedBodyOf(open.target, threads);
   const writtenBody = open?.body ?? null;
   const body = writtenBody ?? savedBody ?? "";
@@ -256,7 +256,7 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
   return {
     body,
     canSave,
-    changeBody: (text) => unlessSaving(() => update({ body: text === savedBody ? null : text })),
+    changeBody: (text) => unlessSaving(() => update({ body: text })),
     close: () => unlessSaving(() => show(null)),
     discardChanges: () => unlessSaving(openHeldRequest),
     editingThreadId: threadIdOf(open),
@@ -280,6 +280,19 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
     save,
     savedBody,
   };
+}
+
+/**
+ * The stored editor as the threads leave it
+ *
+ * @returns null once its thread or the draft it was editing has gone; the editor with no text of its own once its text
+ *   matches the saved draft, whether the user changed it back or another tab saved it; otherwise the editor as it is
+ */
+function reconcile(open: OpenEditor | null, threads: readonly Thread[]): OpenEditor | null {
+  if (open === null || !isStillOpen(open, threads)) {
+    return null;
+  }
+  return open.body !== null && open.body === savedBodyOf(open.target, threads) ? { ...open, body: null } : open;
 }
 
 function editorFor(target: EditorTarget, threads: readonly Thread[]): OpenEditor {

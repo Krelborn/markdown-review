@@ -80,6 +80,18 @@ describe("useCommentEditor", () => {
     expect(result.current).toMatchObject({ body: "Why 2h?", hasUnsavedText: true });
   });
 
+  test("must show the newer draft when another tab saved the user's text before the draft changed again", () => {
+    const { render } = setUpTest();
+    const { rerender, result } = render();
+    act(() => result.current.request(editDraft));
+    act(() => result.current.changeBody("Why 2h?"));
+    rerender({ shown: [{ ...draftComment, draft: { at: testTime, body: "Why 2h?" } }, openThread] });
+
+    rerender({ shown: [{ ...draftComment, draft: { at: testTime, body: "Why 1h?" } }, openThread] });
+
+    expect(result.current).toMatchObject({ body: "Why 1h?", hasUnsavedText: false });
+  });
+
   test("must show the newer draft when the user changed the text back to the saved draft before it changed elsewhere", () => {
     const { render } = setUpTest();
     const { rerender, result } = render();
