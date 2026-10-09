@@ -278,7 +278,7 @@ The render rules in `markdown-config` give each block element a `data-md-block` 
 - A `highlight` function whose output starts with `<pre` (as Shiki's does) makes markdown-it drop the fence token's attributes. A custom fence rule wraps the highlighted output in an element that carries them.
 - `html_block` tokens have no element of their own. The rules wrap each in a `<div>`, so an HTML construct split across several markdown blocks can render differently than on GitHub.
 
-The browser reads a block's canonical text by walking the block element's text nodes in document order. In a table row it reads each cell and joins the cells with `\t`; everywhere else it reads every text node. Elements the app adds inside the document view (the gutter "+", numbered markers, the "Comment on this doc" link) carry `data-md-ignore` and `user-select: none`, and the walk skips them. Task-list checkboxes are `<input>` elements and contribute no text.
+The browser reads a block's canonical text by walking the block element's text nodes in document order. In a table row it reads each cell and joins the cells with `\t`; everywhere else it reads every text node. Elements the app adds inside the document view (the gutter "+" and the numbered markers) carry `data-md-ignore` and `user-select: none`, and the walk skips them. Task-list checkboxes are `<input>` elements and contribute no text.
 
 ### Creating a passage anchor (browser)
 
