@@ -1,10 +1,13 @@
 import type { RefObject } from "react";
+import { useContext } from "react";
 
 import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import type { Thread } from "../../../shared/review/threadSchema";
+import { HoveredThreadContext } from "../../review/HoveredThreadContext";
 
 import type { BlockBox } from "./BlockBox";
 import { useHoveredBlock } from "./useHoveredBlock";
+import { useHoveredThread } from "./useHoveredThread";
 import { usePendingBlock } from "./usePendingBlock";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
@@ -37,6 +40,11 @@ export interface DocumentOverlay {
    */
   hoveredBlock: BlockBox | null;
 
+  /**
+   * Whether the pointer is over a highlighted passage, which a click selects
+   */
+  isPointingAtHighlight: boolean;
+
   markers: ThreadMarker[];
 
   /**
@@ -48,8 +56,8 @@ export interface DocumentOverlay {
 }
 
 /**
- * Follows what is drawn over the rendered doc: the threads' highlights and markers, the block under the pointer, the
- * block a comment is being written on, and the Comment button beside selected text
+ * Follows what is drawn over the rendered doc: the threads' highlights and markers, the thread and block under the
+ * pointer, the block a comment is being written on, and the Comment button beside selected text
  */
 export function useDocumentOverlay(
   viewRef: RefObject<HTMLElement | null>,
@@ -57,13 +65,16 @@ export function useDocumentOverlay(
   rendered: RenderedDocument | null,
   { documentPath, highlightedThreads, pendingPassage, selectedThreadId }: DocumentOverlayOptions
 ): DocumentOverlay {
+  const { hoveredThreadId, onHoverThread } = useContext(HoveredThreadContext);
   const markers = useThreadHighlights(viewRef, contentRef, rendered, {
+    hoveredThreadId,
     pendingPassage,
     selectedThreadId,
     threads: highlightedThreads,
   });
+  const isPointingAtHighlight = useHoveredThread(contentRef, rendered, highlightedThreads, onHoverThread);
   const selectionComment = useSelectionComment(viewRef, contentRef, rendered, documentPath);
   const hoveredBlock = useHoveredBlock(viewRef, contentRef);
   const pendingBlock = usePendingBlock(viewRef, contentRef, rendered, pendingPassage);
-  return { hoveredBlock, markers, pendingBlock, selectionComment };
+  return { hoveredBlock, isPointingAtHighlight, markers, pendingBlock, selectionComment };
 }

@@ -9,6 +9,7 @@ import type { BlockBox } from "./BlockBox";
 import { BlockCommentButton } from "./BlockCommentButton";
 import { BlockTarget } from "./BlockTarget";
 import styles from "./DocumentView.module.css";
+import { ThreadMarkers } from "./ThreadMarkers";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
 import type { ThreadMarker } from "./useThreadHighlights";
@@ -77,21 +78,7 @@ export function DocumentControls({
           onComment={() => commentOnBlock(hoveredBlock.index)}
         />
       )}
-      {markers.map(({ column, threadId, top }) => (
-        <Button
-          className={styles.marker}
-          key={threadId}
-          onClick={() => onSelectThread(threadId)}
-          size="sm"
-          style={{ insetInlineEnd: `${column * 2}rem`, top }}
-          variant={threadId === selectedThreadId ? "primary" : "secondary"}
-          aria-label={`Thread #${threadId}`}
-          aria-pressed={threadId === selectedThreadId}
-          data-md-ignore=""
-        >
-          {threadId}
-        </Button>
-      ))}
+      <ThreadMarkers markers={markers} onSelectThread={onSelectThread} selectedThreadId={selectedThreadId} />
       {selectionComment !== null && (
         <Button
           className={styles.selectionButton}

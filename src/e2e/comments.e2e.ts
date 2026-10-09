@@ -41,6 +41,15 @@ test("must frame a block when the user points at the + beside it", async ({ page
   await expect(page.getByTestId("block-target")).toBeVisible();
 });
 
+test("must emphasise a comment's passage while the user points at its card", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+
+  await page.getByRole("article", { name: "Thread #1" }).hover();
+
+  await expect.poll(() => highlightedText(page, "markdown-review-hovered")).toEqual(["cache results for 24h"]);
+});
+
 test("must keep a half-written reply when the user goes to another doc and back", async ({ page, review }) => {
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");

@@ -1,11 +1,12 @@
 import { Badge, Card, Cluster, Stack, Text } from "@krelborn/stylesui";
 import { clsx } from "clsx";
 import type { JSX } from "react";
-import { useEffect, useRef } from "react";
+import { useContext, useEffect, useRef } from "react";
 
 import type { Anchor } from "../../../shared/review/anchorSchema";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { describeLocation } from "../../review/describeLocation";
+import { HoveredThreadContext } from "../../review/HoveredThreadContext";
 import { useCommentEditorContext } from "../../review/useCommentEditorContext";
 import { Quote } from "../Quote/Quote";
 
@@ -43,18 +44,29 @@ export function ThreadCard({
   const { anchor, id, messages } = thread;
   const cardRef = useRef<HTMLElement>(null);
   const editor = useCommentEditorContext();
+  const { hoveredThreadId, onHoverThread } = useContext(HoveredThreadContext);
   useEffect(() => {
     if (isSelected) {
       cardRef.current?.scrollIntoView({ block: "nearest" });
     }
   }, [isSelected]);
   return (
+    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- focus on the card's buttons hovers it
     <Card
       as="article"
       className={clsx(styles.card, {
         [styles.editing ?? ""]: editor.editingThreadId === id,
+        [styles.hovered ?? ""]: hoveredThreadId === id,
         [styles.selected ?? ""]: isSelected,
       })}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          onHoverThread(null);
+        }
+      }}
+      onFocus={() => onHoverThread(id)}
+      onPointerEnter={() => onHoverThread(id)}
+      onPointerLeave={() => onHoverThread(null)}
       padding="sm"
       ref={cardRef}
       aria-label={`Thread #${id}`}

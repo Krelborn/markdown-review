@@ -7,6 +7,7 @@ import type { Thread } from "../../../shared/review/threadSchema";
 import { ReviewApiContext } from "../../api/ReviewApiContext";
 import { ReviewApiError } from "../../api/ReviewApiError";
 import { formatMessageTime } from "../../review/formatMessageTime";
+import { HoveredThreadContext } from "../../review/HoveredThreadContext";
 import { CommentEditorHarness } from "../../testing/CommentEditorHarness";
 import { createFakeReviewApi } from "../../testing/createFakeReviewApi";
 
@@ -286,30 +287,64 @@ describe("ThreadCard", () => {
 
     expect(screen.getByText("New reply")).toBeInTheDocument();
   });
+
+  test("must report its thread as hovered when the pointer moves onto the card", async () => {
+    const { onHoverThread, render } = setUpTest({ thread: conversation });
+    const user = userEvent.setup();
+    render();
+
+    await user.hover(screen.getByRole("article"));
+
+    expect(onHoverThread).toHaveBeenLastCalledWith(1);
+  });
+
+  test("must report no hovered thread when the pointer leaves the card", async () => {
+    const { onHoverThread, render } = setUpTest({ thread: conversation });
+    const user = userEvent.setup();
+    render();
+    await user.hover(screen.getByRole("article"));
+
+    await user.unhover(screen.getByRole("article"));
+
+    expect(onHoverThread).toHaveBeenLastCalledWith(null);
+  });
+
+  test("must report its thread as hovered when the keyboard focus moves into the card", async () => {
+    const { onHoverThread, render } = setUpTest({ thread: conversation });
+    const user = userEvent.setup();
+    render();
+
+    await user.tab();
+
+    expect(onHoverThread).toHaveBeenLastCalledWith(1);
+  });
 });
 
 function setUpTest({ hasNewAgentMessage = false, thread }: { hasNewAgentMessage?: boolean; thread: Thread }) {
   const fake = createFakeReviewApi({ threads: [thread] });
   const onChanged = vi.fn();
+  const onHoverThread = vi.fn();
   const onSelect = vi.fn();
   const render = (): void => {
     renderBase(
       <ReviewApiContext value={fake.api}>
-        <CommentEditorHarness onChanged={onChanged} threads={[thread]}>
-          {() => (
-            <ThreadCard
-              hasNewAgentMessage={hasNewAgentMessage}
-              isSelected={false}
-              onChanged={onChanged}
-              onSelect={onSelect}
-              thread={thread}
-            />
-          )}
-        </CommentEditorHarness>
+        <HoveredThreadContext value={{ hoveredThreadId: null, onHoverThread }}>
+          <CommentEditorHarness onChanged={onChanged} threads={[thread]}>
+            {() => (
+              <ThreadCard
+                hasNewAgentMessage={hasNewAgentMessage}
+                isSelected={false}
+                onChanged={onChanged}
+                onSelect={onSelect}
+                thread={thread}
+              />
+            )}
+          </CommentEditorHarness>
+        </HoveredThreadContext>
       </ReviewApiContext>
     );
   };
-  return { fake, onChanged, onSelect, render };
+  return { fake, onChanged, onHoverThread, onSelect, render };
 }
 
 const elements = {

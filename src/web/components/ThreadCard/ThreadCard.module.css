@@ -4,6 +4,10 @@
   --sui-card-shadow: none;
 }
 
+.hovered {
+  --sui-card-bg: var(--sui-color-secondary-subtle);
+}
+
 /* An inset shadow, so the bar does not change the card's size */
 .selected {
   --sui-card-shadow: inset 3px 0 0 var(--sui-color-primary);

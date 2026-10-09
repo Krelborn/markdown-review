@@ -94,6 +94,15 @@
   background-color: color-mix(in srgb, var(--sui-color-warning) 30%, transparent);
 }
 
+.content ::highlight(markdown-review-hovered) {
+  background-color: color-mix(in srgb, var(--sui-color-warning) 55%, transparent);
+  text-decoration-color: var(--sui-color-warning-text);
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
 /* Opaque, so that it covers the threads' amber beneath it rather than blending into it */
 .content ::highlight(markdown-review-selected) {
   background-color: color-mix(in srgb, var(--sui-color-primary) 25%, var(--sui-color-background));
@@ -122,6 +131,15 @@
 
 .blockButton {
   inset-inline-start: 0;
+}
+
+.hoveredMarker {
+  outline: 2px solid var(--sui-color-primary);
+  outline-offset: 2px;
+}
+
+.pointingAtHighlight .content {
+  cursor: pointer;
 }
 
 .selectionButton {

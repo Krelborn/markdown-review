@@ -13,6 +13,8 @@ export const threadsHighlightName = "markdown-review-threads";
 
 export const overlapHighlightName = "markdown-review-overlap";
 
+export const hoveredHighlightName = "markdown-review-hovered";
+
 export const selectedHighlightName = "markdown-review-selected";
 
 export const pendingHighlightName = "markdown-review-pending";
@@ -32,6 +34,11 @@ export interface ThreadMarker {
 }
 
 export interface ThreadHighlightOptions {
+  /**
+   * The thread the user is pointing at, in the doc or the comments, or null
+   */
+  hoveredThreadId: number | null;
+
   /**
    * The passage of the comment the user is writing on this doc, or null
    */
@@ -56,9 +63,9 @@ interface HighlightLayer {
 }
 
 /**
- * Highlights the threads' passages in the rendered doc, deeper where two overlap, the selected thread's apart from the
- * rest and the passage of the comment the user is writing apart again, and measures where each thread's passage starts
- * so the view can mark it
+ * Highlights the threads' passages in the rendered doc, deeper where two overlap, the hovered thread's above the rest,
+ * the selected thread's apart, and the passage of the comment the user is writing apart again, and measures where each
+ * thread's passage starts so the view can mark it
  *
  * @returns a marker for each thread's passage found in the page, top to bottom
  */
@@ -66,7 +73,7 @@ export function useThreadHighlights(
   viewRef: RefObject<HTMLElement | null>,
   contentRef: RefObject<HTMLElement | null>,
   rendered: RenderedDocument | null,
-  { pendingPassage, selectedThreadId, threads }: ThreadHighlightOptions
+  { hoveredThreadId, pendingPassage, selectedThreadId, threads }: ThreadHighlightOptions
 ): ThreadMarker[] {
   const [markers, setMarkers] = useState<ThreadMarker[]>([]);
   const layoutRevision = useLayoutRevision(contentRef);
@@ -78,16 +85,20 @@ export function useThreadHighlights(
       return;
     }
     const ranges = threadRanges(content, rendered, threads);
-    const isSelected = ({ thread }: ThreadRange): boolean => thread.id === selectedThreadId;
-    const unselected = ranges.filter((range) => !isSelected(range)).map(({ range }) => range);
+    const rangesIn = (name: string): Range[] =>
+      ranges
+        .filter(({ thread }) => highlightOf(thread.id, selectedThreadId, hoveredThreadId) === name)
+        .map(({ range }) => range);
+    const unselected = ranges.filter(({ thread }) => thread.id !== selectedThreadId).map(({ range }) => range);
     const pendingRange =
       pendingPassage === null
         ? null
         : rangeForPassage(content, rendered.documentText, pendingPassage.startOffset, pendingPassage.endOffset);
     const names = paintHighlights([
-      { name: threadsHighlightName, ranges: unselected },
+      { name: threadsHighlightName, ranges: rangesIn(threadsHighlightName) },
       { name: overlapHighlightName, ranges: findOverlaps(unselected) },
-      { name: selectedHighlightName, ranges: ranges.filter(isSelected).map(({ range }) => range) },
+      { name: hoveredHighlightName, ranges: rangesIn(hoveredHighlightName) },
+      { name: selectedHighlightName, ranges: rangesIn(selectedHighlightName) },
       { name: pendingHighlightName, ranges: pendingRange === null ? [] : [pendingRange] },
     ]);
     setMarkers(placeMarkers(ranges, view.getBoundingClientRect().top));
@@ -96,7 +107,7 @@ export function useThreadHighlights(
         CSS.highlights.delete(name);
       }
     };
-  }, [contentRef, layoutRevision, pendingPassage, rendered, selectedThreadId, threads, viewRef]);
+  }, [contentRef, hoveredThreadId, layoutRevision, pendingPassage, rendered, selectedThreadId, threads, viewRef]);
   return markers;
 }
 
@@ -111,6 +122,13 @@ function threadRanges(
       anchor.kind === "passage" ? rangeForPassage(content, documentText, anchor.startOffset, anchor.endOffset) : null;
     return range === null ? [] : [{ range, thread }];
   });
+}
+
+function highlightOf(threadId: number, selectedThreadId: number | null, hoveredThreadId: number | null): string {
+  if (threadId === selectedThreadId) {
+    return selectedHighlightName;
+  }
+  return threadId === hoveredThreadId ? hoveredHighlightName : threadsHighlightName;
 }
 
 /**

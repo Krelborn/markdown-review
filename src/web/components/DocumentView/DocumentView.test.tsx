@@ -7,9 +7,11 @@ import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
 import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import { buildPassageAnchor, buildThread } from "../../../shared/review/testing/reviewBuilders";
 import type { Thread } from "../../../shared/review/threadSchema";
+import { HoveredThreadContext } from "../../review/HoveredThreadContext";
 
 import { DocumentView } from "./DocumentView";
 import {
+  hoveredHighlightName,
   overlapHighlightName,
   pendingHighlightName,
   selectedHighlightName,
@@ -246,6 +248,83 @@ describe("DocumentView", () => {
     expect(onSelectThread).toHaveBeenCalledWith(1);
   });
 
+  test("must report the thread whose highlight the pointer moves over", async () => {
+    const { onHoverThread, render } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+
+    await user.hover(passage);
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+  });
+
+  test("must report no hovered thread when the pointer leaves the doc", async () => {
+    const { onHoverThread, render } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+
+    await user.unhover(passage);
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
+  test("must emphasise the passage of the thread the user points at in the comments", async () => {
+    const { render } = setUpTest({
+      hoveredThreadId: 1,
+      threads: [buildThread({ anchor: cacheAnchor, id: 1 }), buildThread({ anchor: retriesAnchor, id: 2 })],
+    });
+
+    await render();
+
+    expect(elements.highlighted(hoveredHighlightName)).toEqual(["cache results for 24h"]);
+    expect(elements.highlighted(threadsHighlightName)).toEqual(["Retries"]);
+  });
+
+  test("must report a thread as hovered when the pointer is over its marker", async () => {
+    const { onHoverThread, render } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+
+    await user.hover(screen.getByRole("button", { name: "Thread #1" }));
+
+    expect(onHoverThread).toHaveBeenLastCalledWith(1);
+  });
+
+  test("must paint each kind of highlight over the kinds before it when the doc has every kind", async () => {
+    const { render } = setUpTest({
+      hoveredThreadId: 3,
+      pendingPassage: {
+        document: "docs/plan.md",
+        endOffset: 29,
+        kind: "passage",
+        prefix: "Plan\nWe ",
+        quote: "cache results for 24h",
+        startOffset: 8,
+        suffix: "",
+      },
+      selectedThreadId: 4,
+      threads: [
+        buildThread({ anchor: cacheAnchor, id: 1 }),
+        buildThread({ anchor: todayAnchor, id: 2 }),
+        buildThread({ anchor: retriesAnchor, id: 3 }),
+        buildThread({ anchor: retriesAnchor, id: 4 }),
+      ],
+    });
+
+    await render();
+
+    expect(elements.priority(overlapHighlightName)).toBeGreaterThan(elements.priority(threadsHighlightName));
+    expect(elements.priority(hoveredHighlightName)).toBeGreaterThan(elements.priority(overlapHighlightName));
+    expect(elements.priority(selectedHighlightName)).toBeGreaterThan(elements.priority(hoveredHighlightName));
+    expect(elements.priority(pendingHighlightName)).toBeGreaterThan(elements.priority(selectedHighlightName));
+  });
+
   test("must show a linked doc in the page when the user follows a link to it", async () => {
     const { onNavigate, render } = setUpTest();
     const user = userEvent.setup();
@@ -349,6 +428,7 @@ describe("DocumentView", () => {
 interface SetUpOptions {
   container?: HTMLElement;
   hash?: string;
+  hoveredThreadId?: number | null;
   pendingPassage?: NewPassageAnchor | null;
   selectedThreadId?: number | null;
   threads?: Thread[];
@@ -357,25 +437,29 @@ interface SetUpOptions {
 function setUpTest({
   container,
   hash = "",
+  hoveredThreadId = null,
   pendingPassage = null,
   selectedThreadId = null,
   threads = [],
 }: SetUpOptions = {}) {
   const onComment = vi.fn();
+  const onHoverThread = vi.fn();
   const onNavigate = vi.fn();
   const onSelectThread = vi.fn();
   const view = (shown: DocumentSource) => (
-    <DocumentView
-      document={shown}
-      hash={hash}
-      onComment={onComment}
-      onNavigate={onNavigate}
-      onSelectThread={onSelectThread}
-      pendingPassage={pendingPassage}
-      revealCount={0}
-      selectedThreadId={selectedThreadId}
-      threads={threads}
-    />
+    <HoveredThreadContext value={{ hoveredThreadId, onHoverThread }}>
+      <DocumentView
+        document={shown}
+        hash={hash}
+        onComment={onComment}
+        onNavigate={onNavigate}
+        onSelectThread={onSelectThread}
+        pendingPassage={pendingPassage}
+        revealCount={0}
+        selectedThreadId={selectedThreadId}
+        threads={threads}
+      />
+    </HoveredThreadContext>
   );
   let rerenderBase: (ui: ReturnType<typeof view>) => void = () => {};
   const render = async (shown = plan): Promise<void> => {
@@ -388,7 +472,7 @@ function setUpTest({
     rerenderBase(view(shown));
     await within(elements.article()).findByRole("heading", { level: 1, name: "Plan" });
   };
-  return { onComment, onNavigate, onSelectThread, render, rerender };
+  return { onComment, onHoverThread, onNavigate, onSelectThread, render, rerender };
 }
 
 /**
@@ -435,6 +519,8 @@ function selectText(from: string, through: string): void {
 const elements = {
   article: () => screen.getByRole("article", { name: "docs/plan.md" }),
   highlighted: (name: string): string[] => [...(CSS.highlights.get(name) ?? [])].map((range) => range.toString()),
+  // NaN when no highlight has the name, as no comparison with NaN passes
+  priority: (name: string): number => CSS.highlights.get(name)?.priority ?? Number.NaN,
   markers: (): string[] =>
     screen
       .getAllByRole("button")

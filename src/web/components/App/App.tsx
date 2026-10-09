@@ -10,6 +10,7 @@ import { useReviewEvents } from "../../api/useReviewEvents";
 import { documentPathOf } from "../../navigation/documentPathOf";
 import { usePageLocation } from "../../navigation/usePageLocation";
 import { countDraftsByDocument } from "../../review/countDraftsByDocument";
+import { HoveredThreadProvider } from "../../review/HoveredThreadProvider";
 import type { NewComment } from "../../review/NewComment";
 import { useCommentEditor } from "../../review/useCommentEditor";
 import { useDocumentSource } from "../../review/useDocumentSource";
@@ -83,58 +84,60 @@ export function App(): JSX.Element {
       <PageLayout className={styles.page}>
         <TopBar documentPath={documentPath} onNavigate={navigate} />
         <PageAlerts isConnected={connection.isConnected} threads={threads} />
-        <div className={styles.columns}>
-          <main className={styles.documentColumn} ref={documentColumnRef}>
-            {documentPath === null ? (
-              <DocumentsPage onNavigate={navigate} threads={allThreads} />
-            ) : (
-              <DocumentPane
+        <HoveredThreadProvider>
+          <div className={styles.columns}>
+            <main className={styles.documentColumn} ref={documentColumnRef}>
+              {documentPath === null ? (
+                <DocumentsPage onNavigate={navigate} threads={allThreads} />
+              ) : (
+                <DocumentPane
+                  documentPath={documentPath}
+                  hash={location.hash}
+                  onComment={startComment}
+                  onNavigate={navigate}
+                  onSelectThread={selectThreadInDocument}
+                  pendingComment={editor.newComment}
+                  revealCount={selection.revealCount}
+                  selectedThreadId={selection.selectedThreadId}
+                  state={documentSource.state}
+                  threads={documentThreads}
+                />
+              )}
+            </main>
+            <div
+              className={clsx(styles.commentsPanel, { [styles.open ?? ""]: isPanelOpen })}
+              id={commentsPanelId}
+              ref={panelRef}
+            >
+              <ThreadSidebar
+                closeButton={
+                  <IconButton label="Hide comments" onClick={closePanel} ref={closeButtonRef} size="sm" variant="ghost">
+                    <CloseIcon />
+                  </IconButton>
+                }
                 documentPath={documentPath}
-                hash={location.hash}
-                onComment={startComment}
-                onNavigate={navigate}
-                onSelectThread={selectThreadInDocument}
-                pendingComment={editor.newComment}
-                revealCount={selection.revealCount}
+                editor={editor}
+                onChanged={threads.refresh}
+                onSelectThread={showThreadInDocument}
                 selectedThreadId={selection.selectedThreadId}
-                state={documentSource.state}
-                threads={documentThreads}
+                threads={allThreads}
               />
-            )}
-          </main>
-          <div
-            className={clsx(styles.commentsPanel, { [styles.open ?? ""]: isPanelOpen })}
-            id={commentsPanelId}
-            ref={panelRef}
-          >
-            <ThreadSidebar
-              closeButton={
-                <IconButton label="Hide comments" onClick={closePanel} ref={closeButtonRef} size="sm" variant="ghost">
-                  <CloseIcon />
-                </IconButton>
-              }
-              documentPath={documentPath}
-              editor={editor}
-              onChanged={threads.refresh}
-              onSelectThread={showThreadInDocument}
-              selectedThreadId={selection.selectedThreadId}
-              threads={allThreads}
-            />
+            </div>
+            <div className={styles.reviewBar}>
+              <ReviewBar
+                agentWaiting={connection.agentWaiting}
+                drafts={countDraftsByDocument(allThreads)}
+                hasUnsavedText={editor.hasUnsavedText}
+                isPanelOpen={isPanelOpen}
+                onSubmitted={threads.refresh}
+                onTogglePanel={togglePanel}
+                panelId={commentsPanelId}
+                panelToggleRef={panelToggleRef}
+                review={threads.snapshot?.review ?? unrequestedReview}
+              />
+            </div>
           </div>
-          <div className={styles.reviewBar}>
-            <ReviewBar
-              agentWaiting={connection.agentWaiting}
-              drafts={countDraftsByDocument(allThreads)}
-              hasUnsavedText={editor.hasUnsavedText}
-              isPanelOpen={isPanelOpen}
-              onSubmitted={threads.refresh}
-              onTogglePanel={togglePanel}
-              panelId={commentsPanelId}
-              panelToggleRef={panelToggleRef}
-              review={threads.snapshot?.review ?? unrequestedReview}
-            />
-          </div>
-        </div>
+        </HoveredThreadProvider>
       </PageLayout>
     </Theme>
   );

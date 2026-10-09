@@ -1,4 +1,5 @@
 import { Alert, Prose, Stack } from "@krelborn/stylesui";
+import { clsx } from "clsx";
 import type { JSX } from "react";
 import { useMemo, useRef } from "react";
 
@@ -99,7 +100,10 @@ export function DocumentView({
   return (
     <Stack gap={3}>
       <RenderFailure error={error} />
-      <div className={styles.view} ref={viewRef}>
+      <div
+        className={clsx(styles.view, { [styles.pointingAtHighlight ?? ""]: overlay.isPointingAtHighlight })}
+        ref={viewRef}
+      >
         <Prose
           as="article"
           className={styles.content}
