@@ -135,8 +135,8 @@ export interface CommentEditor {
 
 interface OpenEditor {
   /**
-   * The user's text, or null while it matches the saved draft, so that an editor the user has not changed shows any
-   * newer draft saved elsewhere
+   * The user's text, or null while it does not differ from the saved draft, so that the editor shows any newer draft
+   * saved elsewhere
    */
   body: string | null;
 
@@ -286,13 +286,15 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
  * The stored editor as the threads leave it
  *
  * @returns null once its thread or the draft it was editing has gone; the editor with no text of its own once its text
- *   matches the saved draft, whether the user changed it back or another tab saved it; otherwise the editor as it is
+ *   no longer differs from the saved draft, as when the user changes it back, another tab saves it, or the user erases
+ *   a reply that has no draft; otherwise the editor as it is
  */
 function reconcile(open: OpenEditor | null, threads: readonly Thread[]): OpenEditor | null {
   if (open === null || !isStillOpen(open, threads)) {
     return null;
   }
-  return open.body !== null && open.body === savedBodyOf(open.target, threads) ? { ...open, body: null } : open;
+  const isSaved = open.body !== null && !differsFromSaved(open.body, savedBodyOf(open.target, threads));
+  return isSaved ? { ...open, body: null } : open;
 }
 
 function editorFor(target: EditorTarget, threads: readonly Thread[]): OpenEditor {

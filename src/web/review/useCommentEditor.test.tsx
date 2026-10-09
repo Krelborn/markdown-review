@@ -80,6 +80,18 @@ describe("useCommentEditor", () => {
     expect(result.current).toMatchObject({ body: "Why 2h?", hasUnsavedText: true });
   });
 
+  test("must show a draft saved elsewhere when the user erased their reply before it arrived", () => {
+    const { render } = setUpTest();
+    const { rerender, result } = render();
+    act(() => result.current.request(reply));
+    act(() => result.current.changeBody("Hourly"));
+    act(() => result.current.changeBody(""));
+
+    rerender({ shown: [draftComment, { ...openThread, draft: { at: testTime, body: "Hourly, then" } }] });
+
+    expect(result.current).toMatchObject({ body: "Hourly, then", hasUnsavedText: false });
+  });
+
   test("must show the newer draft when another tab saved the user's text before the draft changed again", () => {
     const { render } = setUpTest();
     const { rerender, result } = render();
