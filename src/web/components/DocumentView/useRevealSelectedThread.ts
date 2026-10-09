@@ -8,7 +8,7 @@ import type { RenderedDocument } from "./useRenderedDocument";
 
 /**
  * Scrolls the selected thread's passage into view once for each request to see it, and when its doc first renders,
- * unless the passage is already on screen
+ * unless the passage is already in sight in the box the doc scrolls in
  *
  * @param threads the doc's threads with a passage in the page
  * @param revealCount the count of requests to see the selected thread, which changes with each new one
@@ -32,7 +32,7 @@ export function useRevealSelectedThread(
       rendered,
       threads.find((thread) => thread.id === selectedThreadId)
     );
-    if (range !== null && !isOnScreen(range.getBoundingClientRect())) {
+    if (range !== null && !isOnScreen(range)) {
       const start = range.startContainer;
       (start instanceof Element ? start : start.parentElement)?.scrollIntoView({ block: "center" });
     }
@@ -46,6 +46,21 @@ function passageRange(content: HTMLElement, rendered: RenderedDocument, thread: 
     : null;
 }
 
-function isOnScreen(box: DOMRect): boolean {
-  return box.top >= 0 && box.bottom <= innerHeight;
+function isOnScreen(range: Range): boolean {
+  const box = range.getBoundingClientRect();
+  const visible = visibleBox(range.commonAncestorContainer);
+  return box.top >= visible.top && box.bottom <= visible.bottom;
+}
+
+/**
+ * The box through which a node can be seen: that of its nearest ancestor that scrolls, or else the viewport
+ */
+function visibleBox(node: Node): Pick<DOMRect, "bottom" | "top"> {
+  for (let ancestor = node.parentElement; ancestor !== null; ancestor = ancestor.parentElement) {
+    const { overflowY } = getComputedStyle(ancestor);
+    if (overflowY === "auto" || overflowY === "scroll") {
+      return ancestor.getBoundingClientRect();
+    }
+  }
+  return { bottom: innerHeight, top: 0 };
 }

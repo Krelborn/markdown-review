@@ -205,6 +205,29 @@ describe("DocumentView", () => {
     await waitFor(() => expect(scrolledTo).toEqual(["H2#goals"]));
   });
 
+  test.each([
+    { passageTop: 40, side: "above" },
+    { passageTop: 600, side: "below" },
+  ])(
+    "must scroll the selected thread's passage into view when it lies $side the box the doc scrolls in",
+    async ({ passageTop }) => {
+      const { render, scrolledTo } = setUpTestWithScrollContainer({ passageTop });
+
+      await render();
+
+      await waitFor(() => expect(scrolledTo).toEqual(["P"]));
+    }
+  );
+
+  test("must leave the doc where it is when the selected thread's passage lies inside the box the doc scrolls in", async () => {
+    const { render, scrolledTo } = setUpTestWithScrollContainer({ passageTop: 200 });
+
+    await render();
+    await screen.findByRole("button", { name: "Thread #1" });
+
+    expect(scrolledTo).toEqual([]);
+  });
+
   test("must show the new text in place when the doc's source changes", async () => {
     const { render, rerender } = setUpTest();
     await render();
@@ -217,12 +240,13 @@ describe("DocumentView", () => {
 });
 
 interface SetUpOptions {
+  container?: HTMLElement;
   hash?: string;
   selectedThreadId?: number | null;
   threads?: Thread[];
 }
 
-function setUpTest({ hash = "", selectedThreadId = null, threads = [] }: SetUpOptions = {}) {
+function setUpTest({ container, hash = "", selectedThreadId = null, threads = [] }: SetUpOptions = {}) {
   const onComment = vi.fn();
   const onNavigate = vi.fn();
   const onSelectThread = vi.fn();
@@ -240,7 +264,7 @@ function setUpTest({ hash = "", selectedThreadId = null, threads = [] }: SetUpOp
   );
   let rerenderBase: (ui: ReturnType<typeof view>) => void = () => {};
   const render = async (shown = plan): Promise<void> => {
-    rerenderBase = renderBase(view(shown)).rerender;
+    rerenderBase = renderBase(view(shown), { container }).rerender;
     if (shown.source !== "") {
       await within(elements.article()).findByRole("heading", { level: 1, name: "Plan" });
     }
@@ -250,6 +274,29 @@ function setUpTest({ hash = "", selectedThreadId = null, threads = [] }: SetUpOp
     await within(elements.article()).findByRole("heading", { level: 1, name: "Plan" });
   };
   return { onComment, onNavigate, onSelectThread, render, rerender };
+}
+
+/**
+ * Sets up a test whose doc renders inside a scrolling box from 100px to 500px down the page, with every range in the
+ * doc measured at the given distance down the page
+ */
+function setUpTestWithScrollContainer({ passageTop }: { passageTop: number }) {
+  const scrollContainer = document.createElement("div");
+  scrollContainer.style.overflowY = "auto";
+  document.body.append(scrollContainer);
+  onTestFinished(() => scrollContainer.remove());
+  vi.spyOn(scrollContainer, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 100, 800, 400));
+  vi.spyOn(Range.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, passageTop, 200, 20));
+  const scrolledTo: string[] = [];
+  vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function recordScroll(this: Element) {
+    scrolledTo.push(this.tagName);
+  });
+  const setUp = setUpTest({
+    container: scrollContainer,
+    selectedThreadId: 1,
+    threads: [buildThread({ anchor: cacheAnchor, id: 1 })],
+  });
+  return { ...setUp, scrolledTo };
 }
 
 function selectText(from: string, through: string): void {
