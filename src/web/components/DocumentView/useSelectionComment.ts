@@ -14,11 +14,16 @@ export interface SelectionComment {
    */
   left: number;
 
+  /**
+   * How far the view's right edge lies beyond where the selection ends; negative when the selection ends past it
+   */
+  roomToRight: number;
+
   top: number;
 }
 
 /**
- * Follows the user's selection in the rendered doc
+ * Follows the user's selection in the rendered doc, and where it ends as the doc reflows
  *
  * @returns the anchor a comment on the selected text would have and where to offer it, or null when no text of the
  *   doc is selected
@@ -44,11 +49,26 @@ export function useSelectionComment(
       const end = range.getBoundingClientRect();
       const viewBox = view.getBoundingClientRect();
       setSelectionComment(
-        anchor === null ? null : { anchor, left: end.right - viewBox.left, top: end.bottom - viewBox.top }
+        anchor === null
+          ? null
+          : {
+              anchor,
+              left: end.right - viewBox.left,
+              roomToRight: viewBox.right - end.right,
+              top: end.bottom - viewBox.top,
+            }
       );
     };
     document.addEventListener("selectionchange", update);
-    return () => document.removeEventListener("selectionchange", update);
+    // Resizing the doc reflows its text, which moves where the selection ends
+    const observer = new ResizeObserver(update);
+    if (contentRef.current !== null) {
+      observer.observe(contentRef.current);
+    }
+    return () => {
+      document.removeEventListener("selectionchange", update);
+      observer.disconnect();
+    };
   }, [contentRef, documentPath, rendered, viewRef]);
   return selectionComment;
 }

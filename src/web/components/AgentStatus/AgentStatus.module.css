@@ -1,0 +1,13 @@
+.agentStatus {
+  align-items: center;
+  display: inline-flex;
+  gap: var(--sui-space-1);
+  min-inline-size: 0;
+}
+
+.label {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

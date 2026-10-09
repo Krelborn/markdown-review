@@ -18,6 +18,20 @@ export const plan = [
   "",
 ].join("\n");
 
+/**
+ * @returns the doc's source followed by `count` paragraphs, numbered from "Paragraph 1."
+ */
+export function withParagraphs(source: string, count: number): string {
+  return [source, ...Array.from({ length: count }, (_, index) => `Paragraph ${index + 1}.`)].join("\n\n");
+}
+
+/**
+ * Scrolls the doc column to its end, as dragging its scrollbar to the bottom would
+ */
+export function scrollDocumentToEnd(page: Page): Promise<void> {
+  return page.getByRole("main").evaluate((main) => main.scrollTo(0, main.scrollHeight));
+}
+
 const spec = "# Spec\n\n## Goals\n\nResults are cached.\n";
 
 export interface ReviewFixture {
@@ -55,7 +69,7 @@ export const test = base.extend<{ review: ReviewFixture }>({
       run: (args) => startCli(root, args).result,
       startPoll: async () => {
         const poll = startCli(root, ["poll", "--timeout", "60"]);
-        await expect(page.getByRole("status")).toHaveText("Agent waiting");
+        await expect(page.getByRole("status")).toHaveText("Agent listening");
         return poll;
       },
       writeDocument: (document, source) => writeFile(path.join(root, ...document.split("/")), source),
@@ -73,7 +87,7 @@ export const test = base.extend<{ review: ReviewFixture }>({
  * @param from the text the selection starts with
  * @param through the text it ends with, which may be in a later element
  */
-async function selectText(page: Page, from: string, through: string): Promise<void> {
+export async function selectText(page: Page, from: string, through: string): Promise<void> {
   await page.getByRole("article", { name: "docs/plan.md" }).evaluate(
     (article, { endText, startText }) => {
       const walker = document.createTreeWalker(article, NodeFilter.SHOW_TEXT);
@@ -114,7 +128,7 @@ export async function writeDraftComment(page: Page, from: string, through: strin
 }
 
 /**
- * Submits the user's drafts from the top bar
+ * Submits the user's drafts from the review bar
  *
  * @param draftCount how many drafts the submit button counts
  * @param verdict the menu's button for the verdict

@@ -428,15 +428,25 @@ Presence is `{ agentWaiting: boolean }`: true while at least one poll request is
 
 ## 10. Browser UI
 
-Layout: top bar, document view, fixed right sidebar, built from StylesUI components (for example `PageLayout`, `Sidebar`, `Prose`, `SegmentedControl` and `Popover`).
+Layout: a page exactly the height of the window, which itself never scrolls. It holds the top bar, any page alerts beneath it, and then the document view beside the sidebar, each scrolling on its own. It is built from StylesUI components (for example `PageLayout`, `Prose`, `SegmentedControl` and `Popover`) and a CSS grid. See the [two-column layout spec](2026-10-09-two-column-layout-design.md).
 
 ### Top bar
 
 - Doc path (repo-relative).
 - **Docs** menu: docs with open or draft threads, with counts, plus recently opened docs.
-- Agent status: "Agent waiting" while a poll is open, otherwise "Agent not listening, comments will wait in the inbox".
+- The bar stays on one line. A doc path too long to fit loses its start, so the file name stays in view, and hovering it shows the whole path.
+
+### Review bar
+
+The review bar sits at the foot of the sidebar and stays in view whatever the user has scrolled. It holds:
+
+- Agent status: "Agent listening" while a poll is open, otherwise "Agent not listening". The **Submit** menu explains what that means: the agent will hear at once, or will find the submit in its inbox when it next looks.
 - An "Approved" badge while the review is approved.
-- **Submit (N)**, where N is the number of draft threads and draft replies across the whole repo. It offers **Request changes** (disabled when N is 0) and **Approve** (always available; submits any drafts too).
+- **Submit (N)**, where N is the number of draft threads and draft replies across the whole repo. It offers **Request changes** (disabled when N is 0) and **Approve** (always available; submits any drafts too). Its menu opens above the button.
+
+### Narrow windows
+
+Below 48rem the sidebar becomes a drawer over the right of the document view. The review bar then runs along the foot of the page, with a **Comments** button that shows and hides the drawer. The drawer also has a **Hide comments** button at its top. Opening the drawer from **Comments** moves keyboard focus into it, and closing it returns focus to **Comments**. Starting a comment, or clicking a highlight or marker, opens the drawer. Clicking a thread's location closes it, so the passage can be seen. Closing it keeps any unsent text.
 
 ### Writing comments
 

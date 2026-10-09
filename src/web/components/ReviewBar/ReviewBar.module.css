@@ -1,0 +1,37 @@
+.reviewBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sui-space-3);
+  padding: var(--sui-space-3) var(--sui-space-4);
+}
+
+.reviewBar > button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.status {
+  align-items: center;
+  display: flex;
+  gap: var(--sui-space-3);
+  min-inline-size: 0;
+}
+
+/* 48rem is App.module.css's breakpoint, below which the comments panel becomes a drawer */
+@media (width >= 48rem) {
+  /* Two classes, to outrank the display that StylesUI's Button sets */
+  .reviewBar .panelToggle {
+    display: none;
+  }
+}
+
+@media (width < 48rem) {
+  .reviewBar {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .status {
+    flex-grow: 1;
+  }
+}

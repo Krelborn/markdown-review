@@ -79,14 +79,14 @@ markdown-review open docs/plan.md
 - **Comment on a doc:** click **Comment on this doc** under its first heading.
 - **Comment on the whole review:** use the box at the top of the sidebar.
 
-Comments start as drafts. When you are ready, click **Submit** in the top bar and choose:
+Comments start as drafts. When you are ready, click **Submit** at the foot of the comments and choose:
 
 - **Request changes**, to send your drafts to the agent and wait for its answers.
 - **Approve**, to end the review. Any drafts are sent with the approval, and the agent addresses them before carrying on.
 
 The sidebar groups threads into Drafts, Open, Outdated and Resolved. Its **This doc / All docs** toggle shows every thread across the repository, so you can review a set of docs together. Click a thread to jump to its passage, or click highlighted text to find its thread. Reply to a resolved thread to reopen it. A thread becomes outdated when the agent's edits remove the text it was on.
 
-The top bar shows whether the agent is waiting for you. If it is not, your comments wait in its inbox until it next looks.
+The bar beneath the comments shows whether the agent is listening. If it is not, your comments wait in its inbox until it next looks; the **Submit** menu says which.
 
 Links between markdown docs in the repository open in the app. Docs render with GitHub-style tables, task lists, syntax-highlighted code and Mermaid diagrams.
 

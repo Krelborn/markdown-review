@@ -154,6 +154,19 @@ describe("runCli", () => {
     );
   });
 
+  test("must tell the agent to poll again when it is interrupted as soon as the poll says it is waiting", async () => {
+    const { start } = await setUpTest({ withServer: true });
+
+    const poll = start(["poll", "--timeout", "1"], (text) => {
+      if (text.startsWith("Waiting up to")) {
+        process.emit("SIGTERM", "SIGTERM");
+      }
+    });
+
+    expect(await poll.exitCode).toBe(143);
+    expect(poll.stderr()).toContain("Interrupted while waiting. Nothing was lost");
+  });
+
   test("must say no threads need the agent when it resolves a thread that does not exist", async () => {
     const { run } = await setUpTest({ withServer: true });
 
@@ -229,7 +242,7 @@ async function setUpTest({ inGit = true, withServer = false }: SetUpOptions = {}
       webDirectory: path.join(root, "unused-web"),
     });
   }
-  const start = (args: string[]) => {
+  const start = (args: string[], onStderr: (text: string) => void = () => {}) => {
     let stdout = "";
     let stderr = "";
     const exitCode = runCli(args, {
@@ -240,6 +253,7 @@ async function setUpTest({ inGit = true, withServer = false }: SetUpOptions = {}
         readStdin: async () => "",
         stderr: (text) => {
           stderr += text;
+          onStderr(text);
         },
         stdout: (text) => {
           stdout += text;

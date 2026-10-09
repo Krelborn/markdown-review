@@ -8,6 +8,11 @@ import { useReviewApi } from "../../api/useReviewApi";
 
 export interface SubmitMenuProps {
   /**
+   * Whether the agent has a poll open, waiting for the user to submit
+   */
+  agentWaiting: boolean;
+
+  /**
    * The drafts in the whole repo: new comments and replies
    */
   draftCount: number;
@@ -21,9 +26,9 @@ export interface SubmitMenuProps {
 /**
  * Sends every draft to the agent, either asking for changes or approving the review
  */
-export function SubmitMenu({ draftCount, onSubmitted }: SubmitMenuProps): JSX.Element {
+export function SubmitMenu({ agentWaiting, draftCount, onSubmitted }: SubmitMenuProps): JSX.Element {
   const api = useReviewApi();
-  const popover = usePopover({ placement: "bottom" });
+  const popover = usePopover({ placement: "top" });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<Verdict | null>(null);
   const submit = async (verdict: Verdict): Promise<void> => {
@@ -48,6 +53,11 @@ export function SubmitMenu({ draftCount, onSubmitted }: SubmitMenuProps): JSX.El
             {draftCount === 0
               ? "You have no drafts. Approve to tell the agent to carry on."
               : `Sends ${draftCount === 1 ? "1 draft" : `${draftCount} drafts`} to the agent.`}
+          </Text>
+          <Text as="p" size="sm" tone="muted">
+            {agentWaiting
+              ? "The agent is listening and will hear at once."
+              : "The agent isn't listening. It will find this in its inbox when it next looks."}
           </Text>
           <Button
             busy={submitting === "request-changes"}

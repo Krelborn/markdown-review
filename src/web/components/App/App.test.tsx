@@ -85,6 +85,17 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "docs/plan.md" })).toBeInTheDocument();
   });
 
+  test("must show the doc the agent opens from its top when the user had scrolled down the last one", async () => {
+    const { fake, render } = setUpTest();
+    await render();
+    elements.documentColumn().scrollTop = 400;
+
+    fake.emit({ type: "navigate", url: "http://127.0.0.1:4321/document/docs/spec.md" });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "docs/spec.md" })).toBeInTheDocument();
+    expect(elements.documentColumn().scrollTop).toBe(0);
+  });
+
   test("must keep the user's unsent reply when the agent edits the doc and answers", async () => {
     const { documents, fake, render } = setUpTest();
     const user = userEvent.setup();
@@ -177,13 +188,13 @@ describe("App", () => {
     expect(screen.queryByText("Lost the connection to the review server")).not.toBeInTheDocument();
   });
 
-  test("must show that the agent is waiting when the server says a poll is open", async () => {
+  test("must show that the agent is listening when the server says a poll is open", async () => {
     const { fake, render } = setUpTest();
     await render();
 
     fake.emit({ agentWaiting: true, type: "presence" });
 
-    expect(await screen.findByText("Agent waiting")).toBeInTheDocument();
+    expect(await screen.findByText("Agent listening")).toBeInTheDocument();
   });
 
   test("must count the drafts on every doc on the submit button", async () => {
@@ -232,6 +243,93 @@ describe("App", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: "docs/spec.md" })).toBeInTheDocument();
   });
+
+  test("must open the comments when the user starts a comment on the doc", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(await screen.findByRole("button", { name: "Comment on this doc" }));
+
+    expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("must open the comments when the user clicks a thread's marker in the doc", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(await screen.findByRole("button", { name: "Thread #1" }));
+
+    expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("must close the comments when the user shows a thread's passage from them", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.click(elements.panelToggle());
+
+    await user.click(screen.getByRole("button", { name: "#1 Line 3" }));
+
+    expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("must open the comments when the user presses Comments", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(elements.panelToggle());
+
+    expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("must close the comments when the user presses Hide comments", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.click(elements.panelToggle());
+
+    await user.click(screen.getByRole("button", { name: "Hide comments" }));
+
+    expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("must move focus into the comments when the user opens them with Comments", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(elements.panelToggle());
+
+    expect(screen.getByRole("button", { name: "Hide comments" })).toHaveFocus();
+  });
+
+  test.each([{ button: "Hide comments" }, { button: "#1 Line 3" }])(
+    "must return focus to Comments when the user closes the comments with $button",
+    async ({ button }) => {
+      const { render } = setUpTest();
+      const user = userEvent.setup();
+      await render();
+      await user.click(elements.panelToggle());
+
+      await user.click(screen.getByRole("button", { name: button }));
+
+      expect(elements.panelToggle()).toHaveFocus();
+    }
+  );
+
+  test("must close the comments when the user presses Comments again", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(elements.panelToggle());
+    await user.click(elements.panelToggle());
+
+    expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "false");
+  });
 });
 
 function setUpTest({
@@ -273,4 +371,6 @@ function selectText(element: HTMLElement, length: number): void {
 
 const elements = {
   article: () => within(screen.getByRole("article", { name: "docs/plan.md" })),
+  documentColumn: () => screen.getByRole("main"),
+  panelToggle: () => screen.getByRole("button", { name: "Comments" }),
 };

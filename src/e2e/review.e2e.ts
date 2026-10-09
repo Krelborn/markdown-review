@@ -1,6 +1,15 @@
+import type { Locator } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-import { highlightedText, plan, submitDrafts, test, writeDraftComment } from "./testing/reviewTest";
+import {
+  highlightedText,
+  plan,
+  scrollDocumentToEnd,
+  submitDrafts,
+  test,
+  withParagraphs,
+  writeDraftComment,
+} from "./testing/reviewTest";
 
 test("must hand the user's comment to the agent's waiting poll when the user submits it", async ({ page, review }) => {
   await review.open("docs/plan.md");
@@ -71,24 +80,41 @@ test("must open the linked doc without reloading the page when the user follows 
   await expect(page.getByRole("heading", { level: 2, name: "Goals" })).toBeInViewport();
 });
 
-test("must scroll the selected thread's passage back into view each time the user clicks its location", async ({
+test("must scroll the selected thread's passage back into view each time the user clicks its location, even from under the header", async ({
   page,
   review,
 }) => {
-  const paragraphs = Array.from({ length: 80 }, (_, index) => `Paragraph ${index + 1}.`);
-  await review.writeDocument("docs/plan.md", [plan, ...paragraphs].join("\n\n"));
+  await review.writeDocument("docs/plan.md", withParagraphs(plan, 80));
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
   const passage = page.getByRole("article", { name: "docs/plan.md" }).getByText("We cache results");
   const location = page.getByRole("button", { name: "#1 Line 3" });
 
-  await page.evaluate(() => scrollTo(0, document.body.scrollHeight));
+  await scrollDocumentToEnd(page);
   await location.click();
   await expect(passage).toBeInViewport();
 
-  await page.evaluate(() => scrollTo(0, document.body.scrollHeight));
+  await scrollDocumentToEnd(page);
   await expect(passage).not.toBeInViewport();
   await location.click();
+  await expect(passage).toBeInViewport({ ratio: 1 });
 
-  await expect(passage).toBeInViewport();
+  await scrollJustPast(passage);
+  await expect(passage).not.toBeInViewport({ ratio: 1 });
+  await location.click();
+
+  await expect(passage).toBeInViewport({ ratio: 1 });
 });
+
+/**
+ * Scrolls the doc column until the element's top edge sits just above the column's, under the header
+ */
+function scrollJustPast(element: Locator): Promise<void> {
+  return element.evaluate((target) => {
+    const column = target.closest("main");
+    if (column === null) {
+      throw new Error("The element is not in the doc column");
+    }
+    column.scrollTop += target.getBoundingClientRect().top - column.getBoundingClientRect().top + 8;
+  });
+}
