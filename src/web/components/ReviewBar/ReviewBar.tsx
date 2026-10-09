@@ -1,4 +1,4 @@
-import { Badge, Cluster } from "@krelborn/stylesui";
+import { Badge, Button, Cluster } from "@krelborn/stylesui";
 import type { JSX } from "react";
 
 import type { ReviewState } from "../../../shared/review/ReviewState";
@@ -12,20 +12,53 @@ export interface ReviewBarProps {
   draftCount: number;
 
   /**
+   * Whether the comments panel is open, which matters only in a narrow window
+   */
+  isPanelOpen: boolean;
+
+  /**
    * Called after the user submits their drafts
    */
   onSubmitted: () => void;
+
+  /**
+   * Called when the user asks to show or hide the comments panel
+   */
+  onTogglePanel: () => void;
+
+  /**
+   * The id of the comments panel
+   */
+  panelId: string;
 
   review: ReviewState;
 }
 
 /**
- * The bar beneath the comments: whether the agent is listening, whether the review is approved, and the submit button
+ * The bar beneath the comments: in a narrow window, a button that shows and hides them; then whether the agent is
+ * listening, whether the review is approved, and the submit button
  */
-export function ReviewBar({ agentWaiting, draftCount, onSubmitted, review }: ReviewBarProps): JSX.Element {
+export function ReviewBar({
+  agentWaiting,
+  draftCount,
+  isPanelOpen,
+  onSubmitted,
+  onTogglePanel,
+  panelId,
+  review,
+}: ReviewBarProps): JSX.Element {
   return (
     <section className={styles.reviewBar} aria-label="Review">
-      <Cluster gap={3}>
+      <Button
+        className={styles.panelToggle}
+        onClick={onTogglePanel}
+        variant="secondary"
+        aria-controls={panelId}
+        aria-expanded={isPanelOpen}
+      >
+        Comments
+      </Button>
+      <Cluster className={styles.status} gap={3}>
         <AgentStatus agentWaiting={agentWaiting} />
         {review.approved && (
           <Badge tone="success" variant="solid">

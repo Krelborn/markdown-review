@@ -87,7 +87,7 @@ export const test = base.extend<{ review: ReviewFixture }>({
  * @param from the text the selection starts with
  * @param through the text it ends with, which may be in a later element
  */
-async function selectText(page: Page, from: string, through: string): Promise<void> {
+export async function selectText(page: Page, from: string, through: string): Promise<void> {
   await page.getByRole("article", { name: "docs/plan.md" }).evaluate(
     (article, { endText, startText }) => {
       const walker = document.createTreeWalker(article, NodeFilter.SHOW_TEXT);

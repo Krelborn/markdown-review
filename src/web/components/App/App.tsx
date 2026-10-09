@@ -1,4 +1,5 @@
 import { PageLayout, Theme } from "@krelborn/stylesui";
+import { clsx } from "clsx";
 import type { JSX } from "react";
 import { useMemo, useRef, useState } from "react";
 
@@ -23,6 +24,8 @@ import { PageAlerts } from "./PageAlerts";
 
 const unrequestedReview: ReviewState = { approved: false, approvedAt: null, requestedAt: null };
 
+const commentsPanelId = "comments-panel";
+
 /**
  * The review page: the bar across the top and any alerts, then the docs list or a doc beside the comments and the
  * review bar, each column scrolling on its own
@@ -36,6 +39,7 @@ export function App(): JSX.Element {
   const documentSource = useDocumentSource(api, documentPath);
   const selection = useThreadSelection(documentPath, navigate);
   const [newComment, setNewComment] = useState<NewComment | null>(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
   const connection = useReviewEvents(api, {
     onDocumentChanged: (document) => {
       if (document === documentPath) {
@@ -57,6 +61,14 @@ export function App(): JSX.Element {
     () => allThreads.filter(({ anchor }) => anchor.kind !== "review" && anchor.document === documentPath),
     [allThreads, documentPath]
   );
+  const startComment = (comment: NewComment): void => {
+    setNewComment(comment);
+    setIsPanelOpen(true);
+  };
+  const selectThreadInDocument = (threadId: number): void => {
+    selection.selectThread(threadId);
+    setIsPanelOpen(true);
+  };
   return (
     <Theme mode="system">
       <PageLayout className={styles.page}>
@@ -70,9 +82,9 @@ export function App(): JSX.Element {
               <DocumentPane
                 documentPath={documentPath}
                 hash={location.hash}
-                onComment={setNewComment}
+                onComment={startComment}
                 onNavigate={navigate}
-                onSelectThread={selection.selectThread}
+                onSelectThread={selectThreadInDocument}
                 revealCount={selection.revealCount}
                 selectedThreadId={selection.selectedThreadId}
                 state={documentSource.state}
@@ -80,7 +92,7 @@ export function App(): JSX.Element {
               />
             )}
           </main>
-          <div className={styles.commentsPanel}>
+          <div className={clsx(styles.commentsPanel, { [styles.open ?? ""]: isPanelOpen })} id={commentsPanelId}>
             <ThreadSidebar
               documentPath={documentPath}
               newComment={newComment}
@@ -95,7 +107,10 @@ export function App(): JSX.Element {
             <ReviewBar
               agentWaiting={connection.agentWaiting}
               draftCount={countDrafts(allThreads)}
+              isPanelOpen={isPanelOpen}
               onSubmitted={threads.refresh}
+              onTogglePanel={() => setIsPanelOpen((isOpen) => !isOpen)}
+              panelId={commentsPanelId}
               review={threads.snapshot?.review ?? unrequestedReview}
             />
           </div>

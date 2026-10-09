@@ -89,31 +89,67 @@ describe("ReviewBar", () => {
 
     expect(await elements.submitDialog().findByRole("alert")).toHaveTextContent("There are no drafts to submit");
   });
+
+  test.each([
+    { expanded: "false", isPanelOpen: false },
+    { expanded: "true", isPanelOpen: true },
+  ])(
+    "must mark the Comments button expanded $expanded when the panel's open state is $isPanelOpen",
+    ({ expanded, isPanelOpen }) => {
+      const { render } = setUpTest();
+
+      render({ isPanelOpen });
+
+      expect(elements.panelToggle()).toHaveAttribute("aria-expanded", expanded);
+    }
+  );
+
+  test("must ask to show or hide the comments when the user presses Comments", async () => {
+    const { onTogglePanel, render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+
+    await user.click(elements.panelToggle());
+
+    expect(onTogglePanel).toHaveBeenCalled();
+  });
 });
 
 interface RenderOptions {
   agentWaiting?: boolean;
   draftCount?: number;
+  isPanelOpen?: boolean;
   review?: ReviewState;
 }
 
 function setUpTest() {
   const fake = createFakeReviewApi({ threads: [draftThread] });
   const onSubmitted = vi.fn();
+  const onTogglePanel = vi.fn();
   const render = ({
     agentWaiting = false,
     draftCount = 0,
+    isPanelOpen = false,
     review = fake.snapshot.review,
   }: RenderOptions = {}): void => {
     renderBase(
       <ReviewApiContext value={fake.api}>
-        <ReviewBar agentWaiting={agentWaiting} draftCount={draftCount} onSubmitted={onSubmitted} review={review} />
+        <ReviewBar
+          agentWaiting={agentWaiting}
+          draftCount={draftCount}
+          isPanelOpen={isPanelOpen}
+          onSubmitted={onSubmitted}
+          onTogglePanel={onTogglePanel}
+          panelId="comments-panel"
+          review={review}
+        />
       </ReviewApiContext>
     );
   };
-  return { fake, onSubmitted, render };
+  return { fake, onSubmitted, onTogglePanel, render };
 }
 
 const elements = {
+  panelToggle: () => screen.getByRole("button", { name: "Comments" }),
   submitDialog: () => within(screen.getByRole("dialog", { name: "Submit review" })),
 };

@@ -443,6 +443,10 @@ The review bar sits at the foot of the sidebar and stays in view whatever the us
 - An "Approved" badge while the review is approved.
 - **Submit (N)**, where N is the number of draft threads and draft replies across the whole repo. It offers **Request changes** (disabled when N is 0) and **Approve** (always available; submits any drafts too). Its menu opens above the button.
 
+### Narrow windows
+
+Below 48rem the sidebar becomes a drawer over the right of the document view. The review bar then runs along the foot of the page, with a **Comments** button that shows and hides the drawer. Starting a comment, or clicking a highlight or marker, opens the drawer. Closing it keeps any unsent text.
+
 ### Writing comments
 
 - **Passage:** select text, including across blocks; a Comment button appears next to the selection; clicking it opens a draft in the sidebar with focus in it.

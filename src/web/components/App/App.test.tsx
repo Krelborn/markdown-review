@@ -243,6 +243,57 @@ describe("App", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: "docs/spec.md" })).toBeInTheDocument();
   });
+
+  test("must open the comments when the user starts a comment on the doc", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(await screen.findByRole("button", { name: "Comment on this doc" }));
+
+    expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("must open the comments when the user clicks a thread's marker in the doc", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(await screen.findByRole("button", { name: "Thread #1" }));
+
+    expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("must leave the comments closed when the user shows a thread's passage from the comments", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(screen.getByRole("button", { name: "#1 Line 3" }));
+
+    expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("must open the comments when the user presses Comments", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(elements.panelToggle());
+
+    expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("must close the comments when the user presses Comments again", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(elements.panelToggle());
+    await user.click(elements.panelToggle());
+
+    expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "false");
+  });
 });
 
 function setUpTest({
@@ -285,4 +336,5 @@ function selectText(element: HTMLElement, length: number): void {
 const elements = {
   article: () => within(screen.getByRole("article", { name: "docs/plan.md" })),
   documentColumn: () => screen.getByRole("main"),
+  panelToggle: () => screen.getByRole("button", { name: "Comments" }),
 };

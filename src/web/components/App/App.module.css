@@ -35,3 +35,30 @@
   border-inline-start: var(--sui-border-width) solid var(--sui-color-border);
   grid-area: review;
 }
+
+@media (width < 48rem) {
+  .columns {
+    grid-template-areas:
+      "document"
+      "review";
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The drawer shares the doc's cell and covers its right edge */
+  .commentsPanel {
+    background-color: var(--sui-color-background);
+    box-shadow: var(--sui-shadow-sm);
+    grid-area: document;
+    inline-size: min(24rem, 100% - 3rem);
+    justify-self: end;
+    z-index: 2;
+  }
+
+  .commentsPanel:not(.open) {
+    display: none;
+  }
+
+  .reviewBar {
+    border-inline-start: none;
+  }
+}

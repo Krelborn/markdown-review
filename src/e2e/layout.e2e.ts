@@ -1,7 +1,11 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-import { plan, scrollDocumentToEnd, test, withParagraphs } from "./testing/reviewTest";
+import { plan, scrollDocumentToEnd, selectText, test, withParagraphs } from "./testing/reviewTest";
+
+const narrowWindow = { height: 800, width: 700 };
+
+const wideWindow = { height: 720, width: 1280 };
 
 test("must keep the header and Submit in view, and the window still, when the user scrolls to the end of a long doc", async ({
   page,
@@ -64,6 +68,61 @@ test("must keep Submit and its menu in full view when the comments outgrow their
   await expect(page.getByRole("dialog", { name: "Submit review" })).toBeInViewport({ ratio: 1 });
 });
 
+test("must show the comments in a narrow window only when the user asks for them", async ({ page, review }) => {
+  await page.setViewportSize(narrowWindow);
+  await review.open("docs/plan.md");
+  await expect(comments(page)).toBeHidden();
+  await expect(page.getByRole("button", { name: "Submit (0)" })).toBeInViewport();
+
+  await commentsToggle(page).click();
+  await expect(comments(page)).toBeVisible();
+  await commentsToggle(page).click();
+
+  await expect(comments(page)).toBeHidden();
+});
+
+test("must open the comments at a new comment when the user starts one in a narrow window, and keep its text while they are hidden", async ({
+  page,
+  review,
+}) => {
+  await page.setViewportSize(narrowWindow);
+  await review.open("docs/plan.md");
+  const commentBox = page.getByRole("textbox", { exact: true, name: "Comment" });
+
+  await selectText(page, "cache", "24h");
+  await page.getByRole("button", { exact: true, name: "Comment" }).click();
+  await expect(commentBox).toBeFocused();
+  await page.keyboard.type("Why 24h?");
+  await commentsToggle(page).click();
+  await expect(comments(page)).toBeHidden();
+  await commentsToggle(page).click();
+
+  await expect(commentBox).toHaveValue("Why 24h?");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page.getByRole("button", { name: "Submit (1)" })).toBeInViewport();
+});
+
+test("must keep the comments open when the window widens and narrows again", async ({ page, review }) => {
+  await page.setViewportSize(narrowWindow);
+  await review.open("docs/plan.md");
+  await commentsToggle(page).click();
+
+  await page.setViewportSize(wideWindow);
+  await expect(commentsToggle(page)).toBeHidden();
+  await expect(comments(page)).toBeVisible();
+  await page.setViewportSize(narrowWindow);
+
+  await expect(comments(page)).toBeVisible();
+});
+
 function documentScrollTop(page: Page): Promise<number> {
   return page.getByRole("main").evaluate((main) => main.scrollTop);
+}
+
+function comments(page: Page): Locator {
+  return page.getByRole("complementary", { name: "Comments" });
+}
+
+function commentsToggle(page: Page): Locator {
+  return page.getByRole("button", { exact: true, name: "Comments" });
 }
