@@ -49,7 +49,7 @@
 |  scrolls                                 | | Drafts (2)            | |
 |                                          | | ...                   | |  thread list scrolls
 |                                          | +-----------------------+
-|                                          | | o Agent waiting       |
+|                                          | | o Agent listening     |
 |                                          | | [     Submit (2)    ] |  review bar
 +--------------------------------------------+-----------------------+
 ```
@@ -68,7 +68,7 @@ The comments column is `clamp(18rem, 30vw, 24rem)` wide. The doc column takes th
 |                     | which scrolls      |
 |                     +--------------------+
 +------------------------------------------+
-| [Comments]  o Agent waiting  [Submit (2)] |  review bar
+| [Comments] o Agent listening [Submit (2)] |  review bar
 +------------------------------------------+
 ```
 

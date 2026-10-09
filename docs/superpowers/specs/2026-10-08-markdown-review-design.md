@@ -439,7 +439,7 @@ Layout: a page exactly the height of the window, which itself never scrolls. It 
 
 The review bar sits at the foot of the sidebar and stays in view whatever the user has scrolled. It holds:
 
-- Agent status: "Agent waiting" while a poll is open, otherwise "Agent not listening, comments will wait in the inbox".
+- Agent status: "Agent listening" while a poll is open, otherwise "Agent not listening". The **Submit** menu explains what that means: the agent will hear at once, or will find the submit in its inbox when it next looks.
 - An "Approved" badge while the review is approved.
 - **Submit (N)**, where N is the number of draft threads and draft replies across the whole repo. It offers **Request changes** (disabled when N is 0) and **Approve** (always available; submits any drafts too). Its menu opens above the button.
 

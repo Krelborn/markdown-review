@@ -69,7 +69,7 @@ export const test = base.extend<{ review: ReviewFixture }>({
       run: (args) => startCli(root, args).result,
       startPoll: async () => {
         const poll = startCli(root, ["poll", "--timeout", "60"]);
-        await expect(page.getByRole("status")).toHaveText("Agent waiting");
+        await expect(page.getByRole("status")).toHaveText("Agent listening");
         return poll;
       },
       writeDocument: (document, source) => writeFile(path.join(root, ...document.split("/")), source),

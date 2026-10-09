@@ -66,7 +66,7 @@ export function ReviewBar({
           </Badge>
         )}
       </Cluster>
-      <SubmitMenu draftCount={draftCount} onSubmitted={onSubmitted} />
+      <SubmitMenu agentWaiting={agentWaiting} draftCount={draftCount} onSubmitted={onSubmitted} />
     </section>
   );
 }

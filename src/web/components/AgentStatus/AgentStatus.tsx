@@ -9,13 +9,13 @@ export interface AgentStatusProps {
 }
 
 /**
- * Says whether the agent will see a submit at once or later from its inbox
+ * Says whether the agent is listening, so that it will hear of a submit at once
  */
 export function AgentStatus({ agentWaiting }: AgentStatusProps): JSX.Element {
   return (
     <Cluster gap={1} role="status">
       <StatusDot tone={agentWaiting ? "success" : "neutral"} variant={agentWaiting ? "solid" : "ring"} />
-      <Text size="sm">{agentWaiting ? "Agent waiting" : "Agent not listening, comments will wait in the inbox"}</Text>
+      <Text size="sm">{agentWaiting ? "Agent listening" : "Agent not listening"}</Text>
     </Cluster>
   );
 }

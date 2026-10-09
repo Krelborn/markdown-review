@@ -18,21 +18,40 @@ const draftThread = buildThread({
 });
 
 describe("ReviewBar", () => {
-  test("must say the agent is waiting when the agent has a poll open", () => {
+  test("must say the agent is listening when the agent has a poll open", () => {
     const { render } = setUpTest();
 
     render({ agentWaiting: true });
 
-    expect(screen.getByRole("status")).toHaveTextContent("Agent waiting");
+    expect(within(screen.getByRole("status")).getByText("Agent listening")).toBeInTheDocument();
   });
 
-  test("must say comments will wait in the inbox when the agent is not listening", () => {
+  test("must say the agent is not listening when the agent has no poll open", () => {
     const { render } = setUpTest();
 
     render();
 
-    expect(screen.getByRole("status")).toHaveTextContent("Agent not listening, comments will wait in the inbox");
+    expect(within(screen.getByRole("status")).getByText("Agent not listening")).toBeInTheDocument();
   });
+
+  test.each([
+    { agentWaiting: true, explanation: "The agent is listening and will hear at once." },
+    {
+      agentWaiting: false,
+      explanation: "The agent isn't listening. It will find this in its inbox when it next looks.",
+    },
+  ])(
+    "must explain in the submit menu what the agent will do when its poll open state is $agentWaiting",
+    async ({ agentWaiting, explanation }) => {
+      const { render } = setUpTest();
+      const user = userEvent.setup();
+      render({ agentWaiting });
+
+      await user.click(screen.getByRole("button", { name: "Submit (0)" }));
+
+      expect(elements.submitDialog().getByText(explanation)).toBeInTheDocument();
+    }
+  );
 
   test("must show the review as approved when the user approved this round", () => {
     const { render } = setUpTest();

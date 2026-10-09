@@ -188,13 +188,13 @@ describe("App", () => {
     expect(screen.queryByText("Lost the connection to the review server")).not.toBeInTheDocument();
   });
 
-  test("must show that the agent is waiting when the server says a poll is open", async () => {
+  test("must show that the agent is listening when the server says a poll is open", async () => {
     const { fake, render } = setUpTest();
     await render();
 
     fake.emit({ agentWaiting: true, type: "presence" });
 
-    expect(await screen.findByText("Agent waiting")).toBeInTheDocument();
+    expect(await screen.findByText("Agent listening")).toBeInTheDocument();
   });
 
   test("must count the drafts on every doc on the submit button", async () => {
