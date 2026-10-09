@@ -156,12 +156,10 @@ export async function submitDrafts(
 }
 
 /**
- * @returns the text of each passage the page highlights as a thread
+ * @returns the text of each passage the page highlights under the given name; by default, the threads' highlight
  */
-export function highlightedText(page: Page): Promise<string[]> {
-  return page.evaluate(() =>
-    [...(CSS.highlights.get("markdown-review-threads") ?? [])].map((range) => range.toString())
-  );
+export function highlightedText(page: Page, highlightName = "markdown-review-threads"): Promise<string[]> {
+  return page.evaluate((name) => [...(CSS.highlights.get(name) ?? [])].map((range) => range.toString()), highlightName);
 }
 
 function collectErrors(page: Page): string[] {

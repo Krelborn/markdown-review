@@ -438,22 +438,29 @@ Layout: a page exactly the height of the window, which itself never scrolls. It 
 
 ### Review bar
 
-The review bar sits at the foot of the sidebar and stays in view whatever the user has scrolled. It holds:
+The review bar sits at the foot of the sidebar, on one row, and stays in view whatever the user has scrolled. It holds:
 
-- Agent status: "Agent listening" while a poll is open, otherwise "Agent not listening". The **Submit** menu explains what that means: the agent will hear at once, or will find the submit in its inbox when it next looks.
+- Agent status: "Agent listening" while a poll is open, otherwise "Agent not listening". The **Submit** popover explains what that means: the agent will hear at once, or will find the submit in its inbox when it next looks.
 - An "Approved" badge while the review is approved.
-- **Submit (N)**, where N is the number of draft threads and draft replies across the whole repo. It offers **Request changes** (disabled when N is 0) and **Approve** (always available; submits any drafts too). Its menu opens above the button.
+- **Submit**, with a count of the draft threads and draft replies across the whole repo when there are any. It is the primary button only while there are drafts. It opens a popover above it that:
+  - says how many drafts it sends and which docs they are on
+  - offers **Request changes** (disabled when there are no drafts) and **Approve** (always available; submits any drafts too) as radios
+  - submits with its own **Submit** button, which stays disabled while the comment editor holds unsaved text
 
 ### Narrow windows
 
-Below 48rem the sidebar becomes a drawer over the right of the document view. The review bar then runs along the foot of the page, with a **Comments** button that shows and hides the drawer. The drawer also has a **Hide comments** button at its top. Opening the drawer from **Comments** moves keyboard focus into it, and closing it returns focus to **Comments**. Starting a comment, or clicking a highlight or marker, opens the drawer. Clicking a thread's location closes it, so the passage can be seen. Closing it keeps any unsent text.
+Below 48rem the sidebar becomes a drawer over the right of the document view. The review bar then runs along the foot of the page, with a **Comments** button that shows and hides the drawer. The sidebar's header also holds a **Hide comments** button. Opening the drawer from **Comments** moves keyboard focus into it, and closing it returns focus to **Comments**. Starting a comment, or clicking a highlight or marker, opens the drawer. Clicking a thread's location closes it, so the passage can be seen. Closing it keeps any unsent text.
 
 ### Writing comments
 
 - **Passage:** select text, including across blocks; a Comment button appears next to the selection; clicking it opens a draft in the sidebar with focus in it.
 - **Block:** hovering a block shows a "+" in the left gutter; the whole block becomes the quote. Used for code blocks, tables, diagrams and HTML blocks.
-- **Doc:** "Comment on this doc" link under the doc's first heading.
-- **Review:** "Comment on review" box at the top of the sidebar.
+- **Doc** and **review:** the **+ Comment** menu at the top of the sidebar offers **On this doc** and **On the whole review**. On the docs list, where only the review can take a comment, it is a **+ Review comment** button.
+- **The composer** opens at the top of the sidebar with focus in it. While it is open, its passage stays highlighted in the doc.
+- **One editor at a time.** A new comment, a reply and a draft being edited all use the same editor, with Cancel and Save on the right.
+  - Starting another while the open editor holds unsaved text asks whether to save or discard that text first. An empty or unchanged editor just closes.
+  - Cmd+Enter saves. Escape closes the editor, or asks first when it holds unsaved text.
+  - Leaving the page with unsaved text triggers the browser's warning.
 
 ### Highlights
 
@@ -468,11 +475,11 @@ Current versions of Chrome, Firefox and Safari. The CSS Custom Highlight API set
 ### Sidebar
 
 - Groups: Drafts, Open, Outdated, Resolved (Resolved collapsed by default).
-- **This doc / All docs** toggle. All docs lists every thread grouped by doc; this is how the user reviews the set as a whole.
+- **This doc / All docs** tabs in the sidebar's header, each with a count, shown only when a doc other than the one on screen has threads. All docs lists every thread grouped by doc; this is how the user reviews the set as a whole. This doc also lists the thread whose reply or draft is being edited, wherever it is.
 - Clicking a thread scrolls to its passage (navigating to its doc if needed) and highlights it; clicking a highlight or numbered marker selects its thread.
-- Each thread shows its messages, a reply box (creates a draft reply), and a Resolve action.
+- Each thread shows its messages, each with an avatar, who wrote it and when. The user's draft shows as text with a Draft badge until they press **Edit**. **Reply** opens the editor for a draft reply, and **Resolve** resolves an open thread.
 - A passage thread whose `anchoredText` differs from its `quote` shows both.
-- New agent messages since the user last viewed the thread show a "new" marker.
+- New agent messages since the user last viewed the thread show a **New reply** badge.
 
 ### Navigation
 
