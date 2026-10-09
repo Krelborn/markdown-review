@@ -59,6 +59,39 @@ describe("useCommentEditor", () => {
     });
   });
 
+  test("must show the newer draft, with nothing unsaved, when the draft changes elsewhere before the user edits it", () => {
+    const { render } = setUpTest();
+    const { rerender, result } = render();
+    act(() => result.current.request(editDraft));
+
+    rerender({ shown: [{ ...draftComment, draft: { at: testTime, body: "Why 1h?" } }, openThread] });
+
+    expect(result.current).toMatchObject({ body: "Why 1h?", canSave: false, hasUnsavedText: false });
+  });
+
+  test("must keep the user's text as unsaved when the draft changes elsewhere after they edit it", () => {
+    const { render } = setUpTest();
+    const { rerender, result } = render();
+    act(() => result.current.request(editDraft));
+    act(() => result.current.changeBody("Why 2h?"));
+
+    rerender({ shown: [{ ...draftComment, draft: { at: testTime, body: "Why 1h?" } }, openThread] });
+
+    expect(result.current).toMatchObject({ body: "Why 2h?", hasUnsavedText: true });
+  });
+
+  test("must show the newer draft when the user changed the text back to the saved draft before it changed elsewhere", () => {
+    const { render } = setUpTest();
+    const { rerender, result } = render();
+    act(() => result.current.request(editDraft));
+    act(() => result.current.changeBody("Why 2h?"));
+    act(() => result.current.changeBody("Why 24h?"));
+
+    rerender({ shown: [{ ...draftComment, draft: { at: testTime, body: "Why 1h?" } }, openThread] });
+
+    expect(result.current).toMatchObject({ body: "Why 1h?", hasUnsavedText: false });
+  });
+
   test.each<{ condition: string; expected: boolean; target: EditorTarget; text: string }>([
     { condition: "a new comment is blank", expected: false, target: reviewComment, text: " \n" },
     { condition: "a new comment has text", expected: true, target: reviewComment, text: "Why?" },

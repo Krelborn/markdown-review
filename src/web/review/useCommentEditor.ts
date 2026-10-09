@@ -134,7 +134,11 @@ export interface CommentEditor {
 }
 
 interface OpenEditor {
-  body: string;
+  /**
+   * The user's text, or null while it matches the saved draft, so that an editor the user has not changed shows any
+   * newer draft saved elsewhere
+   */
+  body: string | null;
 
   /**
    * Whether its thread had a draft when it opened, so that it closes once that draft is gone
@@ -172,8 +176,10 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
   });
   const open = state.open !== null && isStillOpen(state.open, threads) ? state.open : null;
   const savedBody = open === null ? null : savedBodyOf(open.target, threads);
-  const hasUnsavedText = open !== null && differsFromSaved(open.body, savedBody);
-  const canSave = open !== null && hasUnsavedText && open.body.trim() !== "";
+  const writtenBody = open?.body ?? null;
+  const body = writtenBody ?? savedBody ?? "";
+  const hasUnsavedText = writtenBody !== null && differsFromSaved(writtenBody, savedBody);
+  const canSave = hasUnsavedText && body.trim() !== "";
   const threadsRef = useRef(threads);
   useLayoutEffect(() => {
     threadsRef.current = threads;
@@ -225,7 +231,7 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
     if (open === null || !canSave || state.isSaving) {
       return;
     }
-    const { body, target } = open;
+    const { target } = open;
     setState((current) => ({ ...current, isSaving: true }));
     try {
       await (target.kind === "new"
@@ -243,9 +249,9 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
     onChanged();
   };
   return {
-    body: open?.body ?? "",
+    body,
     canSave,
-    changeBody: (body) => unlessSaving(() => update({ body })),
+    changeBody: (text) => unlessSaving(() => update({ body: text === savedBody ? null : text })),
     close: () => unlessSaving(() => show(null)),
     discardChanges: () => unlessSaving(openHeldRequest),
     editingThreadId: threadIdOf(open),
@@ -272,8 +278,7 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
 }
 
 function editorFor(target: EditorTarget, threads: readonly Thread[]): OpenEditor {
-  const savedBody = savedBodyOf(target, threads);
-  return { body: savedBody ?? "", hadDraft: savedBody !== null, question: null, target };
+  return { body: null, hadDraft: savedBodyOf(target, threads) !== null, question: null, target };
 }
 
 function questionOf(open: OpenEditor | null, threads: readonly Thread[]): EditorQuestion | null {
