@@ -14,6 +14,11 @@ export interface SelectionComment {
    */
   left: number;
 
+  /**
+   * How far the view's right edge lies beyond where the selection ends; negative when the selection ends past it
+   */
+  roomToRight: number;
+
   top: number;
 }
 
@@ -44,7 +49,14 @@ export function useSelectionComment(
       const end = range.getBoundingClientRect();
       const viewBox = view.getBoundingClientRect();
       setSelectionComment(
-        anchor === null ? null : { anchor, left: end.right - viewBox.left, top: end.bottom - viewBox.top }
+        anchor === null
+          ? null
+          : {
+              anchor,
+              left: end.right - viewBox.left,
+              roomToRight: viewBox.right - end.right,
+              top: end.bottom - viewBox.top,
+            }
       );
     };
     document.addEventListener("selectionchange", update);

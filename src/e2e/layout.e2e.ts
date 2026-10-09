@@ -87,6 +87,19 @@ test("must keep the header and the review bar to one line each when the window i
   expect(await heightOf(page.getByRole("region", { name: "Review" }))).toBe(reviewBarHeight);
 });
 
+test("must keep Comment in full view inside the doc column when the selected text reaches the column's right edge", async ({
+  page,
+  review,
+}) => {
+  await review.writeDocument("docs/plan.md", `# Plan\n\nRetries ${"happen often ".repeat(40)}in the end.\n`);
+  await review.open("docs/plan.md");
+
+  await selectText(page, "Retries", "in the end.");
+
+  await expect(page.getByRole("button", { exact: true, name: "Comment" })).toBeInViewport({ ratio: 1 });
+  expect(await page.getByRole("main").evaluate((main) => main.scrollWidth <= main.clientWidth)).toBe(true);
+});
+
 test("must hide the comments when the user presses Hide comments in a narrow window", async ({ page, review }) => {
   await page.setViewportSize(narrowWindow);
   await review.open("docs/plan.md");
