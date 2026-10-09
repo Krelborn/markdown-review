@@ -1,5 +1,6 @@
 import { render as renderBase, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
 
 import type { ReviewState } from "../../../shared/review/ReviewState";
@@ -160,6 +161,7 @@ function setUpTest() {
           onSubmitted={onSubmitted}
           onTogglePanel={onTogglePanel}
           panelId="comments-panel"
+          panelToggleRef={createRef()}
           review={review}
         />
       </ReviewApiContext>

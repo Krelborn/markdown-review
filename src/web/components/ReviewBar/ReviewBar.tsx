@@ -1,5 +1,5 @@
 import { Badge, Button } from "@krelborn/stylesui";
-import type { JSX } from "react";
+import type { JSX, RefObject } from "react";
 
 import type { ReviewState } from "../../../shared/review/ReviewState";
 import { AgentStatus } from "../AgentStatus/AgentStatus";
@@ -31,6 +31,11 @@ export interface ReviewBarProps {
    */
   panelId: string;
 
+  /**
+   * The Comments button, which takes focus when the panel closes with focus inside it
+   */
+  panelToggleRef: RefObject<HTMLButtonElement | null>;
+
   review: ReviewState;
 }
 
@@ -45,6 +50,7 @@ export function ReviewBar({
   onSubmitted,
   onTogglePanel,
   panelId,
+  panelToggleRef,
   review,
 }: ReviewBarProps): JSX.Element {
   return (
@@ -52,6 +58,7 @@ export function ReviewBar({
       <Button
         className={styles.panelToggle}
         onClick={onTogglePanel}
+        ref={panelToggleRef}
         variant="secondary"
         aria-controls={panelId}
         aria-expanded={isPanelOpen}

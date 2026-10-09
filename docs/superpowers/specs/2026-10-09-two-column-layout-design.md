@@ -145,6 +145,7 @@ In the wide layout the toggle is hidden, the status and badge share a row, and S
 
 - **Opening.** The drawer opens from the Comments toggle, or by itself when the user starts a comment (selection Comment, block +, Comment on this doc) or clicks a highlight or marker. Both changes land in one render, so the new comment form takes focus and the selected thread's card scrolls into view as they do now.
 - **Closing.** The drawer closes from the toggle, from a "Hide comments" × button at its top, and when the user clicks a thread's location. At narrow widths the drawer covers most of each line, so closing it is what lets the passage that scrolls into view be seen.
+- **Focus.** Opening the drawer from the toggle moves focus to its Hide comments button. Closing it while focus is inside, with that button or a thread's location, returns focus to the toggle. Opening it by starting a comment leaves focus in the new comment's box.
 - **Staying mounted.** A closed drawer is hidden with CSS, not unmounted. `ThreadSidebar` keeps unsent replies and draft edits in its own state, and they must survive the drawer closing, just as they survive a thread moving group (commit 4a436ec).
 - **Resizing.** Crossing the breakpoint keeps `isPanelOpen` as it was; it simply has no effect in the wide layout.
 

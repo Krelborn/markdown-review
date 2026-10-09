@@ -296,6 +296,30 @@ describe("App", () => {
     expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "false");
   });
 
+  test("must move focus into the comments when the user opens them with Comments", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(elements.panelToggle());
+
+    expect(screen.getByRole("button", { name: "Hide comments" })).toHaveFocus();
+  });
+
+  test.each([{ button: "Hide comments" }, { button: "#1 Line 3" }])(
+    "must return focus to Comments when the user closes the comments with $button",
+    async ({ button }) => {
+      const { render } = setUpTest();
+      const user = userEvent.setup();
+      await render();
+      await user.click(elements.panelToggle());
+
+      await user.click(screen.getByRole("button", { name: button }));
+
+      expect(elements.panelToggle()).toHaveFocus();
+    }
+  );
+
   test("must close the comments when the user presses Comments again", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();

@@ -97,6 +97,22 @@ test("must hide the comments when the user presses Hide comments in a narrow win
   await expect(comments(page)).toBeHidden();
 });
 
+test("must move focus into the comments and back when the user opens and hides them from the keyboard in a narrow window", async ({
+  page,
+  review,
+}) => {
+  await page.setViewportSize(narrowWindow);
+  await review.open("docs/plan.md");
+  await commentsToggle(page).focus();
+
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: "Hide comments" })).toBeFocused();
+  await page.keyboard.press("Enter");
+
+  await expect(comments(page)).toBeHidden();
+  await expect(commentsToggle(page)).toBeFocused();
+});
+
 test("must show the comments in a narrow window only when the user asks for them", async ({ page, review }) => {
   await page.setViewportSize(narrowWindow);
   await review.open("docs/plan.md");

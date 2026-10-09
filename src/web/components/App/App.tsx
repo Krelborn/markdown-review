@@ -22,6 +22,7 @@ import { TopBar } from "../TopBar/TopBar";
 
 import styles from "./App.module.css";
 import { DocumentPane } from "./DocumentPane";
+import { useCommentsPanel } from "./useCommentsPanel";
 
 const unrequestedReview: ReviewState = { approved: false, approvedAt: null, requestedAt: null };
 
@@ -40,7 +41,7 @@ export function App(): JSX.Element {
   const documentSource = useDocumentSource(api, documentPath);
   const selection = useThreadSelection(documentPath, navigate);
   const [newComment, setNewComment] = useState<NewComment | null>(null);
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const panel = useCommentsPanel();
   const connection = useReviewEvents(api, {
     onDocumentChanged: (document) => {
       if (document === documentPath) {
@@ -64,15 +65,15 @@ export function App(): JSX.Element {
   );
   const startComment = (comment: NewComment): void => {
     setNewComment(comment);
-    setIsPanelOpen(true);
+    panel.open();
   };
   const selectThreadInDocument = (threadId: number): void => {
     selection.selectThread(threadId);
-    setIsPanelOpen(true);
+    panel.open();
   };
   const showThreadInDocument = (thread: Thread): void => {
     selection.revealThread(thread);
-    setIsPanelOpen(false);
+    panel.close();
   };
   return (
     <Theme mode="system">
@@ -97,9 +98,19 @@ export function App(): JSX.Element {
               />
             )}
           </main>
-          <div className={clsx(styles.commentsPanel, { [styles.open ?? ""]: isPanelOpen })} id={commentsPanelId}>
+          <div
+            className={clsx(styles.commentsPanel, { [styles.open ?? ""]: panel.isOpen })}
+            id={commentsPanelId}
+            ref={panel.panelRef}
+          >
             <div className={styles.drawerHeader}>
-              <IconButton label="Hide comments" onClick={() => setIsPanelOpen(false)} size="sm" variant="ghost">
+              <IconButton
+                label="Hide comments"
+                onClick={panel.close}
+                ref={panel.closeButtonRef}
+                size="sm"
+                variant="ghost"
+              >
                 ×
               </IconButton>
             </div>
@@ -117,10 +128,11 @@ export function App(): JSX.Element {
             <ReviewBar
               agentWaiting={connection.agentWaiting}
               draftCount={countDrafts(allThreads)}
-              isPanelOpen={isPanelOpen}
+              isPanelOpen={panel.isOpen}
               onSubmitted={threads.refresh}
-              onTogglePanel={() => setIsPanelOpen((isOpen) => !isOpen)}
+              onTogglePanel={panel.toggle}
               panelId={commentsPanelId}
+              panelToggleRef={panel.toggleRef}
               review={threads.snapshot?.review ?? unrequestedReview}
             />
           </div>
