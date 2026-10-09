@@ -156,6 +156,17 @@ describe("ThreadCard", () => {
     expect(onSelect).toHaveBeenCalledWith(conversation);
   });
 
+  test("must ask to select a thread on the whole review when the user clicks where it is", async () => {
+    const wholeReview = buildThread({ anchor: { kind: "review" } });
+    const { onSelect, render } = setUpTest({ thread: wholeReview });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(elements.button("#1 Whole review"));
+
+    expect(onSelect).toHaveBeenCalledWith(wholeReview);
+  });
+
   test("must mark the thread when the agent has written since the user last viewed it", () => {
     const { render } = setUpTest({ hasNewAgentMessage: true, thread: conversation });
 

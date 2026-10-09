@@ -76,21 +76,9 @@ export function ThreadCard({
 }
 
 function ThreadLocation({ onSelect, thread: { anchor, id } }: { onSelect: () => void; thread: Thread }): JSX.Element {
-  const label = (
-    <>
-      <span className={styles.id}>#{id}</span> {describeLocation(anchor)}
-    </>
-  );
-  if (anchor.kind === "review") {
-    return (
-      <Text size="sm" weight="medium">
-        {label}
-      </Text>
-    );
-  }
   return (
     <button className={styles.location} onClick={onSelect} type="button">
-      {label}
+      <span className={styles.id}>#{id}</span> {describeLocation(anchor)}
     </button>
   );
 }
