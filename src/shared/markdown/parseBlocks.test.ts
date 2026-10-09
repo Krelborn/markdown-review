@@ -260,6 +260,11 @@ describe("parseBlocks", () => {
       expected: [oneLineBlock(2, "title: Plan")],
     },
     {
+      condition: "the doc's first --- is not on its first line",
+      source: "\n---\ntitle: Plan\n---\n",
+      expected: [{ ...oneLineBlock(3, "title: Plan"), endLine: 4 }],
+    },
+    {
       condition: "a blockquote at the start of the doc holds --- lines",
       source: "> ---\n> title: Plan\n> ---\n",
       expected: [{ ...oneLineBlock(2, "title: Plan"), endLine: 3 }],

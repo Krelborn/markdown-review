@@ -1,3 +1,4 @@
+import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
 import { highlightedText, selectText, submitDrafts, test, writeDraftComment } from "./testing/reviewTest";
@@ -50,6 +51,20 @@ test("must emphasise a comment's passage while the user points at its card", asy
   await expect.poll(() => highlightedText(page, "markdown-review-hovered")).toEqual(["cache results for 24h"]);
 });
 
+test("must give a comment's card the hovered style when the user points at its passage", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const card = page.getByRole("article", { name: "Thread #1" });
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+  const hoveredBackground = await subtleSecondaryBackground(page);
+  await article.getByText("Retries happen three times.").hover();
+  await expect.poll(() => backgroundOf(card)).not.toBe(hoveredBackground);
+
+  await article.getByText("24h", { exact: true }).hover();
+
+  await expect.poll(() => backgroundOf(card)).toBe(hoveredBackground);
+});
+
 test("must keep a half-written reply when the user goes to another doc and back", async ({ page, review }) => {
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
@@ -81,3 +96,21 @@ test("must close a draft reply's editor when the user discards the draft", async
   await expect(thread.getByRole("textbox")).toHaveCount(0);
   await expect(thread.getByRole("button", { name: "Reply" })).toBeVisible();
 });
+
+function backgroundOf(element: Locator): Promise<string> {
+  return element.evaluate((node) => getComputedStyle(node).backgroundColor);
+}
+
+/**
+ * @returns the colour a card shows as its background while its thread is hovered
+ */
+function subtleSecondaryBackground(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const probe = document.createElement("div");
+    probe.style.backgroundColor = "var(--sui-color-secondary-subtle)";
+    document.body.append(probe);
+    const { backgroundColor } = getComputedStyle(probe);
+    probe.remove();
+    return backgroundColor;
+  });
+}
