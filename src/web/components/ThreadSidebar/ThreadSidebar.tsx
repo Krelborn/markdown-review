@@ -104,7 +104,8 @@ export function ThreadSidebar({
         <ThreadGroup isFolded={false} threads={groups.open} title="Open" {...listProps} />
         <ThreadGroup isFolded={false} threads={groups.outdated} title="Outdated" {...listProps} />
         <ThreadGroup
-          isFolded={!groups.resolved.some((thread) => thread.id === editor.editingThreadId)}
+          isFolded={true}
+          isForcedOpen={groups.resolved.some((thread) => thread.id === editor.editingThreadId)}
           threads={groups.resolved}
           title="Resolved"
           {...listProps}

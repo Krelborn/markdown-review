@@ -48,6 +48,22 @@ describe("ThreadSidebar", () => {
     expect(screen.getByRole("article", { name: "Thread #4" })).not.toBeVisible();
   });
 
+  test.each([
+    { action: "saves", button: "Save" },
+    { action: "cancels", button: "Cancel" },
+  ])("must keep the resolved threads open when the user $action a reply to one of them", async ({ button }) => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await user.click(screen.getByRole("heading", { name: "Resolved 1" }));
+    await user.click(within(elements.thread(4)).getByRole("button", { name: "Reply" }));
+    await user.type(within(elements.thread(4)).getByRole("textbox", { name: "Reply" }), "Reopen?");
+
+    await user.click(within(elements.thread(4)).getByRole("button", { name: button }));
+
+    expect(elements.thread(4)).toBeVisible();
+  });
+
   test("must show every doc's threads under their doc when the user chooses All docs", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
