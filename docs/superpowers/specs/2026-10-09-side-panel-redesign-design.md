@@ -1,7 +1,7 @@
 # Side panel redesign: design spec
 
 - **Date:** 2026-10-09
-- **Status:** Design approved in conversation (2026-10-09), ready for spec review
+- **Status:** Approved in spec review (2026-10-09)
 - **Changes:** section 10 (Browser UI) of the [design spec](2026-10-08-markdown-review-design.md), and the review bar from the [two-column layout spec](2026-10-09-two-column-layout-design.md)
 - **Follow-up:** approving a single doc is a separate spec. It changes the store, the HTTP API, the CLI's output and the protocol. This spec changes none of them.
 
