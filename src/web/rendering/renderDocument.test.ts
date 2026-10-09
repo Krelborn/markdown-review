@@ -19,6 +19,23 @@ describe("renderDocument", () => {
   );
 
   test.each([
+    { condition: "names a language Shiki knows", expected: "TS", fence: "```TS\nconst ttl = 3600;\n```\n" },
+    {
+      condition: "names a language Shiki does not know",
+      expected: "not-a-language",
+      fence: "```not-a-language\nx\n```\n",
+    },
+    { condition: "names no language", expected: null, fence: "```\nx\n```\n" },
+    { condition: "holds a Mermaid diagram", expected: null, fence: "```mermaid\ngraph TD\n```\n" },
+    { condition: "names a language holding markup", expected: '"><b>x', fence: '```"><b>x\ny\n```\n' },
+  ])("must give the fence's language to its header when the fence $condition", async ({ expected, fence }) => {
+    const page = await renderPage(fence);
+
+    expect(page.querySelector('[data-md-block="0"]')?.getAttribute("data-language")).toBe(expected);
+    expect(page.querySelector("b")).toBeNull();
+  });
+
+  test.each([
     {
       condition: "another doc",
       markdown: "[Spec](../spec.md#goals)",

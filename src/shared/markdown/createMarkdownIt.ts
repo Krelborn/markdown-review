@@ -35,8 +35,9 @@ export function createMarkdownIt({ highlight }: MarkdownRenderingOptions = {}): 
     const code = withoutFinalNewline(token.content);
     const language = fenceLanguage(token.info);
     const languageClass = language === "" ? "" : ` class="language-${escapeHtml(language)}"`;
+    const languageHeader = language === "" || language === "mermaid" ? "" : ` data-language="${escapeHtml(language)}"`;
     const highlighted = highlight?.(code, language) ?? `<pre><code${languageClass}>${escapeHtml(code)}</code></pre>`;
-    return `<div${renderer.renderAttrs(token)}>${highlighted}</div>\n`;
+    return `<div${renderer.renderAttrs(token)}${languageHeader}>${highlighted}</div>\n`;
   };
 
   const renderCodeBlock: RendererRule = (tokens, index, _options, _environment, renderer) => {

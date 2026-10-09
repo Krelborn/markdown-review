@@ -25,6 +25,26 @@
   margin: 0;
 }
 
+/* The header is generated content, so it is in neither the selection nor the canonical text that comments anchor to */
+.content div[data-language]:has(> pre)::before {
+  background-color: color-mix(in srgb, var(--sui-color-surface), var(--sui-color-text) 5%);
+  border: var(--sui-border-width) solid var(--sui-color-border);
+  border-block-end: none;
+  border-start-end-radius: var(--sui-radius-lg);
+  border-start-start-radius: var(--sui-radius-lg);
+  color: var(--sui-color-text-muted);
+  content: attr(data-language);
+  display: block;
+  font-family: var(--sui-font-mono);
+  font-size: 0.75rem;
+  padding: var(--sui-space-1) var(--sui-space-4);
+}
+
+.content div[data-language]:has(> pre) > pre {
+  border-start-end-radius: 0;
+  border-start-start-radius: 0;
+}
+
 .content div[data-md-block] > svg {
   display: block;
   margin-inline: auto;
