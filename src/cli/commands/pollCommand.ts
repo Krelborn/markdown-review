@@ -19,18 +19,19 @@ export async function pollCommand(args: string[], { cliPath, terminal }: CliCont
   const root = await findRoot(terminal.workingDirectory);
   const document = await readDocumentOption(root, terminal.workingDirectory, values.document);
   const client = await connectToServer(root, cliPath);
-  terminal.stderr(
-    `Waiting up to ${timeoutSeconds}s for review comments. If this is interrupted, run \`markdown-review poll\` again; nothing is lost.\n`
-  );
   const abort = new AbortController();
   let interruptedBy: string | undefined;
   const onSignal = (signal: NodeJS.Signals): void => {
     interruptedBy = signal;
     abort.abort();
   };
+  // Listens before saying it is waiting, as an agent may interrupt it the moment it reads that
   process.once("SIGINT", onSignal);
   process.once("SIGTERM", onSignal);
   try {
+    terminal.stderr(
+      `Waiting up to ${timeoutSeconds}s for review comments. If this is interrupted, run \`markdown-review poll\` again; nothing is lost.\n`
+    );
     const result = await client.poll(document, timeoutSeconds, abort.signal);
     if (result.timedOut && result.threads.length === 0 && !result.review.approved) {
       terminal.stdout(
