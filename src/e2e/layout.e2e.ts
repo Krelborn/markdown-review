@@ -291,7 +291,10 @@ test("must keep the tabs on their own row below the + Comment button", async ({ 
   expect(await topOf(tabs)).toBeGreaterThanOrEqual(await bottomOf(addComment));
 });
 
-test("must leave the prose gap above a code block and between two code blocks in a row", async ({ page, review }) => {
+test("must leave the prose gap above a code block and between two code blocks when they come in a row", async ({
+  page,
+  review,
+}) => {
   await review.writeDocument("docs/plan.md", "# Plan\n\nRun this:\n\n```\nplain code\n```\n\n    indented code\n");
   await review.open("docs/plan.md");
   const article = page.getByRole("article", { name: "docs/plan.md" });

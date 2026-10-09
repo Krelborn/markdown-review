@@ -36,7 +36,7 @@
   content: attr(data-language);
   display: block;
   font-family: var(--sui-font-mono);
-  font-size: 0.75rem;
+  font-size: var(--sui-font-size-xs);
   padding: var(--sui-space-1) var(--sui-space-4);
 }
 
@@ -179,7 +179,7 @@
   color: var(--sui-color-text-muted);
   cursor: pointer;
   display: flex;
-  font-size: 0.75rem;
+  font-size: var(--sui-font-size-xs);
   font-weight: var(--sui-font-weight-bold);
   gap: var(--sui-space-2);
   letter-spacing: 0.06em;

@@ -216,7 +216,7 @@ describe("DocumentView", () => {
     expect(elements.highlighted(pendingHighlightName)).toEqual(["cache results for 24h"]);
   });
 
-  test("must deepen the highlight where two threads' passages overlap", async () => {
+  test("must deepen the highlight when two threads' passages overlap", async () => {
     const { render } = setUpTest({
       threads: [buildThread({ anchor: cacheAnchor, id: 1 }), buildThread({ anchor: todayAnchor, id: 2 })],
     });
@@ -248,7 +248,7 @@ describe("DocumentView", () => {
     expect(onSelectThread).toHaveBeenCalledWith(1);
   });
 
-  test("must report the thread whose highlight the pointer moves over", async () => {
+  test("must report the thread of a highlight when the pointer moves over it", async () => {
     const { onHoverThread, render } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
     const user = userEvent.setup();
     await render();
@@ -318,7 +318,7 @@ describe("DocumentView", () => {
     expect(caretPositionFromPoint).not.toHaveBeenCalled();
   });
 
-  test("must emphasise the passage of the thread the user points at in the comments", async () => {
+  test("must emphasise the passage of a thread when the user points at it in the comments", async () => {
     const { render } = setUpTest({
       hoveredThreadId: 1,
       threads: [buildThread({ anchor: cacheAnchor, id: 1 }), buildThread({ anchor: retriesAnchor, id: 2 })],

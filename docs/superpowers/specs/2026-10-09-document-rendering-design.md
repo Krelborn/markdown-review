@@ -158,6 +158,7 @@ Frontmatter (section 7) and alerts (section 11) change the canonical text of doc
 - `hashSource` hashes the version, a newline, then the source. Every stored threads file's `sourceHash` then differs once, so the next read of each doc re-anchors its threads and writes the new hash. Text that has not moved matches exactly, in place.
 - The browser only ever compares hashes the server gave it, so it needs no change.
 - `protocolVersion` stays as it is: no HTTP or file shape changes. An older server re-anchors with its own rules, and still agrees with the web app it serves.
+- A thread stored under the old rules on a short GitHub alert can come back Outdated after the upgrade, because the removed marker line is more than the fuzzy match tolerates for a short passage. Its quote is kept.
 
 ## 9. Linking highlights and cards on hover
 
@@ -192,7 +193,7 @@ Frontmatter (section 7) and alerts (section 11) change the canonical text of doc
 
 ## 12. Heading links
 
-- **Markup.** `renderDocument` gives each heading that has an id a link, after `addHeadingIds` runs so the ids don't include it: `<a class="heading-anchor" href="#<id>" aria-label="Link to <heading text>" data-md-ignore>#</a>`, at the end of the heading.
+- **Markup.** `addHeadingLinks` gives each heading that has an id a link, after `addHeadingIds` runs so the ids don't include it: `<a href="#<id>" aria-label="Link to <heading text>" data-heading-link data-md-ignore>#</a>`, appended at the end of the heading. It also sets the heading's own `aria-label` to its text, so the link does not join the heading's accessible name.
 - **Visibility.** The link shows when the pointer is over the heading or the link has visible focus. It uses `--sui-color-text-muted` and `user-select: none`.
 - **Clicking.**
   - The existing handling of `#` links scrolls to the heading and puts it in the page address.
