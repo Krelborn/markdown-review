@@ -1,10 +1,11 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { createDocumentText } from "../../shared/markdown/createDocumentText";
 import type { NewThread } from "../../shared/review/newThreadSchema";
-import { buildThread } from "../../shared/review/testing/reviewBuilders";
+import { buildPassageAnchor, buildThread } from "../../shared/review/testing/reviewBuilders";
 import { createMemoryLogger } from "../logging/testing/createMemoryLogger";
 import { setUpTemporaryDirectory } from "../testing/setUpTemporaryDirectory";
 
@@ -194,6 +195,34 @@ describe("ReviewStore", () => {
 
     expect(inbox.threads[0]?.anchor).toMatchObject({ endLine: 7, startLine: 7 });
     expect((await readStoredDocumentFile()).sourceHash).toBe(hashSource(edited));
+  });
+
+  test("must re-anchor threads stored under older canonical-text rules when their doc has not changed", async () => {
+    const { root, store } = await setUpLoadedTest();
+    const anchoredUnderOldRules = buildPassageAnchor({
+      anchoredText: "three times",
+      endLine: 3,
+      endOffset: 13,
+      prefix: "",
+      quote: "three times",
+      startLine: 3,
+      startOffset: 2,
+      suffix: "",
+    });
+    await writeJson(path.join(root, ".markdown-review", "documents", "docs", "plan.md.json"), {
+      document: "docs/plan.md",
+      sourceHash: createHash("sha256").update(plan, "utf8").digest("hex"),
+      threads: [buildThread({ anchor: anchoredUnderOldRules, id: 1 })],
+      version: 1,
+    });
+
+    const snapshot = await store.readThreads("docs/plan.md");
+
+    expect(snapshot.threads[0]?.anchor).toMatchObject({
+      endLine: 5,
+      startLine: 5,
+      startOffset: createDocumentText(plan).text.indexOf("three times"),
+    });
   });
 
   test("must mark passage threads outdated when the doc is deleted and restore them when it returns", async () => {
