@@ -15,9 +15,11 @@ const passage: NewPassageAnchor = {
   suffix: "",
 };
 
+const shown = { hash: "hash-1", path: "docs/plan.md" };
+
 describe("pendingPassageOn", () => {
   test("must find the passage when the comment being written is on a passage of the doc", () => {
-    expect(pendingPassageOn({ anchor: passage }, "docs/plan.md")).toBe(passage);
+    expect(pendingPassageOn({ anchor: passage, renderedHash: "hash-1" }, shown)).toBe(passage);
   });
 
   test.each<{ condition: string; newComment: NewComment | null }>([
@@ -29,9 +31,13 @@ describe("pendingPassageOn", () => {
     },
     {
       condition: "the comment's passage is on another doc",
-      newComment: { anchor: { ...passage, document: "docs/spec.md" } },
+      newComment: { anchor: { ...passage, document: "docs/spec.md" }, renderedHash: "hash-1" },
+    },
+    {
+      condition: "the doc has changed since the comment started",
+      newComment: { anchor: passage, renderedHash: "hash-0" },
     },
   ])("must find no passage when $condition", ({ newComment }) => {
-    expect(pendingPassageOn(newComment, "docs/plan.md")).toBeNull();
+    expect(pendingPassageOn(newComment, shown)).toBeNull();
   });
 });

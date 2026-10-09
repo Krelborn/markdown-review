@@ -64,7 +64,7 @@ export function DocumentPane({ documentPath, pendingComment, state, ...viewProps
       return (
         <DocumentView
           document={state.document}
-          pendingPassage={pendingPassageOn(pendingComment, documentPath)}
+          pendingPassage={pendingPassageOn(pendingComment, state.document)}
           {...viewProps}
         />
       );
