@@ -139,7 +139,7 @@ In the wide layout the toggle is hidden, the status and badge share a row, and S
 - Moves the "Lost the connection" and "Some comments could not be read" alerts, unchanged, from the doc column into the page alerts strip.
 - Holds `isPanelOpen`, false at first. Only the narrow layout's CSS reads it.
 - Opens the panel when the user starts a comment (`onComment`) and when they select a thread from the doc (a highlight or a marker). It does not open the panel when they click a thread's location in the panel.
-- Holds a ref to the doc column and passes it to `usePageLocation` and, through `DocumentPane` and `DocumentView`, to `useRevealSelectedThread`.
+- Holds a ref to the doc column and passes it to `usePageLocation`.
 
 ## 6. Narrow layout behaviour
 
@@ -151,7 +151,7 @@ In the wide layout the toggle is hidden, the status and badge share a row, and S
 ## 7. Scrolling behaviour
 
 - **Navigate.** `usePageLocation.navigate` sets the doc column's `scrollTop` to 0 instead of calling `scrollTo(0, 0)` on the window. It still does so synchronously in `navigate`, so `useScrollToHeading`'s effect runs afterwards and a heading named in the new address still wins.
-- **Reveal.** `useRevealSelectedThread` counts a passage as on screen when its box lies within the doc column's box, rather than between 0 and `innerHeight`. Like today, the check is vertical only.
+- **Reveal.** `useRevealSelectedThread` counts a passage as on screen when its box lies within the box of its nearest scrolling ancestor, which is the doc column, rather than between 0 and `innerHeight`. With no scrolling ancestor it falls back to the viewport. Like today, the check is vertical only. It finds the ancestor itself rather than taking the doc column's ref as a prop, because `DocumentView` is at fallow's cognitive-complexity limit and one more prop would exceed it.
 - **Unchanged.** `scrollToHeading`, the reveal's `scrollIntoView({ block: "center" })` and `ThreadCard`'s `scrollIntoView({ block: "nearest" })` already scroll their nearest scroll container, so they need no change once nothing above the two scrollers can scroll.
 - **Live edits.** The doc column lives in `App`, so it persists when the doc re-renders after an edit, and the user keeps their place as now.
 - **Keyboard.** The lint config enforces `jsx-a11y/no-noninteractive-tabindex`, so the doc column does not get a `tabIndex`. Keyboard users reach it through its links and controls. Space and Page Down scroll the doc once the user has clicked or tabbed into it, but no longer on a freshly opened page.
