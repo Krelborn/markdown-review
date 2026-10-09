@@ -1,5 +1,8 @@
 # Markdown Review
 
+> [!WARNING]
+> Markdown Review is in beta. It works, but expect rough edges, and expect commands and behaviour to change between releases until 1.0.
+
 Review the markdown your coding agent writes, such as plans, specs and design notes, in your browser, the way you would review a pull request. Then hand your comments back to the agent so it can edit the docs and answer each one.
 
 Markdown Review is a local tool. It is one CLI that starts a small server for each repository and serves a browser app on `127.0.0.1`. The agent talks to it through ordinary shell commands, so it works with Claude Code, OpenCode or any agent that has a shell tool. It needs no MCP server and no plugin.
@@ -41,6 +44,10 @@ Claude Code and OpenCode both read skills from there. The skill loads when an ag
 
 ### Install from source
 
+Building from source needs read access to `@krelborn/stylesui`, a private package on GitHub Packages that the web app is built with. The npm package already includes it, so you don't need it to install or use Markdown Review. If you do want to build from source, [open an issue](https://github.com/Krelborn/markdown-review/issues) asking for access.
+
+With access:
+
 ```sh
 git clone https://github.com/Krelborn/markdown-review.git
 cd markdown-review
@@ -49,7 +56,7 @@ pnpm build
 npm link
 ```
 
-Building needs a GitHub token with `read:packages`, because a development dependency comes from GitHub Packages. `npm link` puts `markdown-review` on your `PATH`; you can also run `node <this repo>/dist/cli.js` directly.
+The install reads a GitHub token with `read:packages` from `GITHUB_TOKEN`. `npm link` puts `markdown-review` on your `PATH`; you can also run `node <this repo>/dist/cli.js` directly.
 
 ## Usage
 
@@ -116,6 +123,12 @@ The server stops itself after 30 minutes with no browser connected, no `poll` wa
 ## Security
 
 The server listens only on `127.0.0.1`. Agent commands need a random token that the server writes to `.markdown-review/server.json` with owner-only permissions, so a web page cannot post comments to your agent. Raw HTML in docs is sanitized before it is shown, and other files from the repository are served as plain content, never run as code.
+
+## Feedback
+
+Bug reports, questions and ideas are very welcome: please [open an issue](https://github.com/Krelborn/markdown-review/issues).
+
+I'm not accepting pull requests. Markdown Review is a small project I maintain in my spare time, and for now I want to keep its design in one place. If you have a fix in mind, describe it in an issue and I'll take it from there.
 
 ## License
 
