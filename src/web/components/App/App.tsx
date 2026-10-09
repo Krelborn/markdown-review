@@ -4,6 +4,7 @@ import type { JSX } from "react";
 import { useMemo, useRef, useState } from "react";
 
 import type { ReviewState } from "../../../shared/review/ReviewState";
+import type { Thread } from "../../../shared/review/threadSchema";
 import { useReviewApi } from "../../api/useReviewApi";
 import { useReviewEvents } from "../../api/useReviewEvents";
 import { documentPathOf } from "../../navigation/documentPathOf";
@@ -69,6 +70,10 @@ export function App(): JSX.Element {
     selection.selectThread(threadId);
     setIsPanelOpen(true);
   };
+  const showThreadInDocument = (thread: Thread): void => {
+    selection.revealThread(thread);
+    setIsPanelOpen(false);
+  };
   return (
     <Theme mode="system">
       <PageLayout className={styles.page}>
@@ -98,7 +103,7 @@ export function App(): JSX.Element {
               newComment={newComment}
               onChanged={threads.refresh}
               onCloseNewComment={() => setNewComment(null)}
-              onSelectThread={selection.revealThread}
+              onSelectThread={showThreadInDocument}
               selectedThreadId={selection.selectedThreadId}
               threads={allThreads}
             />

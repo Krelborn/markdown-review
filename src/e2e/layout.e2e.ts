@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-import { plan, scrollDocumentToEnd, selectText, test, withParagraphs } from "./testing/reviewTest";
+import { plan, scrollDocumentToEnd, selectText, test, withParagraphs, writeDraftComment } from "./testing/reviewTest";
 
 const narrowWindow = { height: 800, width: 700 };
 
@@ -100,6 +100,24 @@ test("must open the comments at a new comment when the user starts one in a narr
   await expect(commentBox).toHaveValue("Why 24h?");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByRole("button", { name: "Submit (1)" })).toBeInViewport();
+});
+
+test("must close the comments to show a thread's passage when the user clicks its location in a narrow window", async ({
+  page,
+  review,
+}) => {
+  await page.setViewportSize(narrowWindow);
+  await review.writeDocument("docs/plan.md", withParagraphs(plan, 80));
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "Retries", "times.", "Make it configurable");
+  await expect(comments(page)).toBeVisible();
+
+  await page.getByRole("button", { name: "#1 Line 5" }).click();
+
+  await expect(comments(page)).toBeHidden();
+  await expect(page.getByRole("article", { name: "docs/plan.md" }).getByText("Retries happen")).toBeInViewport({
+    ratio: 1,
+  });
 });
 
 test("must keep the comments open when the window widens and narrows again", async ({ page, review }) => {

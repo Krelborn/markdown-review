@@ -264,10 +264,11 @@ describe("App", () => {
     expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "true");
   });
 
-  test("must leave the comments closed when the user shows a thread's passage from the comments", async () => {
+  test("must close the comments when the user shows a thread's passage from them", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
     await render();
+    await user.click(elements.panelToggle());
 
     await user.click(screen.getByRole("button", { name: "#1 Line 3" }));
 

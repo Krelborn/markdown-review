@@ -445,7 +445,7 @@ The review bar sits at the foot of the sidebar and stays in view whatever the us
 
 ### Narrow windows
 
-Below 48rem the sidebar becomes a drawer over the right of the document view. The review bar then runs along the foot of the page, with a **Comments** button that shows and hides the drawer. Starting a comment, or clicking a highlight or marker, opens the drawer. Closing it keeps any unsent text.
+Below 48rem the sidebar becomes a drawer over the right of the document view. The review bar then runs along the foot of the page, with a **Comments** button that shows and hides the drawer. Starting a comment, or clicking a highlight or marker, opens the drawer. Clicking a thread's location closes it, so the passage can be seen. Closing it keeps any unsent text.
 
 ### Writing comments
 

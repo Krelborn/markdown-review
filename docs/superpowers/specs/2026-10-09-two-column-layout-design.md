@@ -138,13 +138,13 @@ In the wide layout the toggle is hidden, the status and badge share a row, and S
 - Renders the shell from section 4.
 - Moves the "Lost the connection" and "Some comments could not be read" alerts, unchanged, from the doc column into the page alerts strip.
 - Holds `isPanelOpen`, false at first. Only the narrow layout's CSS reads it.
-- Opens the panel when the user starts a comment (`onComment`) and when they select a thread from the doc (a highlight or a marker). It does not open the panel when they click a thread's location in the panel.
+- Opens the panel when the user starts a comment (`onComment`) and when they select a thread from the doc (a highlight or a marker). It closes the panel when they click a thread's location in the panel.
 - Holds a ref to the doc column and passes it to `usePageLocation`.
 
 ## 6. Narrow layout behaviour
 
 - **Opening.** The drawer opens from the Comments toggle, or by itself when the user starts a comment (selection Comment, block +, Comment on this doc) or clicks a highlight or marker. Both changes land in one render, so the new comment form takes focus and the selected thread's card scrolls into view as they do now.
-- **Closing.** The drawer closes only from the toggle. It stays open when the user clicks a thread's location; the doc scrolls the passage into view beside the drawer.
+- **Closing.** The drawer closes from the toggle, and when the user clicks a thread's location. At narrow widths the drawer covers most of each line, so closing it is what lets the passage that scrolls into view be seen.
 - **Staying mounted.** A closed drawer is hidden with CSS, not unmounted. `ThreadSidebar` keeps unsent replies and draft edits in its own state, and they must survive the drawer closing, just as they survive a thread moving group (commit 4a436ec).
 - **Resizing.** Crossing the breakpoint keeps `isPanelOpen` as it was; it simply has no effect in the wide layout.
 
