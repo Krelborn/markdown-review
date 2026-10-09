@@ -179,11 +179,12 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
     open: null,
     questionRevision: 0,
   });
-  const open = reconcile(state.open, threads);
+  const open = reconcile(state.open, threads, state.isSaving);
   // Stores what the threads changed, so that a draft made later on a closed editor's thread does not bring it back, and
-  // text that has come to match the saved draft keeps following it
+  // text that has come to match the saved draft keeps following it; an editor opened in its place takes focus
   if (open !== state.open) {
-    setState((current) => ({ ...current, open }));
+    const hasMovedOn = open !== null && open.target !== state.open?.target;
+    setState((current) => ({ ...current, focusRevision: current.focusRevision + Number(hasMovedOn), open }));
   }
   const savedBody = open === null ? null : savedBodyOf(open.target, threads);
   const writtenBody = open?.body ?? null;
@@ -290,15 +291,23 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
 /**
  * The stored editor as the threads leave it
  *
- * @returns null once its thread or the draft it was editing has gone; the editor with no text of its own once its text
- *   adds nothing to the saved draft; otherwise the editor as it is
+ * @returns null once its thread or the draft it was editing has gone. Once its text adds nothing to the saved draft, the
+ *   editor with no text of its own; but when it was asking about that text, the answer is moot, so the request on hold,
+ *   or null when nothing is on hold, unless a save is in flight, which opens the request on hold when it ends. Otherwise
+ *   the editor as it is.
  */
-function reconcile(open: OpenEditor | null, threads: readonly Thread[]): OpenEditor | null {
+function reconcile(open: OpenEditor | null, threads: readonly Thread[], isSaving: boolean): OpenEditor | null {
   if (open === null || !isStillOpen(open, threads)) {
     return null;
   }
-  const { body, target, writtenOver } = open;
-  return body !== null && isClean(body, writtenOver, savedBodyOf(target, threads)) ? { ...open, body: null } : open;
+  const { body, question, target, writtenOver } = open;
+  if (body === null || !isClean(body, writtenOver, savedBodyOf(target, threads))) {
+    return open;
+  }
+  if (question === null || isSaving) {
+    return { ...open, body: null };
+  }
+  return question.held === null ? null : editorFor(question.held, threads);
 }
 
 /**

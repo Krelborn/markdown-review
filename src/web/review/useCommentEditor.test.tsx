@@ -80,6 +80,44 @@ describe("useCommentEditor", () => {
     expect(result.current).toMatchObject({ body: "Why 2h?", hasUnsavedText: true });
   });
 
+  test("must open the request on hold when another tab saves the text the editor was asking about", () => {
+    const { render } = setUpTest();
+    const { rerender, result } = render();
+    act(() => result.current.request(editDraft));
+    act(() => result.current.changeBody("Why 1h?"));
+    act(() => result.current.request(reply));
+
+    rerender({ shown: [{ ...draftComment, draft: { at: testTime, body: "Why 1h?" } }, openThread] });
+
+    expect(result.current).toMatchObject({ editingThreadId: 2, question: null });
+  });
+
+  test("must open the request on hold when the save ends after its saved text arrived", async () => {
+    const { fake, render } = setUpTest();
+    let finishSave = (): void => {};
+    fake.api.writeDraft.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishSave = () => resolve();
+      })
+    );
+    const { rerender, result } = render();
+    act(() => result.current.request(reply));
+    act(() => result.current.changeBody("Hourly"));
+    act(() => result.current.request(editDraft));
+    let saving = Promise.resolve();
+    act(() => {
+      saving = result.current.save();
+    });
+    rerender({ shown: [draftComment, { ...openThread, draft: { at: testTime, body: "Hourly" } }] });
+
+    await act(async () => {
+      finishSave();
+      await saving;
+    });
+
+    expect(result.current).toMatchObject({ body: "Why 24h?", editingThreadId: 1, question: null });
+  });
+
   test("must keep the spaces the user types at the start of a new comment", () => {
     const { render } = setUpTest();
     const { result } = render();
