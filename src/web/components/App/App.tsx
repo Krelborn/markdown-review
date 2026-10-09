@@ -14,6 +14,7 @@ import type { NewComment } from "../../review/NewComment";
 import { useDocumentSource } from "../../review/useDocumentSource";
 import { useThreads } from "../../review/useThreads";
 import { useThreadSelection } from "../../review/useThreadSelection";
+import { CloseIcon } from "../CloseIcon/CloseIcon";
 import { DocumentsPage } from "../DocumentsPage/DocumentsPage";
 import { PageAlerts } from "../PageAlerts/PageAlerts";
 import { ReviewBar } from "../ReviewBar/ReviewBar";
@@ -111,7 +112,7 @@ export function App(): JSX.Element {
                 size="sm"
                 variant="ghost"
               >
-                ×
+                <CloseIcon />
               </IconButton>
             </div>
             <ThreadSidebar
