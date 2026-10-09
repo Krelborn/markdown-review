@@ -255,7 +255,7 @@ o The agent is listening and will hear at once.
 ## 10. Doc column and top bar
 
 - **Prose width.** The prose is centred at a reading width of `72ch`. The **+** gutter and the markers move with it, so markers sit just right of the text they mark.
-- **Code blocks.** They get a visible surface in light mode, with a `--sui-color-border` border and `--sui-color-surface` behind the theme's background. Dark mode keeps its background. This changes only CSS, so the conformance test is unaffected.
+- **Code blocks.** Superseded by section 4 of the [document rendering spec](2026-10-09-document-rendering-design.md#4-code-blocks): every code block has the prose gap and one frame in both modes, with a language header.
 - **Top bar.**
   - The path's folders are muted and its file name uses the text colour. The path still loses its start when it is too long.
   - The **Docs** trigger becomes a small `secondary` button with a chevron.

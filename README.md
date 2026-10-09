@@ -89,7 +89,7 @@ The comments are grouped into Drafts, Open, Outdated and Resolved. When other do
 
 The bar beneath the comments shows whether the agent is listening. If it is not, your comments wait in its inbox until it next looks; the **Submit** menu says which.
 
-Links between markdown docs in the repository open in the app. Docs render with GitHub-style tables, task lists, syntax-highlighted code and Mermaid diagrams.
+Links between markdown docs in the repository open in the app. Docs render with GitHub-style tables, task lists, alerts, syntax-highlighted code and Mermaid diagrams. Frontmatter shows as a Properties panel at the top of the doc, and each heading has a link you can copy.
 
 ### Commands
 

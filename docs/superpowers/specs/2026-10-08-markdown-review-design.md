@@ -51,7 +51,7 @@ The key ways this design differs from lavish-axi:
 - Agent-created threads. The agent replies to and resolves threads; only the user starts them.
 - Hosting, accounts, sharing or export.
 - MCP server, harness plugins and SessionStart hooks.
-- Front matter rendering, footnotes, math.
+- Footnotes and math.
 - A full file-tree browser.
 - Windows. The MVP supports macOS and Linux.
 
@@ -265,6 +265,8 @@ Server and browser work in one plain-text model of the doc, computed by `blocks`
 
 - A block's `text` is its inline content as it renders: text and code spans as written (with entities decoded, as markdown-it does), softbreaks and hardbreaks as `\n`, link text without the URL. Images contribute nothing, because alt text is an attribute and not page text. A table row's text is its cells joined with `\t`. A fence or code block's text is its code without the final newline.
 - HTML blocks and Mermaid fences accept whole-block comments only. Their `text` is their source, used only for re-anchoring.
+- YAML frontmatter (a `---` first line, followed by a line that is not blank, through the next `---` or `...` line) is one block that accepts whole-block comments only. Its `text` is the YAML between the fences, and its lines start on line 2.
+- A GitHub alert's marker line (`> [!NOTE]` and the other four) is not part of the canonical text. Its paragraphs are blocks, as in a blockquote, and its title is marked `data-md-ignore`.
 - `lineOffsets` gives, for each source line that contributes text, its 1-based line number and the offset in `text` where that line's text starts. Any offset therefore maps to an exact source line: one line per softbreak in a paragraph, one per code line in a fence, one per table row.
 - A line break inside a code span, an HTML tag or an image leaves no trace in the tokens, so offsets after it would map one line too early. Such a block has `exactLines: false`, and a range whose last character is in it runs to the block's last line, so the reported range always contains the text.
 - `wholeBlockOnly` is true for HTML blocks and Mermaid fences. It is also true for a block with no visible text, such as an image on its own or an empty fence, whose `text` is then its source so a whole-block comment has something to quote. And it is true for a paragraph or heading holding inline HTML other than phrasing elements (for example `<div>` or `<script>`), because the browser may move part of it out of the block or the sanitizer may remove it, so the rendered text can differ from the canonical text.
@@ -293,6 +295,7 @@ Re-anchoring is driven by the source hash, not by the watcher:
 
 - Whenever the server reads a doc's threads (for `inbox`, `poll` or the browser), it hashes the doc on disk. If the hash differs from the threads file's `sourceHash`, it re-anchors that doc's passage threads, then writes the threads and the new hash in one write.
 - The watcher runs the same check when it sees a change, so open browsers get `document-changed` and `threads-changed` promptly. A missed watcher event, or an edit made while the server is stopped, only delays the push; the next read corrects the anchors.
+- The source hash is the SHA-256 of `anchoringVersion`, a newline and the source. `anchoringVersion` goes up whenever the same source would give different canonical text, so every stored doc re-anchors once on its next read. See the [document rendering spec](2026-10-09-document-rendering-design.md#8-re-anchoring-after-this-change).
 
 ### Re-anchoring algorithm
 
@@ -467,6 +470,7 @@ Below 48rem the sidebar becomes a drawer over the right of the document view. Th
 - Highlights use the CSS Custom Highlight API over DOM ranges built from anchor offsets through the walk in section 7, so the rendered HTML is never modified after insertion.
 - Clicking highlighted text maps the click point to a doc offset and selects the thread whose range contains it. Numbered markers in the gutter are buttons that do the same.
 - The click mapping uses `document.caretPositionFromPoint`, falling back to `document.caretRangeFromPoint` where it is missing (Safari before 26.2).
+- Threads are highlighted with a tint and an underline, deeper where two overlap; the hovered, selected and pending passages paint over them in that order. Pointing at a highlight or its card emphasises the other. While the pointer or focus is on the gutter +, or a whole-block comment is being written, its block is framed. See the [document rendering spec](2026-10-09-document-rendering-design.md).
 
 ### Supported browsers
 
@@ -496,11 +500,13 @@ Current versions of Chrome, Firefox and Safari. The CSS Custom Highlight API set
 
 ## 11. Rendering
 
-- Shared `markdown-config`: markdown-it with tables and strikethrough (built in), task lists via `@mdit/plugin-tasklist`, and the block render rules from section 7.
+- Shared `markdown-config`: markdown-it with tables and strikethrough (built in), task lists via `@mdit/plugin-tasklist`, GitHub alerts via `@mdit/plugin-alert`, a frontmatter rule, and the block render rules from section 7.
 - Syntax highlighting with Shiki, loading only the grammars for languages the doc uses. markdown-it renders synchronously, so those grammars load before rendering, which makes rendering a doc async.
 - Mermaid fences rendered with `mermaid`, loaded only when a doc contains a Mermaid fence. Diagrams accept whole-block comments only.
 - Raw HTML in markdown is allowed (`html: true`) and the rendered output is sanitized with DOMPurify before insertion. HTML blocks accept whole-block comments only.
-- Front matter, footnotes and math are rendered as plain markdown would render them; no special support.
+- Fenced code shows its language in a header. Headings get a link to themselves, which puts the section in the address and copies it.
+- Frontmatter is shown as a Properties panel, parsed with `yaml`, which loads only when a doc has frontmatter. YAML with errors, or that is not a mapping, stays as code.
+- Footnotes and math are rendered as plain markdown would render them; no special support.
 
 ## 12. Error handling
 

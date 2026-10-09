@@ -85,10 +85,10 @@ All underlines are 2px with a 3px offset, written as the longhand `text-decorati
 | `markdown-review-threads` | `--sui-color-warning` at 30% | solid, `--sui-color-warning-text` |
 | `markdown-review-overlap` (new, section 10) | `--sui-color-warning` at 30%, painted over the threads highlight | none |
 | `markdown-review-hovered` (new, section 9) | `--sui-color-warning` at 55% | solid, `--sui-color-warning-text` |
-| `markdown-review-selected` | `--sui-color-primary` at 25% | solid, `--sui-color-primary` |
-| `markdown-review-pending` | `--sui-color-primary` at 25% | dashed, `--sui-color-primary` |
+| `markdown-review-selected` | `--sui-color-primary` at 25% over `--sui-color-background` | solid, `--sui-color-primary` |
+| `markdown-review-pending` | `--sui-color-primary` at 25% over `--sui-color-background` | dashed, `--sui-color-primary` |
 
-- "At 30%" means `color-mix(in srgb, <colour> 30%, transparent)`.
+- "At 30%" means `color-mix(in srgb, <colour> 30%, transparent)`. "At 25% over `--sui-color-background`" means `color-mix(in srgb, <colour> 25%, var(--sui-color-background))`, which is opaque, so the selected and pending passages cover the highlights beneath them.
 - The rules keep the descendant form, `.content ::highlight(<name>)`, so they reach every element in the doc.
 - The highlights paint in the table's order, from threads at the bottom to pending on top. `useThreadHighlights` registers them in that order and sets each `Highlight`'s `priority` to match. The plan checks that WebKit honours `priority`; if it does not, registration order alone gives the same result.
 
@@ -107,7 +107,7 @@ All underlines are 2px with a 3px offset, written as the longhand `text-decorati
 
 ### Recognition (shared)
 
-- A block rule in `createMarkdownIt`, run before every other block rule, recognises frontmatter when the doc's first line is `---`, allowing trailing whitespace. The frontmatter runs to the next line that is `---` or `...`. With no closing line, the doc renders as it does today.
+- A block rule in `createMarkdownIt`, run before every other block rule, recognises frontmatter when the doc's first line is `---`, allowing trailing whitespace, and its second line is not blank, so a doc that opens with a horizontal rule renders as before. The frontmatter runs to the next line that is `---` or `...`. With no closing line, the doc renders as it does today.
 - The rule emits one `front_matter` token. Its `map` runs from the first line through the closing line, and its `content` is the lines between the fences.
 - `findLeafBlocks` maps `front_matter` to a new leaf block kind, `frontMatter`. In `parseBlocks`:
   - its `text` is the content without its final newline
