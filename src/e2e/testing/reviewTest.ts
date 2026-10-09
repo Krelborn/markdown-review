@@ -36,7 +36,7 @@ const spec = "# Spec\n\n## Goals\n\nResults are cached.\n";
 
 export interface ReviewFixture {
   /**
-   * Runs the agent's `open` for the doc and shows the page it prints in the browser
+   * Runs the agent's `open` for the doc, shows the page it prints in the browser and waits until the doc has rendered
    */
   open(document: string): Promise<void>;
 
@@ -64,6 +64,7 @@ export const test = base.extend<{ review: ReviewFixture }>({
         const { stdout } = await startCli(root, ["open", document]).result;
         await page.goto(stdout.slice(stdout.indexOf("http"), stdout.indexOf("\n")));
         await expect(page.getByRole("heading", { level: 1, name: document })).toBeVisible();
+        await expect(page.getByRole("article", { name: document })).not.toBeEmpty();
       },
       root,
       run: (args) => startCli(root, args).result,
