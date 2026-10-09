@@ -14,6 +14,22 @@ Setext heading
 >
 > A second paragraph in the quote.
 
+> [!NOTE]
+> A note with **strong** text.
+
+> [!TIP]
+> A tip.
+
+> [!IMPORTANT]
+> Something important
+> over two lines.
+
+> [!WARNING]
+> A warning.
+
+> [!CAUTION]
+> A caution.
+
 - tight item one
 - tight item *two*
   - nested tight item

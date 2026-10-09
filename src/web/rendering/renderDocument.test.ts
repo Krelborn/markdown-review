@@ -99,6 +99,24 @@ describe("renderDocument", () => {
     ]);
   });
 
+  test.each([
+    { marker: "NOTE", title: "Note" },
+    { marker: "tip", title: "Tip" },
+    { marker: "Important", title: "Important" },
+    { marker: "WARNING", title: "Warning" },
+    { marker: "CAUTION", title: "Caution" },
+  ])(
+    "must title a $marker alert $title, apart from the walk of the doc's text, when the doc has one",
+    async ({ marker, title }) => {
+      const page = await renderPage(`> [!${marker}]\n> Read this.\n`);
+
+      const alertTitle = page.querySelector(".markdown-alert > .markdown-alert-title");
+      expect(alertTitle?.textContent).toBe(title);
+      expect(alertTitle?.hasAttribute("data-md-ignore")).toBe(true);
+      expect(page.querySelector('[data-md-block="0"]')?.textContent).toBe("Read this.");
+    }
+  );
+
   test("must name a heading by its text alone when it has a link", async () => {
     const page = await renderPage("# Retry `Policy`\n");
 

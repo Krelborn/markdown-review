@@ -49,6 +49,16 @@ describe("parseBlocks", () => {
       expected: [oneLineBlock(1, "a"), oneLineBlock(3, "b")],
     },
     {
+      condition: "a GitHub alert holds a paragraph",
+      source: "> [!NOTE]\n> Cache for **24h**.\n",
+      expected: [oneLineBlock(2, "Cache for 24h.")],
+    },
+    {
+      condition: "an alert's marker has nothing after it",
+      source: "> [!NOTE]\n",
+      expected: [oneLineBlock(1, "[!NOTE]")],
+    },
+    {
       condition: "a table has a header row and a body row",
       source: "| a | b |\n|---|---|\n| 1 | `2` |\n",
       expected: [oneLineBlock(1, "a\tb"), oneLineBlock(3, "1\t2")],

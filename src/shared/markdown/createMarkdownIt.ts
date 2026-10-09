@@ -1,3 +1,4 @@
+import { alert } from "@mdit/plugin-alert";
 import { tasklist } from "@mdit/plugin-tasklist";
 import markdownIt from "markdown-it";
 import type { MarkdownIt, RendererRule, StateCore } from "markdown-it";
@@ -27,7 +28,7 @@ export interface MarkdownRenderingOptions {
  * @returns an instance whose rendered leaf block elements carry `data-md-block`, `data-md-start` and `data-md-end`
  */
 export function createMarkdownIt({ highlight }: MarkdownRenderingOptions = {}): MarkdownIt {
-  const markdown = new markdownIt({ html: true }).use(tasklist);
+  const markdown = new markdownIt({ html: true }).use(tasklist).use(alert, { titleRenderer: renderAlertTitle });
   const escapeHtml = markdown.utils.escapeHtml;
 
   const renderFence: RendererRule = (tokens, index, _options, _environment, renderer) => {
@@ -74,4 +75,18 @@ const renderParagraphClose: RendererRule = (tokens, index, options, _environment
 const renderHtmlBlock: RendererRule = (tokens, index, _options, _environment, renderer) => {
   const token = tokenAt(tokens, index);
   return `<div${renderer.renderAttrs(token)}>${token.content}</div>\n`;
+};
+
+// The plugin accepts only these names, and gives each alert's title token its name in lower case as its markup
+const alertTitles: Partial<Record<string, string>> = {
+  caution: "Caution",
+  important: "Important",
+  note: "Note",
+  tip: "Tip",
+  warning: "Warning",
+};
+
+const renderAlertTitle: RendererRule = (tokens, index) => {
+  const name = tokenAt(tokens, index).markup;
+  return `<p class="markdown-alert-title" data-md-ignore="">${alertTitles[name] ?? name}</p>\n`;
 };
