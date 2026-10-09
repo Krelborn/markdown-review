@@ -213,6 +213,20 @@ describe("ThreadSidebar", () => {
     expect(fake.snapshot.threads[1]?.draft).toBeUndefined();
   });
 
+  test("must move focus to Save again when the user starts yet another comment while asked", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await startReplyOnThread(user, 2, "Hourly");
+    await user.click(within(elements.thread(1)).getByRole("button", { name: "Edit" }));
+    expect(screen.getByRole("button", { name: "Save" })).toHaveFocus();
+
+    await user.click(within(elements.thread(5)).getByRole("button", { name: "Reply" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("You started a reply to #5.");
+    expect(screen.getByRole("button", { name: "Save" })).toHaveFocus();
+  });
+
   test("must keep the reply and go back to it when the user keeps editing", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();

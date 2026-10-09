@@ -101,6 +101,11 @@ export interface CommentEditor {
   question: EditorQuestion | null;
 
   /**
+   * Changes each time the editor asks about its unsaved text, so its buttons can take focus again
+   */
+  questionRevision: number;
+
+  /**
    * Asks for an editor on the target. It opens at once when the open editor holds nothing unsaved, and takes focus
    * when it is the open editor. Otherwise it waits while the open editor asks what to do with its text.
    */
@@ -140,6 +145,7 @@ interface OpenEditor {
 interface EditorState {
   focusRevision: number;
   open: OpenEditor | null;
+  questionRevision: number;
 }
 
 /**
@@ -150,14 +156,21 @@ interface EditorState {
  */
 export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): CommentEditor {
   const api = useReviewApi();
-  const [state, setState] = useState<EditorState>({ focusRevision: 0, open: null });
+  const [state, setState] = useState<EditorState>({ focusRevision: 0, open: null, questionRevision: 0 });
   const open = state.open !== null && isStillOpen(state.open, threads) ? state.open : null;
   const savedBody = open === null ? null : savedBodyOf(open.target, threads);
   const hasUnsavedText = open !== null && differsFromSaved(open.body, savedBody);
   const canSave = open !== null && hasUnsavedText && open.body.trim() !== "";
   useLeavePageWarning(hasUnsavedText);
   const show = (next: OpenEditor | null): void => {
-    setState(({ focusRevision }) => ({ focusRevision: focusRevision + 1, open: next }));
+    setState((current) => ({ ...current, focusRevision: current.focusRevision + 1, open: next }));
+  };
+  const ask = (held: EditorTarget | null): void => {
+    setState((current) => ({
+      ...current,
+      open: current.open && { ...current.open, question: { held } },
+      questionRevision: current.questionRevision + 1,
+    }));
   };
   const update = (change: Partial<OpenEditor>): void => {
     setState((current) => ({ ...current, open: current.open && { ...current.open, ...change } }));
@@ -194,7 +207,7 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
       if (!hasUnsavedText) {
         show(null);
       } else if (open?.question === null) {
-        update({ question: { held: null } });
+        ask(null);
       } else {
         keepEditing();
       }
@@ -204,11 +217,12 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
     keepEditing,
     newComment: newCommentOf(open),
     question: questionOf(open, threads),
+    questionRevision: state.questionRevision,
     request: (target) => {
       if (open !== null && isSameTarget(open.target, target)) {
         show(open);
       } else if (hasUnsavedText) {
-        update({ question: { held: target } });
+        ask(target);
       } else {
         show(editorFor(target, threads));
       }

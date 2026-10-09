@@ -26,12 +26,13 @@ export function CommentFormButtons({ isSaving, leading }: CommentFormButtonsProp
   const keepEditingRef = useRef<HTMLButtonElement>(null);
   const saveRef = useRef<HTMLButtonElement>(null);
   const isAsking = editor.question !== null;
+  const { questionRevision } = editor;
   useEffect(() => {
     if (isAsking) {
       const save = saveRef.current;
       (save !== null && !save.disabled ? save : keepEditingRef.current)?.focus();
     }
-  }, [isAsking]);
+  }, [isAsking, questionRevision]);
   const start = isAsking ? (
     <Button onClick={editor.discardChanges} size="sm" variant="outline">
       {editor.savedBody === null ? "Discard" : "Discard changes"}

@@ -253,6 +253,20 @@ describe("useCommentEditor", () => {
     expect(result.current.question).toEqual({ held: { kind: "comment" } });
   });
 
+  test("must ask again when the user starts yet another comment while asked", () => {
+    const { render } = setUpTest();
+    const { result } = render();
+    act(() => result.current.request(reply));
+    act(() => result.current.changeBody("Hourly"));
+    act(() => result.current.request(editDraft));
+    const questionRevision = result.current.questionRevision;
+
+    act(() => result.current.request(reviewComment));
+
+    expect(result.current.questionRevision).toBeGreaterThan(questionRevision);
+    expect(result.current.question).toEqual({ held: { kind: "comment" } });
+  });
+
   test("must close the editor when the user presses Escape with nothing unsaved", () => {
     const { render } = setUpTest();
     const { result } = render();
