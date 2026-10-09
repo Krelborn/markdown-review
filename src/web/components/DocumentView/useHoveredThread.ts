@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Thread } from "../../../shared/review/threadSchema";
 import { offsetAtPoint } from "../../anchoring/offsetAtPoint";
@@ -22,16 +22,17 @@ export function useHoveredThread(
   onHoverThread: (threadId: number | null) => void
 ): boolean {
   const [pointedThreadId, setPointedThreadId] = useState<number | null>(null);
+  // Outlives each run of the effect, so a move off a highlight is still reported after the highlighted threads change
+  const reportedRef = useRef<number | null>(null);
   useEffect(() => {
     const content = contentRef.current;
     if (content === null || rendered === null) {
       return;
     }
     let frame = 0;
-    let reported: number | null = null;
     const report = (threadId: number | null): void => {
-      if (threadId !== reported) {
-        reported = threadId;
+      if (threadId !== reportedRef.current) {
+        reportedRef.current = threadId;
         setPointedThreadId(threadId);
         onHoverThread(threadId);
       }

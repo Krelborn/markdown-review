@@ -318,9 +318,39 @@ describe("ThreadCard", () => {
 
     expect(onHoverThread).toHaveBeenLastCalledWith(1);
   });
+
+  test("must report no hovered thread when the keyboard focus leaves the card it hovers", async () => {
+    const { onHoverThread, render } = setUpTest({ hoveredThreadId: 1, thread: conversation });
+    const user = userEvent.setup();
+    render();
+    await user.tab();
+
+    await user.tab({ shift: true });
+
+    expect(onHoverThread).toHaveBeenLastCalledWith(null);
+  });
+
+  test("must leave another thread hovered when the keyboard focus leaves the card", async () => {
+    const { onHoverThread, render } = setUpTest({ hoveredThreadId: 2, thread: conversation });
+    const user = userEvent.setup();
+    render();
+    await user.tab();
+
+    await user.tab({ shift: true });
+
+    expect(onHoverThread).not.toHaveBeenCalledWith(null);
+  });
 });
 
-function setUpTest({ hasNewAgentMessage = false, thread }: { hasNewAgentMessage?: boolean; thread: Thread }) {
+function setUpTest({
+  hasNewAgentMessage = false,
+  hoveredThreadId = null,
+  thread,
+}: {
+  hasNewAgentMessage?: boolean;
+  hoveredThreadId?: number | null;
+  thread: Thread;
+}) {
   const fake = createFakeReviewApi({ threads: [thread] });
   const onChanged = vi.fn();
   const onHoverThread = vi.fn();
@@ -328,7 +358,7 @@ function setUpTest({ hasNewAgentMessage = false, thread }: { hasNewAgentMessage?
   const render = (): void => {
     renderBase(
       <ReviewApiContext value={fake.api}>
-        <HoveredThreadContext value={{ hoveredThreadId: null, onHoverThread }}>
+        <HoveredThreadContext value={{ hoveredThreadId, onHoverThread }}>
           <CommentEditorHarness onChanged={onChanged} threads={[thread]}>
             {() => (
               <ThreadCard

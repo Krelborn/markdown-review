@@ -274,6 +274,23 @@ describe("DocumentView", () => {
     await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
   });
 
+  test("must report no hovered thread when the pointer moves off a highlight after its thread is selected", async () => {
+    const { onHoverThread, render, rerender } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+    await rerender(plan, { selectedThreadId: 1 });
+    const plainText = within(elements.article()).getByText("Retries happen three times.");
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 0, offsetNode: plainText.firstChild }) });
+
+    await user.hover(plainText);
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
   test("must emphasise the passage of the thread the user points at in the comments", async () => {
     const { render } = setUpTest({
       hoveredThreadId: 1,
@@ -446,7 +463,7 @@ function setUpTest({
   const onHoverThread = vi.fn();
   const onNavigate = vi.fn();
   const onSelectThread = vi.fn();
-  const view = (shown: DocumentSource) => (
+  const view = (shown: DocumentSource, shownSelectedThreadId: number | null) => (
     <HoveredThreadContext value={{ hoveredThreadId, onHoverThread }}>
       <DocumentView
         document={shown}
@@ -456,20 +473,23 @@ function setUpTest({
         onSelectThread={onSelectThread}
         pendingPassage={pendingPassage}
         revealCount={0}
-        selectedThreadId={selectedThreadId}
+        selectedThreadId={shownSelectedThreadId}
         threads={threads}
       />
     </HoveredThreadContext>
   );
   let rerenderBase: (ui: ReturnType<typeof view>) => void = () => {};
   const render = async (shown = plan): Promise<void> => {
-    rerenderBase = renderBase(view(shown), { container }).rerender;
+    rerenderBase = renderBase(view(shown, selectedThreadId), { container }).rerender;
     if (shown.source !== "") {
       await within(elements.article()).findByRole("heading", { level: 1, name: "Plan" });
     }
   };
-  const rerender = async (shown: DocumentSource): Promise<void> => {
-    rerenderBase(view(shown));
+  const rerender = async (
+    shown: DocumentSource,
+    { selectedThreadId: rerenderedSelectedThreadId = selectedThreadId }: { selectedThreadId?: number | null } = {}
+  ): Promise<void> => {
+    rerenderBase(view(shown, rerenderedSelectedThreadId));
     await within(elements.article()).findByRole("heading", { level: 1, name: "Plan" });
   };
   return { onComment, onHoverThread, onNavigate, onSelectThread, render, rerender };

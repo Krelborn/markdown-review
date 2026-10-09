@@ -60,7 +60,7 @@ export function ThreadCard({
         [styles.selected ?? ""]: isSelected,
       })}
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
+        if (hoveredThreadId === id && !event.currentTarget.contains(event.relatedTarget)) {
           onHoverThread(null);
         }
       }}
