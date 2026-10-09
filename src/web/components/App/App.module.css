@@ -26,6 +26,10 @@
   padding: var(--sui-space-4);
 }
 
+.drawerHeader {
+  display: none;
+}
+
 .reviewBar {
   border-block-start: var(--sui-border-width) solid var(--sui-color-border);
   border-inline-start: var(--sui-border-width) solid var(--sui-color-border);
@@ -52,6 +56,15 @@
 
   .commentsPanel:not(.open) {
     display: none;
+  }
+
+  .drawerHeader {
+    background-color: var(--sui-color-background);
+    display: flex;
+    justify-content: flex-end;
+    position: sticky;
+    top: 0;
+    z-index: 1;
   }
 
   .reviewBar {

@@ -1,5 +1,7 @@
-import { Cluster, StatusDot, Text } from "@krelborn/stylesui";
+import { StatusDot, Text } from "@krelborn/stylesui";
 import type { JSX } from "react";
+
+import styles from "./AgentStatus.module.css";
 
 export interface AgentStatusProps {
   /**
@@ -13,9 +15,11 @@ export interface AgentStatusProps {
  */
 export function AgentStatus({ agentWaiting }: AgentStatusProps): JSX.Element {
   return (
-    <Cluster gap={1} role="status">
+    <span className={styles.agentStatus} role="status">
       <StatusDot tone={agentWaiting ? "success" : "neutral"} variant={agentWaiting ? "solid" : "ring"} />
-      <Text size="sm">{agentWaiting ? "Agent listening" : "Agent not listening"}</Text>
-    </Cluster>
+      <Text className={styles.label} size="sm">
+        {agentWaiting ? "Agent listening" : "Agent not listening"}
+      </Text>
+    </span>
   );
 }

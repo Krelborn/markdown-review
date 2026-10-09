@@ -1,4 +1,4 @@
-import { Badge, Button, Cluster } from "@krelborn/stylesui";
+import { Badge, Button } from "@krelborn/stylesui";
 import type { JSX } from "react";
 
 import type { ReviewState } from "../../../shared/review/ReviewState";
@@ -58,14 +58,14 @@ export function ReviewBar({
       >
         Comments
       </Button>
-      <Cluster className={styles.status} gap={3}>
+      <div className={styles.status}>
         <AgentStatus agentWaiting={agentWaiting} />
         {review.approved && (
           <Badge tone="success" variant="solid">
             Approved
           </Badge>
         )}
-      </Cluster>
+      </div>
       <SubmitMenu agentWaiting={agentWaiting} draftCount={draftCount} onSubmitted={onSubmitted} />
     </section>
   );

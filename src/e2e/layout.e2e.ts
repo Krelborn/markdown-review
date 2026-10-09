@@ -7,6 +7,8 @@ const narrowWindow = { height: 800, width: 700 };
 
 const wideWindow = { height: 720, width: 1280 };
 
+const phoneWindow = { height: 800, width: 470 };
+
 test("must keep the header and Submit in view, and the window still, when the user scrolls to the end of a long doc", async ({
   page,
   review,
@@ -68,6 +70,33 @@ test("must keep Submit and its menu in full view when the comments outgrow their
   await expect(page.getByRole("dialog", { name: "Submit review" })).toBeInViewport({ ratio: 1 });
 });
 
+test("must keep the header and the review bar to one line each when the window is very narrow", async ({
+  page,
+  review,
+}) => {
+  const longPath = "docs/a-very-long-document-name-for-checking-that-the-header-stays-on-one-line.md";
+  await review.writeDocument(longPath, "# Long\n");
+  await review.open(longPath);
+  const headerHeight = await heightOf(page.getByRole("banner"));
+  await page.setViewportSize(narrowWindow);
+  const reviewBarHeight = await heightOf(page.getByRole("region", { name: "Review" }));
+
+  await page.setViewportSize(phoneWindow);
+
+  expect(await heightOf(page.getByRole("banner"))).toBe(headerHeight);
+  expect(await heightOf(page.getByRole("region", { name: "Review" }))).toBe(reviewBarHeight);
+});
+
+test("must hide the comments when the user presses Hide comments in a narrow window", async ({ page, review }) => {
+  await page.setViewportSize(narrowWindow);
+  await review.open("docs/plan.md");
+  await commentsToggle(page).click();
+
+  await page.getByRole("button", { name: "Hide comments" }).click();
+
+  await expect(comments(page)).toBeHidden();
+});
+
 test("must show the comments in a narrow window only when the user asks for them", async ({ page, review }) => {
   await page.setViewportSize(narrowWindow);
   await review.open("docs/plan.md");
@@ -127,6 +156,7 @@ test("must keep the comments open when the window widens and narrows again", asy
 
   await page.setViewportSize(wideWindow);
   await expect(commentsToggle(page)).toBeHidden();
+  await expect(page.getByRole("button", { name: "Hide comments" })).toBeHidden();
   await expect(comments(page)).toBeVisible();
   await page.setViewportSize(narrowWindow);
 
@@ -143,4 +173,8 @@ function comments(page: Page): Locator {
 
 function commentsToggle(page: Page): Locator {
   return page.getByRole("button", { exact: true, name: "Comments" });
+}
+
+async function heightOf(element: Locator): Promise<number | undefined> {
+  return (await element.boundingBox())?.height;
 }

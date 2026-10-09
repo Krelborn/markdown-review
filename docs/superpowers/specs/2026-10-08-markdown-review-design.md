@@ -434,6 +434,7 @@ Layout: a page exactly the height of the window, which itself never scrolls. It 
 
 - Doc path (repo-relative).
 - **Docs** menu: docs with open or draft threads, with counts, plus recently opened docs.
+- The bar stays on one line. A doc path too long to fit loses its start, so the file name stays in view, and hovering it shows the whole path.
 
 ### Review bar
 
@@ -445,7 +446,7 @@ The review bar sits at the foot of the sidebar and stays in view whatever the us
 
 ### Narrow windows
 
-Below 48rem the sidebar becomes a drawer over the right of the document view. The review bar then runs along the foot of the page, with a **Comments** button that shows and hides the drawer. Starting a comment, or clicking a highlight or marker, opens the drawer. Clicking a thread's location closes it, so the passage can be seen. Closing it keeps any unsent text.
+Below 48rem the sidebar becomes a drawer over the right of the document view. The review bar then runs along the foot of the page, with a **Comments** button that shows and hides the drawer. The drawer also has a **Hide comments** button at its top. Starting a comment, or clicking a highlight or marker, opens the drawer. Clicking a thread's location closes it, so the passage can be seen. Closing it keeps any unsent text.
 
 ### Writing comments
 

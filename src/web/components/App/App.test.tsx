@@ -285,6 +285,17 @@ describe("App", () => {
     expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "true");
   });
 
+  test("must close the comments when the user presses Hide comments", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.click(elements.panelToggle());
+
+    await user.click(screen.getByRole("button", { name: "Hide comments" }));
+
+    expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "false");
+  });
+
   test("must close the comments when the user presses Comments again", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();

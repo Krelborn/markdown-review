@@ -24,6 +24,14 @@ describe("TopBar", () => {
     expect(screen.getByRole("heading", { level: 1, name: "docs/plan.md" })).toBeInTheDocument();
   });
 
+  test("must offer the doc's whole path on hover when the path is too long to show in full", () => {
+    const { render } = setUpTest();
+
+    render();
+
+    expect(screen.getByRole("heading", { level: 1, name: "docs/plan.md" })).toHaveAttribute("title", "docs/plan.md");
+  });
+
   test("must list docs with comments, then other recent docs, when the user opens the docs menu", async () => {
     const { render } = setUpTest({ recent: ["docs/spec.md", "docs/plan.md"] });
     const user = userEvent.setup();

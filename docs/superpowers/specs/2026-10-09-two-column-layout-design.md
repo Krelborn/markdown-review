@@ -120,7 +120,7 @@ A sketch of the grid, not the final CSS:
 
 ### TopBar
 
-Keeps the app link, the doc path and the Docs menu. Loses `AgentStatus`, the Approved badge and `SubmitMenu`, along with the `agentWaiting`, `draftCount`, `onSubmitted` and `review` props. Its doc comment changes to match.
+Keeps the app link, the doc path and the Docs menu, on one line at every width. A doc path too long to fit loses its start, so the file name stays in view, and the heading's title holds the whole path. Loses `AgentStatus`, the Approved badge and `SubmitMenu`, along with the `agentWaiting`, `draftCount`, `onSubmitted` and `review` props. Its doc comment changes to match.
 
 ### ReviewBar (new, `src/web/components/ReviewBar/`)
 
@@ -131,7 +131,7 @@ A region labelled "Review" holding, in order:
 - **The Approved badge**, while the review is approved.
 - **`SubmitMenu`**, with its popover placement changed from `"bottom"` to `"top"`.
 
-In the wide layout the toggle is hidden, the status and badge share a row, and Submit runs full width beneath them. In the narrow layout everything sits on one row, and the status text wraps when it has to.
+In the wide layout the toggle is hidden, the status and badge share a row, and Submit runs full width beneath them. In the narrow layout everything sits on one row. The status says only "Agent listening" or "Agent not listening", and truncates rather than wraps; the Submit menu explains what it means. The buttons never wrap.
 
 ### App
 
@@ -144,7 +144,7 @@ In the wide layout the toggle is hidden, the status and badge share a row, and S
 ## 6. Narrow layout behaviour
 
 - **Opening.** The drawer opens from the Comments toggle, or by itself when the user starts a comment (selection Comment, block +, Comment on this doc) or clicks a highlight or marker. Both changes land in one render, so the new comment form takes focus and the selected thread's card scrolls into view as they do now.
-- **Closing.** The drawer closes from the toggle, and when the user clicks a thread's location. At narrow widths the drawer covers most of each line, so closing it is what lets the passage that scrolls into view be seen.
+- **Closing.** The drawer closes from the toggle, from a "Hide comments" × button at its top, and when the user clicks a thread's location. At narrow widths the drawer covers most of each line, so closing it is what lets the passage that scrolls into view be seen.
 - **Staying mounted.** A closed drawer is hidden with CSS, not unmounted. `ThreadSidebar` keeps unsent replies and draft edits in its own state, and they must survive the drawer closing, just as they survive a thread moving group (commit 4a436ec).
 - **Resizing.** Crossing the breakpoint keeps `isPanelOpen` as it was; it simply has no effect in the wide layout.
 

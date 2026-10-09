@@ -1,4 +1,4 @@
-import { PageLayout, Theme } from "@krelborn/stylesui";
+import { IconButton, PageLayout, Theme } from "@krelborn/stylesui";
 import { clsx } from "clsx";
 import type { JSX } from "react";
 import { useMemo, useRef, useState } from "react";
@@ -98,6 +98,11 @@ export function App(): JSX.Element {
             )}
           </main>
           <div className={clsx(styles.commentsPanel, { [styles.open ?? ""]: isPanelOpen })} id={commentsPanelId}>
+            <div className={styles.drawerHeader}>
+              <IconButton label="Hide comments" onClick={() => setIsPanelOpen(false)} size="sm" variant="ghost">
+                ×
+              </IconButton>
+            </div>
             <ThreadSidebar
               documentPath={documentPath}
               newComment={newComment}

@@ -1,4 +1,4 @@
-import { Cluster, Heading, Link } from "@krelborn/stylesui";
+import { Heading, Link } from "@krelborn/stylesui";
 import type { JSX } from "react";
 
 import { isPlainLeftClick } from "../../navigation/isPlainLeftClick";
@@ -23,8 +23,9 @@ export interface TopBarProps {
  */
 export function TopBar({ documentPath, onNavigate }: TopBarProps): JSX.Element {
   return (
-    <Cluster as="header" className={styles.topBar} gap={3}>
+    <header className={styles.topBar}>
       <Link
+        className={styles.appLink}
         href="/"
         onClick={(event) => {
           if (isPlainLeftClick(event)) {
@@ -37,10 +38,10 @@ export function TopBar({ documentPath, onNavigate }: TopBarProps): JSX.Element {
       >
         Markdown Review
       </Link>
-      <Heading className={styles.path} level={1} size="md">
-        {documentPath ?? "Docs"}
+      <Heading className={styles.path} level={1} size="md" title={documentPath ?? undefined}>
+        <span className={styles.pathText}>{documentPath ?? "Docs"}</span>
       </Heading>
       <DocumentsMenu onNavigate={onNavigate} />
-    </Cluster>
+    </header>
   );
 }
