@@ -15,8 +15,8 @@
   ],
   "type": "module",
   "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
+    "@krelborn:registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "scripts": {
     "build": "vite build && vite build --config vite.web.config.mts",
