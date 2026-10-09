@@ -52,6 +52,7 @@ export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }
   const [verdict, setVerdict] = useState<Verdict>("approve");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const canSubmit = !hasUnsavedText && (verdict === "approve" || draftCount > 0);
   const popover = usePopover({
     onOpenChange: (open) => {
       if (open) {
@@ -122,7 +123,7 @@ export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }
             <Button onClick={popover.close} size="sm" variant="outline">
               Cancel
             </Button>
-            <Button busy={isSubmitting} disabled={hasUnsavedText} onClick={() => void submit()} size="sm">
+            <Button busy={isSubmitting} disabled={!canSubmit} onClick={() => void submit()} size="sm">
               Submit
             </Button>
           </Cluster>

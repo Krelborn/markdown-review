@@ -1,5 +1,6 @@
 import { render as renderBase, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { JSX } from "react";
 import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
 
@@ -146,6 +147,17 @@ describe("ReviewBar", () => {
     expect(elements.submitDialog().getByRole("button", { name: "Submit" })).toBeDisabled();
   });
 
+  test("must not submit a request for changes when the drafts go while the user has it chosen", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    const { rerender } = render({ drafts: oneDraft });
+    await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
+
+    rerender({ drafts: [] });
+
+    expect(elements.submitDialog().getByRole("button", { name: "Submit" })).toBeDisabled();
+  });
+
   test.each([
     { expanded: "false", isPanelOpen: false },
     { expanded: "true", isPanelOpen: true },
@@ -183,28 +195,30 @@ function setUpTest() {
   const fake = createFakeReviewApi({ threads: [draftThread] });
   const onSubmitted = vi.fn();
   const onTogglePanel = vi.fn();
-  const render = ({
+  const view = ({
     agentWaiting = false,
     drafts = [],
     hasUnsavedText = false,
     isPanelOpen = false,
     review = fake.snapshot.review,
-  }: RenderOptions = {}): void => {
-    renderBase(
-      <ReviewApiContext value={fake.api}>
-        <ReviewBar
-          agentWaiting={agentWaiting}
-          drafts={drafts}
-          hasUnsavedText={hasUnsavedText}
-          isPanelOpen={isPanelOpen}
-          onSubmitted={onSubmitted}
-          onTogglePanel={onTogglePanel}
-          panelId="comments-panel"
-          panelToggleRef={createRef()}
-          review={review}
-        />
-      </ReviewApiContext>
-    );
+  }: RenderOptions = {}): JSX.Element => (
+    <ReviewApiContext value={fake.api}>
+      <ReviewBar
+        agentWaiting={agentWaiting}
+        drafts={drafts}
+        hasUnsavedText={hasUnsavedText}
+        isPanelOpen={isPanelOpen}
+        onSubmitted={onSubmitted}
+        onTogglePanel={onTogglePanel}
+        panelId="comments-panel"
+        panelToggleRef={createRef()}
+        review={review}
+      />
+    </ReviewApiContext>
+  );
+  const render = (options?: RenderOptions) => {
+    const { rerender } = renderBase(view(options));
+    return { rerender: (next?: RenderOptions) => rerender(view(next)) };
   };
   return { fake, onSubmitted, onTogglePanel, render };
 }
