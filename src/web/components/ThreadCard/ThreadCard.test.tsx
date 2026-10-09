@@ -1,11 +1,12 @@
 import { render as renderBase, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, onTestFinished, test, vi } from "vitest";
 
 import { buildPassageAnchor, buildThread, testTime } from "../../../shared/review/testing/reviewBuilders";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { ReviewApiContext } from "../../api/ReviewApiContext";
 import { ReviewApiError } from "../../api/ReviewApiError";
+import { formatMessageTime } from "../../review/formatMessageTime";
 import { createFakeReviewApi } from "../../testing/createFakeReviewApi";
 
 import { ThreadCard } from "./ThreadCard";
@@ -19,15 +20,40 @@ const conversation = buildThread({
 });
 
 describe("ThreadCard", () => {
-  test("must show the passage and who wrote each message when the thread has a conversation", () => {
+  test("must show the passage, and who wrote each message, when the thread has a conversation", () => {
     const { render } = setUpTest({ thread: conversation });
 
     render();
 
     const [question, answer] = within(screen.getByRole("list", { name: "Messages" })).getAllByRole("listitem");
     expect(screen.getByText("cache results for 24h")).toBeInTheDocument();
-    expect(question).toHaveTextContent("You Why 24h?");
-    expect(answer).toHaveTextContent("Agent Upstream data changes daily.");
+    expect(question).toHaveTextContent("You");
+    expect(question).toHaveTextContent("Why 24h?");
+    expect(answer).toHaveTextContent("Agent");
+    expect(answer).toHaveTextContent("Upstream data changes daily.");
+  });
+
+  test("must show when each message was sent", () => {
+    vi.useFakeTimers({ now: new Date("2026-10-08T12:00:00.000Z"), toFake: ["Date"] });
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+    const { render } = setUpTest({ thread: conversation });
+
+    render();
+
+    const sentAt = "2026-10-08T09:05:00.000Z";
+    expect(screen.getByText(formatMessageTime(sentAt, new Date()))).toHaveAttribute("datetime", sentAt);
+  });
+
+  test("must mark a new comment as a draft when the user has not submitted it", () => {
+    const { render } = setUpTest({
+      thread: buildThread({ draft: { at: testTime, body: "Why 24h?" }, messages: [], status: "draft" }),
+    });
+
+    render();
+
+    expect(screen.getByText("Draft")).toBeInTheDocument();
   });
 
   test("must show the text the user chose as well when an edit moved the passage onto other text", () => {
@@ -135,7 +161,7 @@ describe("ThreadCard", () => {
 
     render();
 
-    expect(screen.getByText("New")).toBeInTheDocument();
+    expect(screen.getByText("New reply")).toBeInTheDocument();
   });
 });
 

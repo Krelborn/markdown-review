@@ -1,4 +1,4 @@
-import { Heading, Stack } from "@krelborn/stylesui";
+import { Counter, Heading, Stack } from "@krelborn/stylesui";
 import type { JSX } from "react";
 
 import styles from "./ThreadGroup.module.css";
@@ -22,8 +22,8 @@ export function ThreadGroup({ isFolded, title, ...listProps }: ThreadGroupProps)
     return null;
   }
   const heading = (
-    <Heading className={styles.heading} level={2} size="sm">
-      {title} ({listProps.threads.length})
+    <Heading className={styles.heading} level={2} size="xs" tone="muted">
+      {title} <Counter count={listProps.threads.length} />
     </Heading>
   );
   return (

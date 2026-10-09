@@ -20,6 +20,7 @@
 }
 
 .commentsPanel {
+  background-color: var(--sui-color-surface);
   border-inline-start: var(--sui-border-width) solid var(--sui-color-border);
   grid-area: comments;
   overflow-y: auto;
@@ -46,7 +47,7 @@
 
   /* The drawer shares the doc's cell and covers its right edge */
   .commentsPanel {
-    background-color: var(--sui-color-background);
+    background-color: var(--sui-color-surface);
     box-shadow: var(--sui-shadow-sm);
     grid-area: document;
     inline-size: min(24rem, 100% - 3rem);

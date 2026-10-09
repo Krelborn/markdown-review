@@ -33,7 +33,7 @@ describe("ThreadSidebar", () => {
 
     render();
 
-    expect(elements.groupTitles()).toEqual(["Drafts (1)", "Open (2)", "Outdated (1)", "Resolved (1)"]);
+    expect(elements.groupTitles()).toEqual(["Drafts 1", "Open 2", "Outdated 1", "Resolved 1"]);
     expect(elements.threadsIn("Drafts")).toEqual(["Thread #1"]);
     expect(elements.threadsIn("Open")).toEqual(["Thread #5", "Thread #2"]);
     expect(elements.threadsIn("Outdated")).toEqual(["Thread #3"]);
@@ -118,12 +118,12 @@ describe("ThreadSidebar", () => {
     const user = userEvent.setup();
     render();
     const card = within(screen.getByRole("article", { name: "Thread #2" }));
-    const wasNew = card.queryByText("New") !== null;
+    const wasNew = card.queryByText("New reply") !== null;
 
     await user.click(card.getByRole("button", { name: "#2 Line 3" }));
 
     expect(wasNew).toBe(true);
-    expect(card.queryByText("New")).not.toBeInTheDocument();
+    expect(card.queryByText("New reply")).not.toBeInTheDocument();
     expect(onSelectThread).toHaveBeenCalledWith(replied);
   });
 

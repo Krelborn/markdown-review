@@ -1,14 +1,61 @@
+/* Cards sit on the panel's surface colour, so they take the page background and lose StylesUI's shadow */
 .card {
-  border-inline-start: 3px solid transparent;
+  --sui-card-bg: var(--sui-color-background);
+  --sui-card-shadow: none;
 }
 
+/* An inset shadow, so the bar does not change the card's size */
 .selected {
-  border-inline-start-color: var(--sui-color-primary);
+  --sui-card-shadow: inset 3px 0 0 var(--sui-color-primary);
+}
+
+.location {
+  background: none;
+  border: none;
+  color: var(--sui-color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--sui-font-size-sm);
+  font-weight: var(--sui-font-weight-medium);
+  padding: 0;
+  text-align: start;
+  text-decoration: underline;
+  text-decoration-color: var(--sui-color-border);
+  text-underline-offset: 2px;
+}
+
+.location:hover {
+  text-decoration-color: currentColor;
+}
+
+.location:focus-visible {
+  outline: var(--sui-focus-ring-width) solid var(--sui-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.id {
+  color: var(--sui-color-text-muted);
 }
 
 .messages {
   list-style: none;
   padding: 0;
+}
+
+.message {
+  display: grid;
+  gap: var(--sui-space-2);
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.agent {
+  background-color: var(--sui-color-primary);
+  color: var(--sui-color-on-primary);
+}
+
+.time {
+  color: var(--sui-color-text-muted);
+  font-size: var(--sui-font-size-xs);
 }
 
 .body {

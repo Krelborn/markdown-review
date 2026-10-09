@@ -122,7 +122,7 @@ describe("App", () => {
     fake.snapshot.threads[0] = { ...planThread, status: "resolved" };
     fake.emit({ type: "threads-changed" });
     const resolved = within(await screen.findByRole("region", { name: "Resolved" }));
-    await user.click(resolved.getByText("Resolved (1)"));
+    await user.click(resolved.getByRole("heading", { name: "Resolved 1" }));
 
     expect(resolved.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
   });
