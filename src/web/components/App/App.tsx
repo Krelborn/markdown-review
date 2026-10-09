@@ -106,12 +106,12 @@ export function App(): JSX.Element {
             id={commentsPanelId}
             ref={panelRef}
           >
-            <div className={styles.drawerHeader}>
-              <IconButton label="Hide comments" onClick={closePanel} ref={closeButtonRef} size="sm" variant="ghost">
-                <CloseIcon />
-              </IconButton>
-            </div>
             <ThreadSidebar
+              closeButton={
+                <IconButton label="Hide comments" onClick={closePanel} ref={closeButtonRef} size="sm" variant="ghost">
+                  <CloseIcon />
+                </IconButton>
+              }
               documentPath={documentPath}
               editor={editor}
               onChanged={threads.refresh}

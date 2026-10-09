@@ -69,7 +69,7 @@ describe("ThreadSidebar", () => {
     const user = userEvent.setup();
     render();
 
-    await user.click(screen.getByRole("radio", { name: "All docs" }));
+    await user.click(screen.getByRole("tab", { name: "All docs 6" }));
 
     const open = within(screen.getByRole("region", { name: "Open" }));
     expect(open.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual([
@@ -78,6 +78,35 @@ describe("ThreadSidebar", () => {
       "docs/spec.md",
     ]);
     expect(elements.threadsIn("Open")).toEqual(["Thread #5", "Thread #2", "Thread #6"]);
+  });
+
+  test("must count each view's threads on its tab when another doc has threads", () => {
+    const { render } = setUpTest();
+
+    render();
+
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["This doc 5", "All docs 6"]);
+  });
+
+  test("must show the title and count, and no tabs, when only this doc and the review have threads", () => {
+    const { render } = setUpTest({ threads: threads.slice(0, 5) });
+
+    render();
+
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(screen.getByText("Comments")).toHaveTextContent("Comments 5");
+  });
+
+  test("must go back to This doc when the user chose All docs and the other doc's threads went", async () => {
+    const { render, showThreads } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await user.click(screen.getByRole("tab", { name: "All docs 6" }));
+
+    showThreads(threads.slice(0, 5));
+    showThreads(threads);
+
+    expect(screen.getByRole("tab", { name: "This doc 5" })).toHaveAttribute("aria-selected", "true");
   });
 
   test("must save a comment on the whole review as a draft when the user starts one from + Comment", async () => {
@@ -348,25 +377,31 @@ function setUpTest({
   const fake = createFakeReviewApi({ threads: shown });
   const onChanged = vi.fn();
   const onSelectThread = vi.fn();
+  const view = (listed: Thread[]) => (
+    <ReviewApiContext value={fake.api}>
+      <CommentEditorHarness onChanged={onChanged} threads={listed}>
+        {(editor) => (
+          <ThreadSidebar
+            closeButton={null}
+            documentPath={documentPath}
+            editor={editor}
+            onChanged={onChanged}
+            onSelectThread={onSelectThread}
+            selectedThreadId={null}
+            threads={listed}
+          />
+        )}
+      </CommentEditorHarness>
+    </ReviewApiContext>
+  );
+  let rerenderBase: (ui: ReturnType<typeof view>) => void = () => {};
   const render = (): void => {
-    renderBase(
-      <ReviewApiContext value={fake.api}>
-        <CommentEditorHarness onChanged={onChanged} threads={shown}>
-          {(editor) => (
-            <ThreadSidebar
-              documentPath={documentPath}
-              editor={editor}
-              onChanged={onChanged}
-              onSelectThread={onSelectThread}
-              selectedThreadId={null}
-              threads={shown}
-            />
-          )}
-        </CommentEditorHarness>
-      </ReviewApiContext>
-    );
+    rerenderBase = renderBase(view(shown)).rerender;
   };
-  return { fake, onChanged, onSelectThread, render };
+  const showThreads = (listed: Thread[]): void => {
+    rerenderBase(view(listed));
+  };
+  return { fake, onChanged, onSelectThread, render, showThreads };
 }
 
 async function startReplyOnThread(

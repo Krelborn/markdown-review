@@ -1,18 +1,23 @@
-import { Counter, Segment, SegmentedControl, Stack, Text } from "@krelborn/stylesui";
-import type { JSX } from "react";
+import { Counter, Tab, TabList, TabPanel, Tabs, Text } from "@krelborn/stylesui";
+import type { JSX, ReactNode } from "react";
 import { useState } from "react";
 
 import type { Thread } from "../../../shared/review/threadSchema";
 import { CommentEditorContext } from "../../review/CommentEditorContext";
-import { groupThreads } from "../../review/groupThreads";
+import type { ThreadView } from "../../review/threadsInView";
+import { threadsInView } from "../../review/threadsInView";
 import type { CommentEditor } from "../../review/useCommentEditor";
-import { useSeenMessages } from "../../review/useSeenMessages";
 import { CommentsHeader } from "../CommentsHeader/CommentsHeader";
 
-import { NewCommentForm } from "./NewCommentForm";
-import { ThreadGroup } from "./ThreadGroup";
+import { CommentsList } from "./CommentsList";
+import styles from "./ThreadSidebar.module.css";
 
 export interface ThreadSidebarProps {
+  /**
+   * The button that hides the comments in a narrow window, shown at the end of their header
+   */
+  closeButton: ReactNode;
+
   /**
    * The doc on screen, or null on the docs list
    */
@@ -42,10 +47,11 @@ export interface ThreadSidebarProps {
 }
 
 /**
- * The comments beside the doc: a header that starts comments on the doc or the review, the composer while the user
- * writes one, and the threads grouped as drafts, open, outdated and resolved, for this doc or for every doc
+ * The comments beside the doc: a header that starts comments on the doc or the review and, when other docs have
+ * threads, chooses between this doc's threads and every doc's; then the composer and the threads
  */
 export function ThreadSidebar({
+  closeButton,
   documentPath,
   editor,
   onChanged,
@@ -53,64 +59,63 @@ export function ThreadSidebar({
   selectedThreadId,
   threads,
 }: ThreadSidebarProps): JSX.Element {
-  const seen = useSeenMessages();
-  const [scope, setScope] = useState("document");
-  const showsEveryDocument = documentPath === null || scope === "all";
-  const visible = showsEveryDocument
-    ? threads
-    : threads.filter((thread) => thread.anchor.kind === "review" || thread.anchor.document === documentPath);
-  const groups = groupThreads(visible);
-  const listProps = {
-    hasNewAgentMessage: seen.hasNewAgentMessage,
-    onChanged,
-    onSelect: (thread: Thread) => {
-      seen.markSeen(thread);
-      onSelectThread(thread);
-    },
-    selectedThreadId,
-    showsDocuments: showsEveryDocument,
-  };
+  const [chosenView, setChosenView] = useState<ThreadView>("document");
+  const inView = threadsInView(threads, documentPath, chosenView, editor.editingThreadId);
+  if (!inView.hasChoice && chosenView !== "document") {
+    setChosenView("document");
+  }
+  const header = (title: ReactNode): JSX.Element => (
+    <CommentsHeader
+      closeButton={closeButton}
+      documentPath={documentPath}
+      onComment={(comment) => editor.request({ comment, kind: "new" })}
+      title={title}
+    />
+  );
+  const list = (
+    <CommentsList
+      documentPath={documentPath}
+      onChanged={onChanged}
+      onSelectThread={onSelectThread}
+      selectedThreadId={selectedThreadId}
+      showsDocuments={inView.showsDocuments}
+      threads={inView.threads}
+    />
+  );
   return (
     <CommentEditorContext value={editor}>
-      <Stack as="aside" gap={4} aria-label="Comments">
-        <CommentsHeader
-          documentPath={documentPath}
-          onComment={(comment) => editor.request({ comment, kind: "new" })}
-          title={
-            <Text weight="bold">
-              Comments <Counter count={visible.length} />
-            </Text>
-          }
-        />
-        {editor.newComment !== null && (
-          <NewCommentForm
-            documentPath={documentPath}
-            key={JSON.stringify(editor.newComment.anchor)}
-            newComment={editor.newComment}
-          />
+      <aside aria-label="Comments">
+        {inView.hasChoice ? (
+          <Tabs
+            className={styles.tabs}
+            onValueChange={(value) => setChosenView(value === "all" ? "all" : "document")}
+            size="sm"
+            value={inView.view}
+          >
+            {header(
+              <TabList aria-label="Show comments on">
+                <Tab className={styles.tab} value="document">
+                  This doc <Counter count={inView.counts.document} />
+                </Tab>
+                <Tab className={styles.tab} value="all">
+                  All docs <Counter count={inView.counts.all} />
+                </Tab>
+              </TabList>
+            )}
+            <TabPanel value="document">{list}</TabPanel>
+            <TabPanel value="all">{list}</TabPanel>
+          </Tabs>
+        ) : (
+          <>
+            {header(
+              <Text weight="bold">
+                Comments <Counter count={inView.threads.length} />
+              </Text>
+            )}
+            {list}
+          </>
         )}
-        {documentPath !== null && (
-          <SegmentedControl label="Show comments on" onValueChange={setScope} size="sm" value={scope}>
-            <Segment value="document">This doc</Segment>
-            <Segment value="all">All docs</Segment>
-          </SegmentedControl>
-        )}
-        {visible.length === 0 && (
-          <Text as="p" size="sm" tone="muted">
-            No comments yet. Select text in the doc, or press + beside a block, to comment on it.
-          </Text>
-        )}
-        <ThreadGroup isFolded={false} threads={groups.drafts} title="Drafts" {...listProps} />
-        <ThreadGroup isFolded={false} threads={groups.open} title="Open" {...listProps} />
-        <ThreadGroup isFolded={false} threads={groups.outdated} title="Outdated" {...listProps} />
-        <ThreadGroup
-          isFolded={true}
-          isForcedOpen={groups.resolved.some((thread) => thread.id === editor.editingThreadId)}
-          threads={groups.resolved}
-          title="Resolved"
-          {...listProps}
-        />
-      </Stack>
+      </aside>
     </CommentEditorContext>
   );
 }

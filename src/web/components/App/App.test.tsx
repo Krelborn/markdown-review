@@ -154,6 +154,36 @@ describe("App", () => {
     expect(await screen.findByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
   });
 
+  test("must keep listing the thread the user is replying to, with the reply, when the agent opens another doc", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await startReply(user, "Half written");
+
+    fake.emit({ type: "navigate", url: "http://127.0.0.1:4321/document/docs/spec.md" });
+    await screen.findByRole("heading", { level: 1, name: "docs/spec.md" });
+
+    const thread = within(screen.getByRole("article", { name: "Thread #1" }));
+    expect(thread.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
+  });
+
+  test("must keep the comment the user is writing, under its doc's path, when the agent opens another doc", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await elements.article().findByText("Retries happen three times.");
+    selectText(elements.article().getByText("Retries happen three times."), "Retries".length);
+    await user.click(await screen.findByRole("button", { name: "Comment" }));
+    await user.keyboard("Three is too many");
+
+    fake.emit({ type: "navigate", url: "http://127.0.0.1:4321/document/docs/spec.md" });
+    await screen.findByRole("heading", { level: 1, name: "docs/spec.md" });
+
+    const composer = within(screen.getByRole("region", { name: "New comment" }));
+    expect(composer.getByText("docs/plan.md")).toBeInTheDocument();
+    expect(composer.getByRole("textbox", { name: "Comment" })).toHaveValue("Three is too many");
+  });
+
   test("must show the agent's reply when the server says the threads changed", async () => {
     const { fake, render } = setUpTest();
     await render();
@@ -271,7 +301,7 @@ describe("App", () => {
     const user = userEvent.setup();
     await render();
 
-    await user.click(screen.getByRole("radio", { name: "All docs" }));
+    await user.click(screen.getByRole("tab", { name: "All docs 2" }));
     await user.click(screen.getByRole("button", { name: "#2 Line 3" }));
 
     expect(await screen.findByRole("heading", { level: 1, name: "docs/spec.md" })).toBeInTheDocument();
