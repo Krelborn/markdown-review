@@ -11,11 +11,9 @@ import type { NewComment } from "../../review/NewComment";
 import { DocumentControls } from "./DocumentControls";
 import styles from "./DocumentView.module.css";
 import { useDocumentNavigation } from "./useDocumentNavigation";
-import { useHoveredBlock } from "./useHoveredBlock";
+import { useDocumentOverlay } from "./useDocumentOverlay";
 import { useMermaidDiagrams } from "./useMermaidDiagrams";
 import { useRenderedDocument } from "./useRenderedDocument";
-import { useSelectionComment } from "./useSelectionComment";
-import { useThreadHighlights } from "./useThreadHighlights";
 
 export interface DocumentViewProps {
   /**
@@ -82,13 +80,12 @@ export function DocumentView({
     () => threads.filter((thread) => isHighlighted(thread, selectedThreadId)),
     [selectedThreadId, threads]
   );
-  const markers = useThreadHighlights(viewRef, contentRef, rendered, {
+  const overlay = useDocumentOverlay(viewRef, contentRef, rendered, {
+    documentPath: shown.path,
+    highlightedThreads,
     pendingPassage,
     selectedThreadId,
-    threads: highlightedThreads,
   });
-  const selectionComment = useSelectionComment(viewRef, contentRef, rendered, shown.path);
-  const hoveredBlock = useHoveredBlock(viewRef, contentRef);
   useDocumentNavigation(contentRef, rendered, {
     documentPath: shown.path,
     hash,
@@ -112,13 +109,14 @@ export function DocumentView({
         />
         <DocumentControls
           document={shown}
-          hoveredBlock={hoveredBlock}
-          markers={markers}
+          hoveredBlock={overlay.hoveredBlock}
+          markers={overlay.markers}
           onComment={onComment}
           onSelectThread={onSelectThread}
+          pendingBlock={overlay.pendingBlock}
           rendered={rendered}
           selectedThreadId={selectedThreadId}
-          selectionComment={selectionComment}
+          selectionComment={overlay.selectionComment}
         />
       </div>
     </Stack>

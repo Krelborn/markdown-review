@@ -88,6 +88,66 @@ describe("DocumentView", () => {
     );
   });
 
+  test("must frame the block when the pointer is on its +", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+
+    await user.hover(screen.getByRole("button", { name: "Comment on this block" }));
+
+    expect(screen.getByTestId("block-target")).toBeInTheDocument();
+  });
+
+  test("must stop framing the block when the pointer leaves its +", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    const block = within(elements.article()).getByText("Retries happen three times.");
+    await user.hover(block);
+    await user.hover(screen.getByRole("button", { name: "Comment on this block" }));
+
+    await user.hover(block);
+
+    expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
+  });
+
+  test("must keep the block framed when the user writes a comment on the whole of it", async () => {
+    const { render } = setUpTest({
+      pendingPassage: {
+        document: "docs/plan.md",
+        endOffset: 84,
+        kind: "passage",
+        prefix: "Goals\n",
+        quote: "Retries happen three times.",
+        startOffset: 57,
+        suffix: "",
+      },
+    });
+
+    await render();
+
+    expect(await screen.findByTestId("block-target")).toBeInTheDocument();
+  });
+
+  test("must not frame a block when the user writes a comment on part of it", async () => {
+    const { render } = setUpTest({
+      pendingPassage: {
+        document: "docs/plan.md",
+        endOffset: 64,
+        kind: "passage",
+        prefix: "Goals\n",
+        quote: "Retries",
+        startOffset: 57,
+        suffix: " happen three times.",
+      },
+    });
+
+    await render();
+
+    expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
+  });
+
   test("must highlight open and draft passages, and the selected thread's apart, but not resolved or outdated ones", async () => {
     const { render } = setUpTest({
       selectedThreadId: 2,

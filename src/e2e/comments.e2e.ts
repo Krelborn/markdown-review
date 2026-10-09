@@ -32,6 +32,15 @@ test("must keep the passage highlighted while the user writes a comment on it", 
   await expect.poll(() => highlightedText(page, "markdown-review-pending")).toEqual(["cache results for 24h"]);
 });
 
+test("must frame a block when the user points at the + beside it", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+
+  await page.getByRole("article", { name: "docs/plan.md" }).getByText("Retries happen three times.").hover();
+  await page.getByRole("button", { name: "Comment on this block" }).hover();
+
+  await expect(page.getByTestId("block-target")).toBeVisible();
+});
+
 test("must keep a half-written reply when the user goes to another doc and back", async ({ page, review }) => {
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");

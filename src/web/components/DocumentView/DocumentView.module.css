@@ -127,3 +127,23 @@
 .selectionButton {
   z-index: 1;
 }
+
+.blockTarget {
+  background-color: color-mix(in srgb, var(--sui-color-primary) 7%, transparent);
+  border: 2px solid var(--sui-color-primary);
+  border-radius: var(--sui-radius-lg);
+  pointer-events: none;
+  position: absolute;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .blockTarget {
+    animation: fadeIn 120ms ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}

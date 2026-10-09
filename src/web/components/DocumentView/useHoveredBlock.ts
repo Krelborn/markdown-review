@@ -3,25 +3,19 @@ import { useEffect, useState } from "react";
 
 import { blockElementAt } from "../../anchoring/blockElementAt";
 
-export interface HoveredBlock {
-  index: number;
-
-  /**
-   * Where the block starts, relative to the view
-   */
-  top: number;
-}
+import type { BlockBox } from "./BlockBox";
+import { measureBlock } from "./measureBlock";
 
 /**
  * Follows the block under the pointer, so the view can offer a comment on the whole block beside it
  *
- * @returns the block, or null when the pointer has left the view
+ * @returns where the block is, or null when the pointer has left the view
  */
 export function useHoveredBlock(
   viewRef: RefObject<HTMLElement | null>,
   contentRef: RefObject<HTMLElement | null>
-): HoveredBlock | null {
-  const [hoveredBlock, setHoveredBlock] = useState<HoveredBlock | null>(null);
+): BlockBox | null {
+  const [hoveredBlock, setHoveredBlock] = useState<BlockBox | null>(null);
   useEffect(() => {
     const view = viewRef.current;
     const content = contentRef.current;
@@ -31,8 +25,7 @@ export function useHoveredBlock(
     const enter = (event: MouseEvent): void => {
       const block = event.target instanceof Node ? blockElementAt(content, event.target) : null;
       if (block !== null) {
-        const top = block.getBoundingClientRect().top - view.getBoundingClientRect().top;
-        setHoveredBlock({ index: Number(block.getAttribute("data-md-block")), top });
+        setHoveredBlock(measureBlock(view, block));
       }
     };
     const leave = (): void => setHoveredBlock(null);

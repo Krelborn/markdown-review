@@ -5,8 +5,10 @@ import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
 import { blockPassage } from "../../anchoring/blockPassage";
 import type { NewComment } from "../../review/NewComment";
 
+import type { BlockBox } from "./BlockBox";
+import { BlockCommentButton } from "./BlockCommentButton";
+import { BlockTarget } from "./BlockTarget";
 import styles from "./DocumentView.module.css";
-import type { HoveredBlock } from "./useHoveredBlock";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
 import type { ThreadMarker } from "./useThreadHighlights";
@@ -17,10 +19,19 @@ export interface DocumentControlsProps {
    */
   document: DocumentSource;
 
-  hoveredBlock: HoveredBlock | null;
+  /**
+   * The block under the pointer, or null
+   */
+  hoveredBlock: BlockBox | null;
+
   markers: ThreadMarker[];
   onComment: (newComment: NewComment) => void;
   onSelectThread: (threadId: number) => void;
+
+  /**
+   * The block a whole-block comment is being written on, or null
+   */
+  pendingBlock: BlockBox | null;
 
   /**
    * The doc on the page, or null until it has rendered
@@ -32,8 +43,8 @@ export interface DocumentControlsProps {
 }
 
 /**
- * The buttons laid over the rendered doc: + beside the block under the pointer, a numbered marker beside each thread's
- * passage, and Comment beside the selected text
+ * The controls laid over the rendered doc: + beside the block under the pointer, a frame around the block a comment is
+ * for, a numbered marker beside each thread's passage, and Comment beside the selected text
  */
 export function DocumentControls({
   document: shown,
@@ -41,6 +52,7 @@ export function DocumentControls({
   markers,
   onComment,
   onSelectThread,
+  pendingBlock,
   rendered,
   selectedThreadId,
   selectionComment,
@@ -57,18 +69,14 @@ export function DocumentControls({
   };
   return (
     <>
+      {pendingBlock !== null && <BlockTarget box={pendingBlock} />}
       {hoveredBlock !== null && (
-        <Button
-          className={styles.blockButton}
-          onClick={() => commentOnBlock(hoveredBlock.index)}
-          size="sm"
-          style={{ top: hoveredBlock.top }}
-          variant="ghost"
-          aria-label="Comment on this block"
-          data-md-ignore=""
-        >
-          +
-        </Button>
+        <BlockCommentButton
+          block={hoveredBlock}
+          isFramed={pendingBlock?.index === hoveredBlock.index}
+          key={hoveredBlock.index}
+          onComment={() => commentOnBlock(hoveredBlock.index)}
+        />
       )}
       {markers.map(({ column, threadId, top }) => (
         <Button
