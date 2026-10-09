@@ -42,7 +42,8 @@ export function App(): JSX.Element {
   const documentSource = useDocumentSource(api, documentPath);
   const selection = useThreadSelection(documentPath, navigate);
   const [newComment, setNewComment] = useState<NewComment | null>(null);
-  const panel = useCommentsPanel();
+  const { closeButtonRef, closePanel, isPanelOpen, openPanel, panelRef, panelToggleRef, togglePanel } =
+    useCommentsPanel();
   const connection = useReviewEvents(api, {
     onDocumentChanged: (document) => {
       if (document === documentPath) {
@@ -66,15 +67,15 @@ export function App(): JSX.Element {
   );
   const startComment = (comment: NewComment): void => {
     setNewComment(comment);
-    panel.open();
+    openPanel();
   };
   const selectThreadInDocument = (threadId: number): void => {
     selection.selectThread(threadId);
-    panel.open();
+    openPanel();
   };
   const showThreadInDocument = (thread: Thread): void => {
     selection.revealThread(thread);
-    panel.close();
+    closePanel();
   };
   return (
     <Theme mode="system">
@@ -100,18 +101,12 @@ export function App(): JSX.Element {
             )}
           </main>
           <div
-            className={clsx(styles.commentsPanel, { [styles.open ?? ""]: panel.isOpen })}
+            className={clsx(styles.commentsPanel, { [styles.open ?? ""]: isPanelOpen })}
             id={commentsPanelId}
-            ref={panel.panelRef}
+            ref={panelRef}
           >
             <div className={styles.drawerHeader}>
-              <IconButton
-                label="Hide comments"
-                onClick={panel.close}
-                ref={panel.closeButtonRef}
-                size="sm"
-                variant="ghost"
-              >
+              <IconButton label="Hide comments" onClick={closePanel} ref={closeButtonRef} size="sm" variant="ghost">
                 <CloseIcon />
               </IconButton>
             </div>
@@ -129,11 +124,11 @@ export function App(): JSX.Element {
             <ReviewBar
               agentWaiting={connection.agentWaiting}
               draftCount={countDrafts(allThreads)}
-              isPanelOpen={panel.isOpen}
+              isPanelOpen={isPanelOpen}
               onSubmitted={threads.refresh}
-              onTogglePanel={panel.toggle}
+              onTogglePanel={togglePanel}
               panelId={commentsPanelId}
-              panelToggleRef={panel.toggleRef}
+              panelToggleRef={panelToggleRef}
               review={threads.snapshot?.review ?? unrequestedReview}
             />
           </div>
