@@ -2,7 +2,8 @@ import type { RefObject } from "react";
 import { useEffect } from "react";
 
 /**
- * Lets the user save the editor with Cmd+Enter or Ctrl+Enter, and answer Escape, from anywhere inside it
+ * Lets the user save the editor with Cmd+Enter or Ctrl+Enter, and answer Escape, from anywhere inside it, except while
+ * an input method is composing text, when those keys belong to the input method
  *
  * @param formRef the editor's form
  * @param escape what Escape does
@@ -14,6 +15,9 @@ export function useEditorKeys(formRef: RefObject<HTMLFormElement | null>, escape
       return;
     }
     const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.isComposing) {
+        return;
+      }
       if (event.key === "Escape") {
         event.preventDefault();
         escape();

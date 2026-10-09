@@ -1,4 +1,4 @@
-import { render as renderBase, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render as renderBase, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 
@@ -359,6 +359,33 @@ describe("ThreadSidebar", () => {
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Reply" })).toHaveValue("Hourly");
+  });
+
+  test("must keep the editor open when the user presses Escape to cancel an IME composition", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await user.click(within(elements.thread(2)).getByRole("button", { name: "Reply" }));
+
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Reply" }), { isComposing: true, key: "Escape" });
+
+    expect(screen.getByRole("textbox", { name: "Reply" })).toBeInTheDocument();
+  });
+
+  test("must save nothing when the user presses Cmd+Enter to commit an IME composition", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await startReplyOnThread(user, 2, "Hourly");
+
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Reply" }), {
+      isComposing: true,
+      key: "Enter",
+      metaKey: true,
+    });
+
+    expect(screen.getByRole("textbox", { name: "Reply" })).toHaveValue("Hourly");
+    expect(fake.snapshot.threads[1]?.draft).toBeUndefined();
   });
 
   test.each([

@@ -27,6 +27,7 @@ export function CommentFormButtons({ isSaving, leading }: CommentFormButtonsProp
   const saveRef = useRef<HTMLButtonElement>(null);
   const isAsking = editor.question !== null;
   const { questionRevision } = editor;
+  // questionRevision is not read: it re-runs the effect each time the editor asks again
   useEffect(() => {
     if (isAsking) {
       const save = saveRef.current;

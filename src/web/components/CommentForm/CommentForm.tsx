@@ -30,6 +30,7 @@ export function CommentForm({ label, leading }: CommentFormProps): JSX.Element {
   const [isSaving, setIsSaving] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isSubmittingRef = useRef(false);
   const { escape, focusRevision, question } = editor;
   useEffect(() => {
     textareaRef.current?.focus();
@@ -37,12 +38,17 @@ export function CommentForm({ label, leading }: CommentFormProps): JSX.Element {
   useEditorKeys(formRef, escape);
   const submit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
+    if (isSubmittingRef.current) {
+      return;
+    }
+    isSubmittingRef.current = true;
     setIsSaving(true);
     try {
       await editor.save();
     } catch (failure) {
       setError(describeFailure(failure));
     } finally {
+      isSubmittingRef.current = false;
       setIsSaving(false);
     }
   };
