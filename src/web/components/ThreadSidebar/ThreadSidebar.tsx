@@ -102,8 +102,8 @@ export function ThreadSidebar({
                 </Tab>
               </TabList>
             )}
-            <TabPanel value="document">{list}</TabPanel>
-            <TabPanel value="all">{list}</TabPanel>
+            {/* One panel, always the selected one, so the list stays mounted when the user switches tabs */}
+            <TabPanel value={inView.view}>{list}</TabPanel>
           </Tabs>
         ) : (
           <>

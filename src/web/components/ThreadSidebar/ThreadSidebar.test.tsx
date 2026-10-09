@@ -109,6 +109,30 @@ describe("ThreadSidebar", () => {
     expect(screen.getByRole("tab", { name: "This doc 5" })).toHaveAttribute("aria-selected", "true");
   });
 
+  test("must keep the resolved threads open when the user switches tabs and back", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await user.click(screen.getByRole("heading", { name: "Resolved 1" }));
+
+    await user.click(screen.getByRole("tab", { name: "All docs 6" }));
+    await user.click(screen.getByRole("tab", { name: "This doc 5" }));
+
+    expect(elements.thread(4)).toBeVisible();
+  });
+
+  test("must keep focus on the tab when the user switches tabs with an editor open", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await user.click(within(elements.thread(2)).getByRole("button", { name: "Reply" }));
+
+    await user.click(screen.getByRole("tab", { name: "All docs 6" }));
+
+    expect(screen.getByRole("tab", { name: "All docs 6" })).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: "Reply" })).toBeInTheDocument();
+  });
+
   test("must save a comment on the whole review as a draft when the user starts one from + Comment", async () => {
     const { fake, render } = setUpTest({ threads: [] });
     const user = userEvent.setup();
