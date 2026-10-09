@@ -291,6 +291,21 @@ test("must keep the tabs on their own row below the + Comment button", async ({ 
   expect(await topOf(tabs)).toBeGreaterThanOrEqual(await bottomOf(addComment));
 });
 
+test("must leave the prose gap above a code block and between two code blocks in a row", async ({ page, review }) => {
+  await review.writeDocument("docs/plan.md", "# Plan\n\nRun this:\n\n```\nplain code\n```\n\n    indented code\n");
+  await review.open("docs/plan.md");
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+
+  const paragraphToFence = await gapBetween(
+    article.locator('[data-md-block="1"]'),
+    article.locator('[data-md-block="2"]')
+  );
+  const fenceToCode = await gapBetween(article.locator('[data-md-block="2"]'), article.locator('[data-md-block="3"]'));
+
+  expect(paragraphToFence).toBeGreaterThanOrEqual(15);
+  expect(fenceToCode).toBeGreaterThanOrEqual(15);
+});
+
 function documentScrollTop(page: Page): Promise<number> {
   return page.getByRole("main").evaluate((main) => main.scrollTop);
 }
@@ -362,4 +377,16 @@ async function boxOf(element: Locator): Promise<{ height: number; y: number }> {
     throw new Error("The element is not on the page");
   }
   return box;
+}
+
+/**
+ * @returns the space between the bottom of one block and the top of the block below it
+ */
+async function gapBetween(upper: Locator, lower: Locator): Promise<number> {
+  const upperBox = await upper.boundingBox();
+  const lowerBox = await lower.boundingBox();
+  if (upperBox === null || lowerBox === null) {
+    throw new Error("Both blocks must be on the page");
+  }
+  return lowerBox.y - (upperBox.y + upperBox.height);
 }

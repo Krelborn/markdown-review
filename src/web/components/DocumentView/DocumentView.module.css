@@ -11,6 +11,56 @@
   min-block-size: 50vh;
 }
 
+/* markdown-it renders some blocks with no element of their own, so a wrapper carries their attributes and needs the
+   gap Prose gives the elements it styles */
+.content div[data-md-block]:not(:first-child) {
+  margin-block-start: var(--sui-prose-flow);
+}
+
+/* Shiki writes its theme's background into the code block's style attribute */
+.content div[data-md-block] > pre {
+  background-color: var(--sui-color-surface) !important;
+  border: var(--sui-border-width) solid var(--sui-color-border);
+  border-radius: var(--sui-radius-lg);
+  margin: 0;
+}
+
+.content div[data-md-block] > svg {
+  display: block;
+  margin-inline: auto;
+}
+
+/* Task-list checkboxes are disabled because they only show state, so they are drawn here rather than left greyed out */
+.content input[type="checkbox"] {
+  appearance: none;
+  background-color: var(--sui-color-background);
+  block-size: 1em;
+  border: var(--sui-border-width) solid var(--sui-color-input-border);
+  border-radius: var(--sui-radius-sm);
+  cursor: default;
+  display: inline-grid;
+  inline-size: 1em;
+  margin-block: 0;
+  margin-inline: 0 0.25em;
+  opacity: 1;
+  place-content: center;
+  vertical-align: -0.125em;
+}
+
+.content input[type="checkbox"]:checked {
+  background-color: var(--sui-color-primary);
+  border-color: var(--sui-color-primary);
+}
+
+.content input[type="checkbox"]:checked::before {
+  background-color: var(--sui-color-on-primary);
+  block-size: 0.75em;
+  content: "";
+  inline-size: 0.75em;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.5l3.2 3L13 4.5'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
 .content ::highlight(markdown-review-threads) {
   background-color: var(--sui-color-warning-subtle);
 }
