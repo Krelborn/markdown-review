@@ -244,7 +244,7 @@ describe("App", () => {
 
     await render();
 
-    expect(await screen.findByRole("button", { name: "Submit (2)" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Submit 2 drafts" })).toBeInTheDocument();
   });
 
   test("must save a comment on the selected text as a draft when the user writes one", async () => {
@@ -260,7 +260,7 @@ describe("App", () => {
 
     const drafts = within(await screen.findByRole("region", { name: "Drafts" }));
     expect(drafts.getByRole("article", { name: "Thread #1" })).toHaveTextContent("Retries");
-    expect(await screen.findByRole("button", { name: "Submit (1)" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Submit 1 draft" })).toBeInTheDocument();
   });
 
   test("must ask about the user's unsent reply, then save it and start the comment, when the user starts a comment in the doc", async () => {

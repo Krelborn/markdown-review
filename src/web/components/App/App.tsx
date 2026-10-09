@@ -9,7 +9,7 @@ import { useReviewApi } from "../../api/useReviewApi";
 import { useReviewEvents } from "../../api/useReviewEvents";
 import { documentPathOf } from "../../navigation/documentPathOf";
 import { usePageLocation } from "../../navigation/usePageLocation";
-import { countDrafts } from "../../review/countDrafts";
+import { countDraftsByDocument } from "../../review/countDraftsByDocument";
 import type { NewComment } from "../../review/NewComment";
 import { useCommentEditor } from "../../review/useCommentEditor";
 import { useDocumentSource } from "../../review/useDocumentSource";
@@ -123,7 +123,8 @@ export function App(): JSX.Element {
           <div className={styles.reviewBar}>
             <ReviewBar
               agentWaiting={connection.agentWaiting}
-              draftCount={countDrafts(allThreads)}
+              drafts={countDraftsByDocument(allThreads)}
+              hasUnsavedText={editor.hasUnsavedText}
               isPanelOpen={isPanelOpen}
               onSubmitted={threads.refresh}
               onTogglePanel={togglePanel}

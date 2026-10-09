@@ -1,7 +1,15 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-import { plan, scrollDocumentToEnd, selectText, test, withParagraphs, writeDraftComment } from "./testing/reviewTest";
+import {
+  plan,
+  scrollDocumentToEnd,
+  selectText,
+  submitButtonName,
+  test,
+  withParagraphs,
+  writeDraftComment,
+} from "./testing/reviewTest";
 
 const narrowWindow = { height: 800, width: 700 };
 
@@ -21,7 +29,7 @@ test("must keep the header and Submit in view, and the window still, when the us
   await expect(page.getByText("Paragraph 80.", { exact: true })).toBeInViewport();
   await expect(page.getByRole("heading", { level: 1, name: "docs/plan.md" })).toBeInViewport();
   await expect(page.getByRole("status")).toBeInViewport();
-  await expect(page.getByRole("button", { name: "Submit (0)" })).toBeInViewport();
+  await expect(page.getByRole("button", { exact: true, name: submitButtonName(0) })).toBeInViewport();
   expect(
     await page.evaluate(() => document.documentElement.scrollHeight <= document.documentElement.clientHeight)
   ).toBe(true);
@@ -61,10 +69,10 @@ test("must keep Submit and its menu in full view when the comments outgrow their
     await page.getByRole("button", { name: "On the whole review" }).click();
     await page.keyboard.type(`Note ${count}`);
     await page.getByRole("button", { exact: true, name: "Save" }).click();
-    await expect(page.getByRole("button", { exact: true, name: `Submit (${count})` })).toBeVisible();
+    await expect(page.getByRole("button", { exact: true, name: submitButtonName(count) })).toBeVisible();
   }
 
-  const submit = page.getByRole("button", { exact: true, name: "Submit (12)" });
+  const submit = page.getByRole("button", { exact: true, name: submitButtonName(12) });
   await expect(submit).toBeInViewport();
 
   await submit.click();
@@ -147,7 +155,7 @@ test("must show the comments in a narrow window only when the user asks for them
   await page.setViewportSize(narrowWindow);
   await review.open("docs/plan.md");
   await expect(comments(page)).toBeHidden();
-  await expect(page.getByRole("button", { name: "Submit (0)" })).toBeInViewport();
+  await expect(page.getByRole("button", { exact: true, name: submitButtonName(0) })).toBeInViewport();
 
   await commentsToggle(page).click();
   await expect(comments(page)).toBeVisible();
@@ -174,7 +182,7 @@ test("must open the comments at a new comment when the user starts one in a narr
 
   await expect(commentBox).toHaveValue("Why 24h?");
   await page.getByRole("button", { exact: true, name: "Save" }).click();
-  await expect(page.getByRole("button", { name: "Submit (1)" })).toBeInViewport();
+  await expect(page.getByRole("button", { exact: true, name: submitButtonName(1) })).toBeInViewport();
 });
 
 test("must close the comments to show a thread's passage when the user clicks its location in a narrow window", async ({
