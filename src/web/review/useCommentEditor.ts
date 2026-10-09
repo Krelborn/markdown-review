@@ -174,7 +174,12 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
     open: null,
     questionRevision: 0,
   });
-  const open = state.open !== null && isStillOpen(state.open, threads) ? state.open : null;
+  const isOpenGone = state.open !== null && !isStillOpen(state.open, threads);
+  // Forgets an editor whose thread or draft has gone, so that a draft made later on the thread does not bring it back
+  if (isOpenGone) {
+    setState((current) => ({ ...current, open: null }));
+  }
+  const open = isOpenGone ? null : state.open;
   const savedBody = open === null ? null : savedBodyOf(open.target, threads);
   const writtenBody = open?.body ?? null;
   const body = writtenBody ?? savedBody ?? "";

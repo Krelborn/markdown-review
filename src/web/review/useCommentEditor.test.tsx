@@ -469,6 +469,20 @@ describe("useCommentEditor", () => {
 
     expect(result.current.editingThreadId).toBeNull();
   });
+
+  test("must keep a draft's editor closed when a new draft arrives after its draft was submitted elsewhere", () => {
+    const { render } = setUpTest();
+    const { rerender, result } = render();
+    act(() => result.current.request(editDraft));
+    act(() => result.current.changeBody("Why 1h?"));
+    rerender({ shown: [buildThread({ anchor: buildPassageAnchor(), id: 1 }), openThread] });
+
+    rerender({
+      shown: [buildThread({ anchor: buildPassageAnchor(), draft: { at: testTime, body: "Later" }, id: 1 }), openThread],
+    });
+
+    expect(result.current.editingThreadId).toBeNull();
+  });
 });
 
 function setUpTest({ threads = [draftComment, openThread] }: { threads?: Thread[] } = {}) {
