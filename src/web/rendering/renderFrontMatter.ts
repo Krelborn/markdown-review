@@ -1,7 +1,5 @@
+import type { FrontMatterEntry } from "./readFrontMatter";
 import type { Property } from "./readProperty";
-import { readProperty } from "./readProperty";
-
-type Stringify = (value: unknown) => string;
 
 /**
  * Shows a rendered doc's frontmatter as a Properties panel in place of its YAML, loading the YAML parser only when the
@@ -17,58 +15,35 @@ export async function renderFrontMatter(container: ParentNode): Promise<void> {
   if (block === null || !block.hasAttribute("data-front-matter")) {
     return;
   }
-  const { parseDocument, stringify } = await import("yaml");
-  const properties = readYaml(parseDocument(block.textContent));
-  if (properties === null || isMapping(properties)) {
-    block.replaceChildren(createPropertiesPanel(block.ownerDocument, Object.entries(properties ?? {}), stringify));
-  } else {
+  const { readFrontMatter } = await import("./readFrontMatter");
+  const entries = readFrontMatter(block.textContent);
+  if (entries === null) {
     block.setAttribute("data-language", "frontmatter");
+  } else {
+    block.replaceChildren(createPropertiesPanel(block.ownerDocument, entries));
   }
 }
 
-/**
- * @returns the value the YAML holds, or undefined when the YAML is invalid
- */
-function readYaml(yamlDocument: { errors: readonly unknown[]; toJS: () => unknown }): unknown {
-  if (yamlDocument.errors.length > 0) {
-    return undefined;
-  }
-  try {
-    return yamlDocument.toJS();
-  } catch (error) {
-    // The parser finds an alias with no anchor, or one that expands too far, only when it builds the value
-    if (error instanceof ReferenceError) {
-      return undefined;
-    }
-    throw error;
-  }
-}
-
-function isMapping(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function createPropertiesPanel(page: Document, entries: [string, unknown][], stringify: Stringify): HTMLElement {
+function createPropertiesPanel(page: Document, entries: FrontMatterEntry[]): HTMLElement {
   const panel = createElement(page, "details", "", { "data-properties": "", open: "" });
-  panel.append(createFlexContainer(page, "summary", "Properties", {}), createPropertyList(page, entries, stringify));
+  panel.append(createFlexContainer(page, "summary", "Properties", {}), createPropertyList(page, entries));
   return panel;
 }
 
-function createPropertyList(page: Document, entries: [string, unknown][], stringify: Stringify): HTMLElement {
+function createPropertyList(page: Document, entries: FrontMatterEntry[]): HTMLElement {
   if (entries.length === 0) {
     return createElement(page, "p", "No properties", { "data-empty": "" });
   }
   const list = page.createElement("dl");
-  for (const [key, value] of entries) {
-    const property = readProperty(key, value);
+  for (const { key, property } of entries) {
     const definition = page.createElement("dd");
-    definition.append(...createValueElements(page, property, stringify));
+    definition.append(...createValueElements(page, property));
     list.append(createFlexContainer(page, "dt", key, { "data-type": property.kind }), definition);
   }
   return list;
 }
 
-function createValueElements(page: Document, property: Property, stringify: Stringify): HTMLElement[] {
+function createValueElements(page: Document, property: Property): HTMLElement[] {
   switch (property.kind) {
     case "checkbox":
       return [createCheckbox(page, property.isTicked)];
@@ -83,7 +58,7 @@ function createValueElements(page: Document, property: Property, stringify: Stri
       return property.items.map((item) => createElement(page, "span", item, attributes));
     }
     case "nested":
-      return [createElement(page, "pre", stringify(property.value).trimEnd(), {})];
+      return [createElement(page, "pre", property.text, {})];
     default:
       return [createElement(page, "span", property.text, {})];
   }

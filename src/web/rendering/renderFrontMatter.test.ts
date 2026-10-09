@@ -61,6 +61,39 @@ describe("renderFrontMatter", () => {
     expect(elements.value(page, key)?.textContent).toBe(expected);
   });
 
+  test.each([
+    { condition: "some keys are numbers", expected: ["title", "2024", "1"], yaml: "title: a\n2024: b\n1: c" },
+    {
+      condition: "some keys are quoted or not scalars",
+      expected: ["quoted key", "1.0", "[x, y]"],
+      yaml: '"quoted key": a\n1.0: b\n? [x, y]\n: c',
+    },
+  ])("must list the keys as written and in source order when $condition", async ({ expected, yaml }) => {
+    const page = await renderPage(`---\n${yaml}\n---\n`);
+
+    expect(elements.keys(page).map(([, key]) => key)).toEqual(expected);
+  });
+
+  test.each(["1.0", "0x1F", "12345678901234567890"])(
+    "must show the number as written when the frontmatter sets a number written %s",
+    async (number) => {
+      const page = await renderPage(`---\nversion: ${number}\n---\n`);
+
+      expect(elements.keys(page)).toEqual([["number", "version"]]);
+      expect(elements.value(page, "version")?.textContent).toBe(number);
+    }
+  );
+
+  test.each([
+    { key: "notes", yaml: 'notes: ""' },
+    { key: "tags", yaml: "tags: []" },
+  ])("must show Empty when the frontmatter sets $yaml", async ({ key, yaml }) => {
+    const page = await renderPage(`---\n${yaml}\n---\n`);
+
+    expect(elements.keys(page)).toEqual([["empty", key]]);
+    expect(elements.value(page, key)?.textContent).toBe("Empty");
+  });
+
   test("must show a list as chips, and tags as tag chips, when the frontmatter has lists", async () => {
     const page = await renderPage(frontMatter);
 
