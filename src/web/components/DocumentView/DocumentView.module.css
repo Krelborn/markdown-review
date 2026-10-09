@@ -74,8 +74,9 @@
   background-color: color-mix(in srgb, var(--sui-color-warning) 30%, transparent);
 }
 
+/* Opaque, so that it covers the threads' amber beneath it rather than blending into it */
 .content ::highlight(markdown-review-selected) {
-  background-color: color-mix(in srgb, var(--sui-color-primary) 25%, transparent);
+  background-color: color-mix(in srgb, var(--sui-color-primary) 25%, var(--sui-color-background));
   text-decoration-color: var(--sui-color-primary);
   text-decoration-line: underline;
   text-decoration-style: solid;
@@ -84,7 +85,7 @@
 }
 
 .content ::highlight(markdown-review-pending) {
-  background-color: color-mix(in srgb, var(--sui-color-primary) 25%, transparent);
+  background-color: color-mix(in srgb, var(--sui-color-primary) 25%, var(--sui-color-background));
   text-decoration-color: var(--sui-color-primary);
   text-decoration-line: underline;
   text-decoration-style: dashed;
