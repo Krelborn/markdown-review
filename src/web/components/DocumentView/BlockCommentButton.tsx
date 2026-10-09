@@ -21,17 +21,18 @@ export interface BlockCommentButtonProps {
  * The + beside the block under the pointer, which frames the block while the user points at it or focuses it
  */
 export function BlockCommentButton({ block, isFramed, onComment }: BlockCommentButtonProps): JSX.Element {
-  const [isTargeting, setIsTargeting] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [isPointedAt, setIsPointedAt] = useState(false);
   return (
     <>
-      {isTargeting && !isFramed && <BlockTarget box={block} />}
+      {(isFocused || isPointedAt) && !isFramed && <BlockTarget box={block} />}
       <Button
         className={styles.blockButton}
-        onBlur={() => setIsTargeting(false)}
+        onBlur={() => setIsFocused(false)}
         onClick={onComment}
-        onFocus={() => setIsTargeting(true)}
-        onPointerEnter={() => setIsTargeting(true)}
-        onPointerLeave={() => setIsTargeting(false)}
+        onFocus={() => setIsFocused(true)}
+        onPointerEnter={() => setIsPointedAt(true)}
+        onPointerLeave={() => setIsPointedAt(false)}
         size="sm"
         style={{ top: block.top }}
         variant="ghost"

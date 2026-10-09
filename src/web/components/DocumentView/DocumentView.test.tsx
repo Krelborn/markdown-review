@@ -1,4 +1,5 @@
 import { render as renderBase, screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react";
+import type { UserEvent } from "@testing-library/user-event";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, onTestFinished, test, vi } from "vitest";
 
@@ -110,6 +111,32 @@ describe("DocumentView", () => {
     await user.hover(block);
 
     expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
+  });
+
+  test("must keep the block framed when the pointer leaves the + while it has focus", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    const block = within(elements.article()).getByText("Retries happen three times.");
+    await user.hover(block);
+    await user.hover(screen.getByRole("button", { name: "Comment on this block" }));
+    await tabToBlockButton(user);
+
+    await user.hover(block);
+
+    expect(screen.getByTestId("block-target")).toBeInTheDocument();
+  });
+
+  test("must keep focus on the + when the pointer moves over another block", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+    await tabToBlockButton(user);
+
+    await user.hover(within(elements.article()).getByRole("heading", { level: 2, name: "Goals" }));
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveFocus();
   });
 
   test("must keep the block framed when the user writes a comment on the whole of it", async () => {
@@ -384,6 +411,14 @@ function setUpTestWithScrollContainer({ passageTop }: { passageTop: number }) {
     threads: [buildThread({ anchor: cacheAnchor, id: 1 })],
   });
   return { ...setUp, scrolledTo };
+}
+
+/**
+ * Moves keyboard focus from the start of the page to the + beside the hovered block, past the doc's one link
+ */
+async function tabToBlockButton(user: UserEvent): Promise<void> {
+  await user.tab();
+  await user.tab();
 }
 
 function selectText(from: string, through: string): void {

@@ -74,7 +74,6 @@ export function DocumentControls({
         <BlockCommentButton
           block={hoveredBlock}
           isFramed={pendingBlock?.index === hoveredBlock.index}
-          key={hoveredBlock.index}
           onComment={() => commentOnBlock(hoveredBlock.index)}
         />
       )}
