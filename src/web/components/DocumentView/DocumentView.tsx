@@ -1,8 +1,9 @@
-import { Alert, Button, Prose, Stack } from "@krelborn/stylesui";
+import { Alert, Prose, Stack } from "@krelborn/stylesui";
 import type { JSX } from "react";
 import { useMemo, useRef } from "react";
 
 import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
+import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { isHighlighted } from "../../review/isHighlighted";
 import type { NewComment } from "../../review/NewComment";
@@ -28,7 +29,7 @@ export interface DocumentViewProps {
   hash: string;
 
   /**
-   * Called when the user starts a comment on a passage, a block or the whole doc
+   * Called when the user starts a comment on a passage or a block
    */
   onComment: (newComment: NewComment) => void;
 
@@ -41,6 +42,11 @@ export interface DocumentViewProps {
    * Called when the user clicks a highlighted passage or its marker
    */
   onSelectThread: (threadId: number) => void;
+
+  /**
+   * The passage of the comment the user is writing on this doc, or null
+   */
+  pendingPassage: NewPassageAnchor | null;
 
   /**
    * Counts the user's requests to see the selected thread in its doc; each new one scrolls its passage into view
@@ -64,6 +70,7 @@ export function DocumentView({
   onComment,
   onNavigate,
   onSelectThread,
+  pendingPassage,
   revealCount,
   selectedThreadId,
   threads,
@@ -75,7 +82,14 @@ export function DocumentView({
     () => threads.filter((thread) => isHighlighted(thread, selectedThreadId)),
     [selectedThreadId, threads]
   );
-  const markers = useThreadHighlights(viewRef, contentRef, rendered, highlightedThreads, selectedThreadId);
+  const markers = useThreadHighlights(
+    viewRef,
+    contentRef,
+    rendered,
+    highlightedThreads,
+    selectedThreadId,
+    pendingPassage
+  );
   const selectionComment = useSelectionComment(viewRef, contentRef, rendered, shown.path);
   const hoveredBlock = useHoveredBlock(viewRef, contentRef);
   useDocumentNavigation(contentRef, rendered, {
@@ -90,19 +104,7 @@ export function DocumentView({
   useMermaidDiagrams(contentRef, rendered);
   return (
     <Stack gap={3}>
-      <Button
-        className={styles.documentButton}
-        onClick={() => onComment({ anchor: { document: shown.path, kind: "document" } })}
-        size="sm"
-        variant="ghost"
-      >
-        Comment on this doc
-      </Button>
-      {error !== null && (
-        <Alert role="alert" title="The doc could not be shown" tone="danger">
-          {error}
-        </Alert>
-      )}
+      <RenderFailure error={error} />
       <div className={styles.view} ref={viewRef}>
         <Prose
           as="article"
@@ -123,5 +125,13 @@ export function DocumentView({
         />
       </div>
     </Stack>
+  );
+}
+
+function RenderFailure({ error }: { error: string | null }): JSX.Element | null {
+  return error === null ? null : (
+    <Alert role="alert" title="The doc could not be shown" tone="danger">
+      {error}
+    </Alert>
   );
 }

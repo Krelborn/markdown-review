@@ -1,7 +1,16 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-import { plan, scrollDocumentToEnd, selectText, test, withParagraphs, writeDraftComment } from "./testing/reviewTest";
+import type { ReviewFixture } from "./testing/reviewTest";
+import {
+  plan,
+  scrollDocumentToEnd,
+  selectText,
+  submitButtonName,
+  test,
+  withParagraphs,
+  writeDraftComment,
+} from "./testing/reviewTest";
 
 const narrowWindow = { height: 800, width: 700 };
 
@@ -21,7 +30,7 @@ test("must keep the header and Submit in view, and the window still, when the us
   await expect(page.getByText("Paragraph 80.", { exact: true })).toBeInViewport();
   await expect(page.getByRole("heading", { level: 1, name: "docs/plan.md" })).toBeInViewport();
   await expect(page.getByRole("status")).toBeInViewport();
-  await expect(page.getByRole("button", { name: "Submit (0)" })).toBeInViewport();
+  await expect(page.getByRole("button", { exact: true, name: submitButtonName(0) })).toBeInViewport();
   expect(
     await page.evaluate(() => document.documentElement.scrollHeight <= document.documentElement.clientHeight)
   ).toBe(true);
@@ -57,12 +66,14 @@ test("must keep the user's place in a long doc when the agent edits it", async (
 test("must keep Submit and its menu in full view when the comments outgrow their column", async ({ page, review }) => {
   await review.open("docs/plan.md");
   for (let count = 1; count <= 12; count++) {
-    await page.getByRole("textbox", { name: "Comment on the whole review" }).fill(`Note ${count}`);
-    await page.getByRole("button", { name: "Add comment" }).click();
-    await expect(page.getByRole("button", { exact: true, name: `Submit (${count})` })).toBeVisible();
+    await page.getByRole("button", { name: "+ Comment" }).click();
+    await page.getByRole("button", { name: "On the whole review" }).click();
+    await page.keyboard.type(`Note ${count}`);
+    await page.getByRole("button", { exact: true, name: "Save" }).click();
+    await expect(page.getByRole("button", { exact: true, name: submitButtonName(count) })).toBeVisible();
   }
 
-  const submit = page.getByRole("button", { exact: true, name: "Submit (12)" });
+  const submit = page.getByRole("button", { exact: true, name: submitButtonName(12) });
   await expect(submit).toBeInViewport();
 
   await submit.click();
@@ -115,6 +126,20 @@ test("must keep Comment in full view inside the doc column when the window narro
   expect(await page.getByRole("main").evaluate((main) => main.scrollWidth <= main.clientWidth)).toBe(true);
 });
 
+test("must lay a short doc out at the same reading width as a long one", async ({ page, review }) => {
+  await page.setViewportSize(wideWindow);
+  await review.writeDocument("docs/plan.md", "# Plan\n\nShort.\n");
+  await review.open("docs/plan.md");
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+  await expect(article.getByText("Short.")).toBeVisible();
+  const shortDocWidth = await widthOf(article);
+
+  await review.writeDocument("docs/plan.md", `# Plan\n\nLong ${"words ".repeat(100)}end.\n`);
+
+  await expect(article.getByText("Long words")).toBeVisible();
+  expect(await widthOf(article)).toBe(shortDocWidth);
+});
+
 test("must hide the comments when the user presses Hide comments in a narrow window", async ({ page, review }) => {
   await page.setViewportSize(narrowWindow);
   await review.open("docs/plan.md");
@@ -145,7 +170,7 @@ test("must show the comments in a narrow window only when the user asks for them
   await page.setViewportSize(narrowWindow);
   await review.open("docs/plan.md");
   await expect(comments(page)).toBeHidden();
-  await expect(page.getByRole("button", { name: "Submit (0)" })).toBeInViewport();
+  await expect(page.getByRole("button", { exact: true, name: submitButtonName(0) })).toBeInViewport();
 
   await commentsToggle(page).click();
   await expect(comments(page)).toBeVisible();
@@ -171,8 +196,8 @@ test("must open the comments at a new comment when the user starts one in a narr
   await commentsToggle(page).click();
 
   await expect(commentBox).toHaveValue("Why 24h?");
-  await page.getByRole("button", { name: "Save draft" }).click();
-  await expect(page.getByRole("button", { name: "Submit (1)" })).toBeInViewport();
+  await page.getByRole("button", { exact: true, name: "Save" }).click();
+  await expect(page.getByRole("button", { exact: true, name: submitButtonName(1) })).toBeInViewport();
 });
 
 test("must close the comments to show a thread's passage when the user clicks its location in a narrow window", async ({
@@ -207,6 +232,65 @@ test("must keep the comments open when the window widens and narrows again", asy
   await expect(comments(page)).toBeVisible();
 });
 
+test("must show a thread's location below the comments header when the user selects it from the doc", async ({
+  page,
+  review,
+}) => {
+  await openPlanWithDrafts(page, review);
+  await scrollCommentsToEnd(page);
+
+  await page.getByRole("main").getByRole("button", { exact: true, name: "Thread #2" }).click();
+
+  const location = page.getByRole("article", { name: "Thread #2" }).getByRole("button", { name: "#2 Line" });
+  await expectBelowHeader(page, location);
+  await expect(location).toBeInViewport({ ratio: 1 });
+});
+
+test("must show the whole composer below the comments header when the user starts a comment with the list scrolled", async ({
+  page,
+  review,
+}) => {
+  await openPlanWithDrafts(page, review);
+  await scrollCommentsTo(page, 70);
+
+  await startReviewComment(page);
+
+  await expectBelowHeader(page, page.getByRole("region", { name: "New comment" }));
+});
+
+test("must show the whole composer below the comments header when the tabs show and the list is scrolled", async ({
+  page,
+  review,
+}) => {
+  await openPlanWithDrafts(page, review);
+  await goToSpec(page);
+  await page.getByRole("tab", { name: "All docs 8" }).click();
+  await scrollCommentsTo(page, 70);
+
+  await startReviewComment(page);
+
+  await expectBelowHeader(page, page.getByRole("region", { name: "New comment" }));
+});
+
+test("must keep the tabs on their own row below the + Comment button", async ({ page, review }) => {
+  await page.setViewportSize(wideWindow);
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  await goToSpec(page);
+  const tabs = comments(page).getByRole("tablist");
+  const addComment = comments(page).getByRole("button", { name: "+ Comment" });
+  await expect(tabs).toBeVisible();
+
+  expect(await topOf(tabs)).toBeGreaterThanOrEqual(await bottomOf(addComment));
+
+  await page.setViewportSize(narrowWindow);
+  await page.reload();
+  await commentsToggle(page).click();
+  await expect(tabs).toBeVisible();
+
+  expect(await topOf(tabs)).toBeGreaterThanOrEqual(await bottomOf(addComment));
+});
+
 function documentScrollTop(page: Page): Promise<number> {
   return page.getByRole("main").evaluate((main) => main.scrollTop);
 }
@@ -221,4 +305,61 @@ function commentsToggle(page: Page): Locator {
 
 async function heightOf(element: Locator): Promise<number | undefined> {
   return (await element.boundingBox())?.height;
+}
+
+async function widthOf(element: Locator): Promise<number | undefined> {
+  return (await element.boundingBox())?.width;
+}
+
+async function openPlanWithDrafts(page: Page, review: ReviewFixture): Promise<void> {
+  await page.setViewportSize(wideWindow);
+  await review.writeDocument("docs/plan.md", withParagraphs(plan, 10));
+  await review.open("docs/plan.md");
+  for (let number = 1; number <= 8; number++) {
+    const paragraph = `Paragraph ${number}.`;
+    await writeDraftComment(page, paragraph, paragraph, `Note ${number}`);
+    await expect(page.getByRole("article", { name: `Thread #${number}` })).toBeVisible();
+  }
+}
+
+async function goToSpec(page: Page): Promise<void> {
+  await page.getByRole("link", { name: "spec" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "docs/spec.md" })).toBeVisible();
+}
+
+async function startReviewComment(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "+ Comment" }).click();
+  await page.getByRole("button", { name: "On the whole review" }).click();
+  await expect(page.getByRole("textbox", { name: "Comment on the whole review" })).toBeFocused();
+}
+
+function scrollCommentsTo(page: Page, top: number): Promise<void> {
+  return page.locator("#comments-panel").evaluate((panel, scrollTop) => panel.scrollTo(0, scrollTop), top);
+}
+
+function scrollCommentsToEnd(page: Page): Promise<void> {
+  return page.locator("#comments-panel").evaluate((panel) => panel.scrollTo(0, panel.scrollHeight));
+}
+
+async function topOf(element: Locator): Promise<number> {
+  return (await boxOf(element)).y;
+}
+
+async function bottomOf(element: Locator): Promise<number> {
+  const { height, y } = await boxOf(element);
+  return y + height;
+}
+
+async function expectBelowHeader(page: Page, element: Locator): Promise<void> {
+  await expect
+    .poll(async () => (await topOf(element)) - (await bottomOf(comments(page).locator("header"))))
+    .toBeGreaterThanOrEqual(0);
+}
+
+async function boxOf(element: Locator): Promise<{ height: number; y: number }> {
+  const box = await element.boundingBox();
+  if (box === null) {
+    throw new Error("The element is not on the page");
+  }
+  return box;
 }

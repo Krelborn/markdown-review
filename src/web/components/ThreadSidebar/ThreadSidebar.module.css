@@ -1,0 +1,9 @@
+/* The header already spaces itself from the list */
+.tabs {
+  gap: 0;
+}
+
+/* A flex item drops the space before its count, so the gap stands in for it */
+.tab {
+  gap: var(--sui-space-1);
+}

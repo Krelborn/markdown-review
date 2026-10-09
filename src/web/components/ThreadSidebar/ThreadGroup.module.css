@@ -1,3 +1,14 @@
+.heading {
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* The count's pill takes the cards' colour, as its own subtle neutral is the panel's surface colour and would not show */
+.heading > span {
+  background-color: var(--sui-color-background);
+  border-color: var(--sui-color-border);
+}
+
 .summary {
   cursor: pointer;
   margin-block-end: var(--sui-space-2);

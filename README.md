@@ -76,15 +76,16 @@ markdown-review open docs/plan.md
 
 - **Comment on a passage:** select text, including across paragraphs, and click **Comment**.
 - **Comment on a block:** hover over a block and click the **+** in the left margin. Use this for code blocks, tables, diagrams and HTML.
-- **Comment on a doc:** click **Comment on this doc** under its first heading.
-- **Comment on the whole review:** use the box at the top of the sidebar.
+- **Comment on a doc or on the whole review:** click **+ Comment** at the top of the comments and choose **On this doc** or **On the whole review**.
 
-Comments start as drafts. When you are ready, click **Submit** at the foot of the comments and choose:
+You write one comment at a time. If you start another while the open one has text you haven't saved, it asks whether to save or discard that text first. Press Cmd+Enter (Ctrl+Enter on Windows and Linux) to save, and Escape to close.
+
+Saved comments are drafts, marked with a Draft badge, until you submit them. Click **Edit** to change one. When you are ready, click **Submit** at the foot of the comments. It shows how many drafts it will send and which docs they are on. Choose:
 
 - **Request changes**, to send your drafts to the agent and wait for its answers.
 - **Approve**, to end the review. Any drafts are sent with the approval, and the agent addresses them before carrying on.
 
-The sidebar groups threads into Drafts, Open, Outdated and Resolved. Its **This doc / All docs** toggle shows every thread across the repository, so you can review a set of docs together. Click a thread to jump to its passage, or click highlighted text to find its thread. Reply to a resolved thread to reopen it. A thread becomes outdated when the agent's edits remove the text it was on.
+The comments are grouped into Drafts, Open, Outdated and Resolved. When other docs have comments too, **This doc** and **All docs** tabs at the top switch between this doc's comments and every doc's, so you can review a set of docs together. Click a thread's location to jump to its passage, or click highlighted text to find its thread. Reply to a resolved thread to reopen it. A thread becomes outdated when the agent's edits remove the text it was on.
 
 The bar beneath the comments shows whether the agent is listening. If it is not, your comments wait in its inbox until it next looks; the **Submit** menu says which.
 

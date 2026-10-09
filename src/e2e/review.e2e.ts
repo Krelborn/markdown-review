@@ -49,7 +49,7 @@ test("must move the thread to Resolved and show the agent's note when the agent 
   await review.run(["resolve", "1", "Added a retries setting"]);
 
   const resolved = page.getByRole("region", { name: "Resolved" });
-  await resolved.getByText("Resolved (1)").click();
+  await resolved.getByRole("heading", { name: "Resolved 1" }).click();
   await expect(resolved.getByRole("article", { name: "Thread #1" })).toContainText("Added a retries setting");
   await expect(page.getByRole("region", { name: "Open" })).toBeHidden();
 });

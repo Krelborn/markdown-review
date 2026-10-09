@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Cluster, Stack, Text } from "@krelborn/stylesui";
+import { Badge, Card, Cluster, Stack, Text } from "@krelborn/stylesui";
 import { clsx } from "clsx";
 import type { JSX } from "react";
 import { useEffect, useRef } from "react";
@@ -6,8 +6,10 @@ import { useEffect, useRef } from "react";
 import type { Anchor } from "../../../shared/review/anchorSchema";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { describeLocation } from "../../review/describeLocation";
+import { useCommentEditorContext } from "../../review/useCommentEditorContext";
 import { Quote } from "../Quote/Quote";
 
+import { Message } from "./Message";
 import { ThreadActions } from "./ThreadActions";
 import styles from "./ThreadCard.module.css";
 
@@ -29,7 +31,7 @@ export interface ThreadCardProps {
 }
 
 /**
- * One thread in the sidebar: what it is on, its messages, the user's draft, and the actions the user can take
+ * One thread in the sidebar: where it is and its state, what it is on, its messages, and what the user can do
  */
 export function ThreadCard({
   hasNewAgentMessage,
@@ -38,8 +40,9 @@ export function ThreadCard({
   onSelect,
   thread,
 }: ThreadCardProps): JSX.Element {
-  const { anchor, id, messages, status } = thread;
+  const { anchor, id, messages } = thread;
   const cardRef = useRef<HTMLElement>(null);
+  const editor = useCommentEditorContext();
   useEffect(() => {
     if (isSelected) {
       cardRef.current?.scrollIntoView({ block: "nearest" });
@@ -48,33 +51,25 @@ export function ThreadCard({
   return (
     <Card
       as="article"
-      className={clsx(styles.card, { [styles.selected ?? ""]: isSelected })}
+      className={clsx(styles.card, {
+        [styles.editing ?? ""]: editor.editingThreadId === id,
+        [styles.selected ?? ""]: isSelected,
+      })}
       padding="sm"
       ref={cardRef}
       aria-label={`Thread #${id}`}
     >
       <Stack gap={2}>
         <Cluster gap={2} justify="between">
-          <Button onClick={() => onSelect(thread)} size="sm" variant="ghost">
-            #{id} {describeLocation(anchor)}
-          </Button>
-          <Cluster gap={1}>
-            {hasNewAgentMessage && <Badge tone="info">New</Badge>}
-            {anchor.kind === "passage" && anchor.outdated && <Badge tone="warning">Outdated</Badge>}
-            {status === "resolved" && <Badge tone="success">Resolved</Badge>}
-          </Cluster>
+          <ThreadLocation onSelect={() => onSelect(thread)} thread={thread} />
+          <ThreadBadges hasNewAgentMessage={hasNewAgentMessage} thread={thread} />
         </Cluster>
         <PassageQuote anchor={anchor} />
         {messages.length > 0 && (
-          <Stack as="ol" className={styles.messages} gap={2} aria-label="Messages">
+          <Stack as="ol" className={styles.messages} gap={3} aria-label="Messages">
             {messages.map((message) => (
               <li key={message.at + message.author}>
-                <Text size="sm" weight="bold">
-                  {message.author === "user" ? "You" : "Agent"}
-                </Text>{" "}
-                <Text as="p" className={styles.body} size="sm">
-                  {message.body}
-                </Text>
+                <Message author={message.author} body={message.body} sentAt={message.at} />
               </li>
             ))}
           </Stack>
@@ -82,6 +77,31 @@ export function ThreadCard({
         <ThreadActions onChanged={onChanged} thread={thread} />
       </Stack>
     </Card>
+  );
+}
+
+function ThreadLocation({ onSelect, thread: { anchor, id } }: { onSelect: () => void; thread: Thread }): JSX.Element {
+  return (
+    <button className={styles.location} onClick={onSelect} type="button">
+      <span className={styles.id}>#{id}</span> {describeLocation(anchor)}
+    </button>
+  );
+}
+
+function ThreadBadges({
+  hasNewAgentMessage,
+  thread: { anchor, status },
+}: {
+  hasNewAgentMessage: boolean;
+  thread: Thread;
+}): JSX.Element {
+  return (
+    <Cluster gap={1}>
+      {status === "draft" && <Badge tone="warning">Draft</Badge>}
+      {hasNewAgentMessage && <Badge tone="info">New reply</Badge>}
+      {anchor.kind === "passage" && anchor.outdated && <Badge tone="warning">Outdated</Badge>}
+      {status === "resolved" && <Badge tone="success">Resolved</Badge>}
+    </Cluster>
   );
 }
 

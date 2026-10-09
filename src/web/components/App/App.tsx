@@ -1,7 +1,7 @@
 import { IconButton, PageLayout, Theme } from "@krelborn/stylesui";
 import { clsx } from "clsx";
 import type { JSX } from "react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 
 import type { ReviewState } from "../../../shared/review/ReviewState";
 import type { Thread } from "../../../shared/review/threadSchema";
@@ -9,8 +9,9 @@ import { useReviewApi } from "../../api/useReviewApi";
 import { useReviewEvents } from "../../api/useReviewEvents";
 import { documentPathOf } from "../../navigation/documentPathOf";
 import { usePageLocation } from "../../navigation/usePageLocation";
-import { countDrafts } from "../../review/countDrafts";
+import { countDraftsByDocument } from "../../review/countDraftsByDocument";
 import type { NewComment } from "../../review/NewComment";
+import { useCommentEditor } from "../../review/useCommentEditor";
 import { useDocumentSource } from "../../review/useDocumentSource";
 import { useThreads } from "../../review/useThreads";
 import { useThreadSelection } from "../../review/useThreadSelection";
@@ -41,7 +42,6 @@ export function App(): JSX.Element {
   const threads = useThreads(api);
   const documentSource = useDocumentSource(api, documentPath);
   const selection = useThreadSelection(documentPath, navigate);
-  const [newComment, setNewComment] = useState<NewComment | null>(null);
   const { closeButtonRef, closePanel, isPanelOpen, openPanel, panelRef, panelToggleRef, togglePanel } =
     useCommentsPanel();
   const connection = useReviewEvents(api, {
@@ -65,8 +65,9 @@ export function App(): JSX.Element {
     () => allThreads.filter(({ anchor }) => anchor.kind !== "review" && anchor.document === documentPath),
     [allThreads, documentPath]
   );
+  const editor = useCommentEditor({ onChanged: threads.refresh, threads: allThreads });
   const startComment = (comment: NewComment): void => {
-    setNewComment(comment);
+    editor.request({ comment, kind: "new" });
     openPanel();
   };
   const selectThreadInDocument = (threadId: number): void => {
@@ -93,6 +94,7 @@ export function App(): JSX.Element {
                 onComment={startComment}
                 onNavigate={navigate}
                 onSelectThread={selectThreadInDocument}
+                pendingComment={editor.newComment}
                 revealCount={selection.revealCount}
                 selectedThreadId={selection.selectedThreadId}
                 state={documentSource.state}
@@ -105,16 +107,15 @@ export function App(): JSX.Element {
             id={commentsPanelId}
             ref={panelRef}
           >
-            <div className={styles.drawerHeader}>
-              <IconButton label="Hide comments" onClick={closePanel} ref={closeButtonRef} size="sm" variant="ghost">
-                <CloseIcon />
-              </IconButton>
-            </div>
             <ThreadSidebar
+              closeButton={
+                <IconButton label="Hide comments" onClick={closePanel} ref={closeButtonRef} size="sm" variant="ghost">
+                  <CloseIcon />
+                </IconButton>
+              }
               documentPath={documentPath}
-              newComment={newComment}
+              editor={editor}
               onChanged={threads.refresh}
-              onCloseNewComment={() => setNewComment(null)}
               onSelectThread={showThreadInDocument}
               selectedThreadId={selection.selectedThreadId}
               threads={allThreads}
@@ -123,7 +124,8 @@ export function App(): JSX.Element {
           <div className={styles.reviewBar}>
             <ReviewBar
               agentWaiting={connection.agentWaiting}
-              draftCount={countDrafts(allThreads)}
+              drafts={countDraftsByDocument(allThreads)}
+              hasUnsavedText={editor.hasUnsavedText}
               isPanelOpen={isPanelOpen}
               onSubmitted={threads.refresh}
               onTogglePanel={togglePanel}

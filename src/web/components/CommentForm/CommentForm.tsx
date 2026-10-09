@@ -1,110 +1,71 @@
-import { Alert, Button, Cluster, Field, Stack, Textarea } from "@krelborn/stylesui";
+import { Alert, Stack, Textarea } from "@krelborn/stylesui";
 import type { FormEvent, JSX, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { describeFailure } from "../../api/describeFailure";
-import { useUnsentText } from "../../review/useUnsentText";
+import { useCommentEditorContext } from "../../review/useCommentEditorContext";
+
+import { CommentFormButtons } from "./CommentFormButtons";
+import { UnsavedQuestion } from "./UnsavedQuestion";
+import { useEditorKeys } from "./useEditorKeys";
 
 export interface CommentFormProps {
   /**
-   * Further actions shown after the submit button, such as discarding a draft
+   * Names the text box for screen readers
    */
-  children?: ReactNode;
-
-  /**
-   * Whether the text box empties once the text is saved, ready for another comment
-   */
-  clearOnSubmit: boolean;
-
-  initialBody: string;
   label: string;
-  onCancel?: () => void;
 
   /**
-   * Saves the text; when it rejects, the form shows the error and keeps the text
+   * Shown at the start of the row of buttons, away from Save, such as the button that discards a draft
    */
-  onSubmit: (body: string) => Promise<void>;
-
-  /**
-   * Whether the text box takes focus when the form appears
-   */
-  shouldFocus: boolean;
-
-  submitLabel: string;
-
-  /**
-   * Names the box, so text the user has typed and not saved outlives it, as when its thread moves to another group
-   */
-  unsentTextKey?: string;
+  leading?: ReactNode;
 }
 
 /**
- * A text box for a comment, a reply or a draft, with the button that saves it
+ * The open comment editor: its text box and buttons, and, while it holds text the user might lose, what to do with it
  */
-export function CommentForm({
-  children,
-  clearOnSubmit,
-  initialBody,
-  label,
-  onCancel,
-  onSubmit,
-  shouldFocus,
-  submitLabel,
-  unsentTextKey,
-}: CommentFormProps): JSX.Element {
-  const { body, change, forget } = useUnsentText(unsentTextKey, initialBody);
+export function CommentForm({ label, leading }: CommentFormProps): JSX.Element {
+  const editor = useCommentEditorContext();
   const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isSubmittingRef = useRef(false);
+  const { escape, focusRevision, question } = editor;
   useEffect(() => {
-    if (shouldFocus) {
-      textareaRef.current?.focus();
-    }
-  }, [shouldFocus]);
+    textareaRef.current?.focus();
+  }, [focusRevision]);
+  useEditorKeys(formRef, escape);
   const submit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
-    setIsSaving(true);
+    if (isSubmittingRef.current) {
+      return;
+    }
+    isSubmittingRef.current = true;
     try {
-      await onSubmit(body);
-      setError(null);
-      if (clearOnSubmit) {
-        change("");
-      }
-      forget();
+      await editor.save();
     } catch (failure) {
       setError(describeFailure(failure));
     } finally {
-      setIsSaving(false);
+      isSubmittingRef.current = false;
     }
   };
   return (
-    <Stack as="form" gap={2} onSubmit={(event: FormEvent) => void submit(event)}>
-      <Field label={label}>
-        <Textarea onChange={(event) => change(event.target.value)} ref={textareaRef} rows={3} value={body} />
-      </Field>
+    <Stack as="form" gap={2} onSubmit={(event: FormEvent) => void submit(event)} ref={formRef}>
+      {question !== null && <UnsavedQuestion isDraft={editor.savedBody !== null} question={question} />}
+      <Textarea
+        onChange={(event) => editor.changeBody(event.target.value)}
+        readOnly={editor.isSaving}
+        ref={textareaRef}
+        rows={3}
+        value={editor.body}
+        aria-label={label}
+      />
       {error !== null && (
         <Alert role="alert" tone="danger">
           {error}
         </Alert>
       )}
-      <Cluster gap={2}>
-        <Button busy={isSaving} disabled={body.trim() === "" || body === initialBody} size="sm" type="submit">
-          {submitLabel}
-        </Button>
-        {onCancel !== undefined && (
-          <Button
-            onClick={() => {
-              forget();
-              onCancel();
-            }}
-            size="sm"
-            variant="ghost"
-          >
-            Cancel
-          </Button>
-        )}
-        {children}
-      </Cluster>
+      <CommentFormButtons leading={leading} />
     </Stack>
   );
 }

@@ -113,7 +113,7 @@ describe("App", () => {
     expect(screen.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
   });
 
-  test("must keep the user's unsent reply when the agent resolves the thread", async () => {
+  test("must keep the user's unsent reply in view when the agent resolves the thread", async () => {
     const { fake, render } = setUpTest();
     const user = userEvent.setup();
     await render();
@@ -121,9 +121,9 @@ describe("App", () => {
 
     fake.snapshot.threads[0] = { ...planThread, status: "resolved" };
     fake.emit({ type: "threads-changed" });
-    const resolved = within(await screen.findByRole("region", { name: "Resolved" }));
-    await user.click(resolved.getByText("Resolved (1)"));
 
+    const resolved = within(await screen.findByRole("region", { name: "Resolved" }));
+    expect(resolved.getByRole("textbox", { name: "Reply" })).toBeVisible();
     expect(resolved.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
   });
 
@@ -152,6 +152,36 @@ describe("App", () => {
     await screen.findByRole("heading", { level: 1, name: "docs/plan.md" });
 
     expect(await screen.findByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
+  });
+
+  test("must keep listing the thread the user is replying to, with the reply, when the agent opens another doc", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await startReply(user, "Half written");
+
+    fake.emit({ type: "navigate", url: "http://127.0.0.1:4321/document/docs/spec.md" });
+    await screen.findByRole("heading", { level: 1, name: "docs/spec.md" });
+
+    const thread = within(screen.getByRole("article", { name: "Thread #1" }));
+    expect(thread.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
+  });
+
+  test("must keep the comment the user is writing, under its doc's path, when the agent opens another doc", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await elements.article().findByText("Retries happen three times.");
+    selectText(elements.article().getByText("Retries happen three times."), "Retries".length);
+    await user.click(await screen.findByRole("button", { name: "Comment" }));
+    await user.keyboard("Three is too many");
+
+    fake.emit({ type: "navigate", url: "http://127.0.0.1:4321/document/docs/spec.md" });
+    await screen.findByRole("heading", { level: 1, name: "docs/spec.md" });
+
+    const composer = within(screen.getByRole("region", { name: "New comment" }));
+    expect(composer.getByText("docs/plan.md")).toBeInTheDocument();
+    expect(composer.getByRole("textbox", { name: "Comment" })).toHaveValue("Three is too many");
   });
 
   test("must show the agent's reply when the server says the threads changed", async () => {
@@ -214,7 +244,7 @@ describe("App", () => {
 
     await render();
 
-    expect(await screen.findByRole("button", { name: "Submit (2)" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Submit 2 drafts" })).toBeInTheDocument();
   });
 
   test("must save a comment on the selected text as a draft when the user writes one", async () => {
@@ -226,11 +256,44 @@ describe("App", () => {
     selectText(elements.article().getByText("Retries happen three times."), "Retries".length);
     await user.click(await screen.findByRole("button", { name: "Comment" }));
     await user.keyboard("Three is too many");
-    await user.click(screen.getByRole("button", { name: "Save draft" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
 
     const drafts = within(await screen.findByRole("region", { name: "Drafts" }));
     expect(drafts.getByRole("article", { name: "Thread #1" })).toHaveTextContent("Retries");
-    expect(await screen.findByRole("button", { name: "Submit (1)" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Submit 1 draft" })).toBeInTheDocument();
+  });
+
+  test("must ask about the user's unsent reply, then save it and start the comment, when the user starts a comment in the doc", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await startReply(user, "Half written");
+    await elements.article().findByText("Retries happen three times.");
+
+    selectText(elements.article().getByText("Retries happen three times."), "Retries".length);
+    await user.click(await screen.findByRole("button", { name: "Comment" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("You started another comment.");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByRole("textbox", { name: "Comment" })).toHaveFocus();
+    expect(fake.snapshot.threads[0]?.draft?.body).toBe("Half written");
+  });
+
+  test("must keep the comment's text, without asking, when the user starts a comment on the same text again", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await elements.article().findByText("Retries happen three times.");
+    selectText(elements.article().getByText("Retries happen three times."), "Retries".length);
+    await user.click(await screen.findByRole("button", { name: "Comment" }));
+    await user.keyboard("Three is too many");
+
+    selectText(elements.article().getByText("Retries happen three times."), "Retries".length);
+    await user.click(await screen.findByRole("button", { name: "Comment" }));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Comment" })).toHaveValue("Three is too many");
+    expect(screen.getByRole("textbox", { name: "Comment" })).toHaveFocus();
   });
 
   test("must show the thread's doc when the user selects a thread on another doc", async () => {
@@ -238,18 +301,20 @@ describe("App", () => {
     const user = userEvent.setup();
     await render();
 
-    await user.click(screen.getByRole("radio", { name: "All docs" }));
+    await user.click(screen.getByRole("tab", { name: "All docs 2" }));
     await user.click(screen.getByRole("button", { name: "#2 Line 3" }));
 
     expect(await screen.findByRole("heading", { level: 1, name: "docs/spec.md" })).toBeInTheDocument();
   });
 
-  test("must open the comments when the user starts a comment on the doc", async () => {
+  test("must open the comments when the user starts a comment in the doc", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
     await render();
+    await elements.article().findByText("Retries happen three times.");
 
-    await user.click(await screen.findByRole("button", { name: "Comment on this doc" }));
+    selectText(elements.article().getByText("Retries happen three times."), "Retries".length);
+    await user.click(await screen.findByRole("button", { name: "Comment" }));
 
     expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "true");
   });
@@ -350,7 +415,7 @@ function setUpTest({
         <App />
       </ReviewApiContext>
     );
-    await screen.findByRole("textbox", { name: "Comment on the whole review" });
+    await screen.findByRole("complementary", { name: "Comments" });
   };
   return { documents, fake, render };
 }

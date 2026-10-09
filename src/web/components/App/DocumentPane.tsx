@@ -3,6 +3,7 @@ import type { JSX } from "react";
 
 import type { Thread } from "../../../shared/review/threadSchema";
 import type { NewComment } from "../../review/NewComment";
+import { pendingPassageOn } from "../../review/pendingPassageOn";
 import type { DocumentState } from "../../review/useDocumentSource";
 import { DocumentView } from "../DocumentView/DocumentView";
 
@@ -12,6 +13,11 @@ export interface DocumentPaneProps {
   onComment: (newComment: NewComment) => void;
   onNavigate: (pagePath: string) => void;
   onSelectThread: (threadId: number) => void;
+
+  /**
+   * The comment the user is writing, or null
+   */
+  pendingComment: NewComment | null;
 
   /**
    * Counts the user's requests to see the selected thread in its doc; each new one scrolls its passage into view
@@ -34,7 +40,7 @@ export interface DocumentPaneProps {
 /**
  * The doc on screen, or why it cannot be shown
  */
-export function DocumentPane({ documentPath, state, ...viewProps }: DocumentPaneProps): JSX.Element {
+export function DocumentPane({ documentPath, pendingComment, state, ...viewProps }: DocumentPaneProps): JSX.Element {
   switch (state?.kind) {
     case undefined:
       return (
@@ -55,6 +61,12 @@ export function DocumentPane({ documentPath, state, ...viewProps }: DocumentPane
         </Alert>
       );
     case "loaded":
-      return <DocumentView document={state.document} {...viewProps} />;
+      return (
+        <DocumentView
+          document={state.document}
+          pendingPassage={pendingPassageOn(pendingComment, state.document)}
+          {...viewProps}
+        />
+      );
   }
 }

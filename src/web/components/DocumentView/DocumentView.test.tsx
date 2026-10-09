@@ -3,11 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, onTestFinished, test, vi } from "vitest";
 
 import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
+import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import { buildPassageAnchor, buildThread } from "../../../shared/review/testing/reviewBuilders";
 import type { Thread } from "../../../shared/review/threadSchema";
 
 import { DocumentView } from "./DocumentView";
-import { selectedHighlightName, threadsHighlightName } from "./useThreadHighlights";
+import { pendingHighlightName, selectedHighlightName, threadsHighlightName } from "./useThreadHighlights";
 
 const source = [
   "# Plan",
@@ -75,16 +76,6 @@ describe("DocumentView", () => {
     );
   });
 
-  test("must start a comment on the whole doc when the user asks to", async () => {
-    const { onComment, render } = setUpTest();
-    const user = userEvent.setup();
-    await render();
-
-    await user.click(screen.getByRole("button", { name: "Comment on this doc" }));
-
-    expect(onComment).toHaveBeenCalledWith({ anchor: { document: "docs/plan.md", kind: "document" } });
-  });
-
   test("must highlight open and draft passages, and the selected thread's apart, but not resolved or outdated ones", async () => {
     const { render } = setUpTest({
       selectedThreadId: 2,
@@ -104,6 +95,24 @@ describe("DocumentView", () => {
       "1",
       "2",
     ]);
+  });
+
+  test("must highlight the passage of the comment the user is writing", async () => {
+    const { render } = setUpTest({
+      pendingPassage: {
+        document: "docs/plan.md",
+        endOffset: 29,
+        kind: "passage",
+        prefix: "Plan\nWe ",
+        quote: "cache results for 24h",
+        startOffset: 8,
+        suffix: "",
+      },
+    });
+
+    await render();
+
+    expect(elements.highlighted(pendingHighlightName)).toEqual(["cache results for 24h"]);
   });
 
   test("must select a thread when the user clicks its marker", async () => {
@@ -136,17 +145,6 @@ describe("DocumentView", () => {
     await user.click(within(elements.article()).getByRole("link", { name: "spec" }));
 
     expect(onNavigate).toHaveBeenCalledWith("/document/docs/spec.md#goals");
-  });
-
-  test("must still offer a comment on the whole doc when the doc is empty", async () => {
-    const { onComment, render } = setUpTest();
-    const user = userEvent.setup();
-    await render({ ...plan, source: "" });
-
-    await user.click(screen.getByRole("button", { name: "Comment on this doc" }));
-
-    expect(elements.article()).toBeEmptyDOMElement();
-    expect(onComment).toHaveBeenCalledWith({ anchor: { document: "docs/plan.md", kind: "document" } });
   });
 
   test("must stop offering Comment when the user selects text outside the doc", async () => {
@@ -242,11 +240,18 @@ describe("DocumentView", () => {
 interface SetUpOptions {
   container?: HTMLElement;
   hash?: string;
+  pendingPassage?: NewPassageAnchor | null;
   selectedThreadId?: number | null;
   threads?: Thread[];
 }
 
-function setUpTest({ container, hash = "", selectedThreadId = null, threads = [] }: SetUpOptions = {}) {
+function setUpTest({
+  container,
+  hash = "",
+  pendingPassage = null,
+  selectedThreadId = null,
+  threads = [],
+}: SetUpOptions = {}) {
   const onComment = vi.fn();
   const onNavigate = vi.fn();
   const onSelectThread = vi.fn();
@@ -257,6 +262,7 @@ function setUpTest({ container, hash = "", selectedThreadId = null, threads = []
       onComment={onComment}
       onNavigate={onNavigate}
       onSelectThread={onSelectThread}
+      pendingPassage={pendingPassage}
       revealCount={0}
       selectedThreadId={selectedThreadId}
       threads={threads}

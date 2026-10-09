@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { DocumentList } from "../../../shared/api/apiResponseSchemas";
 import { describeFailure } from "../../api/describeFailure";
 import { useReviewApi } from "../../api/useReviewApi";
+import { ChevronDownIcon } from "../ChevronDownIcon/ChevronDownIcon";
 import { DocumentLinks } from "../DocumentLinks/DocumentLinks";
 
 export interface DocumentsMenuProps {
@@ -30,8 +31,8 @@ export function DocumentsMenu({ onNavigate }: DocumentsMenuProps): JSX.Element {
   });
   return (
     <>
-      <Button {...popover.getTriggerProps()} variant="ghost">
-        Docs
+      <Button {...popover.getTriggerProps()} size="sm" variant="secondary">
+        Docs <ChevronDownIcon />
       </Button>
       <Popover {...popover.getOverlayProps()}>
         {error !== null && <Alert tone="danger">{error}</Alert>}

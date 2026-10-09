@@ -1,12 +1,15 @@
-import { Alert, Button, Cluster } from "@krelborn/stylesui";
+import { Alert, Button, Cluster, Divider, Stack, Text } from "@krelborn/stylesui";
 import type { JSX } from "react";
-import { useContext, useState } from "react";
+import { useState } from "react";
 
 import type { Thread } from "../../../shared/review/threadSchema";
 import { describeFailure } from "../../api/describeFailure";
 import { useReviewApi } from "../../api/useReviewApi";
-import { UnsentTextContext } from "../../review/UnsentTextContext";
+import { useCommentEditorContext } from "../../review/useCommentEditorContext";
 import { CommentForm } from "../CommentForm/CommentForm";
+
+import { Message } from "./Message";
+import styles from "./ThreadCard.module.css";
 
 export interface ThreadActionsProps {
   /**
@@ -18,15 +21,13 @@ export interface ThreadActionsProps {
 }
 
 /**
- * What the user can do with a thread: edit or discard their draft, start a reply, or resolve it
+ * The user's part in a thread: their draft, or its editor while they write, and what they can do next
  */
 export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.Element {
   const api = useReviewApi();
-  const { draft, id, status } = thread;
-  const replyKey = `reply:${id}`;
-  const kept = useContext(UnsentTextContext);
-  const [isReplying, setIsReplying] = useState(() => kept?.has(replyKey) === true);
+  const editor = useCommentEditorContext();
   const [error, setError] = useState<string | null>(null);
+  const { draft, id, status } = thread;
   const run = async (action: () => Promise<void>): Promise<void> => {
     try {
       await action();
@@ -36,59 +37,71 @@ export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.El
       setError(describeFailure(failure));
     }
   };
-  const saveDraft = async (body: string): Promise<void> => {
-    await api.writeDraft(id, body);
-    setIsReplying(false);
-    onChanged();
-  };
   const refusal = error !== null && (
     <Alert role="alert" tone="danger">
       {error}
     </Alert>
   );
-  if (draft !== undefined) {
+  if (editor.editingThreadId === id) {
+    const discard = (): void => {
+      if (editor.isSaving) {
+        return;
+      }
+      void run(() => api.deleteDraft(id));
+    };
     return (
-      <CommentForm
-        clearOnSubmit={false}
-        initialBody={draft.body}
-        label={status === "draft" ? "Draft comment" : "Draft reply"}
-        onSubmit={saveDraft}
-        shouldFocus={false}
-        submitLabel="Save draft"
-        unsentTextKey={`draft:${id}`}
-      >
-        <Button onClick={() => void run(() => api.deleteDraft(id))} size="sm" variant="ghost">
-          Discard draft
-        </Button>
+      <>
+        <CommentForm
+          label={editorLabelOf(thread)}
+          leading={
+            draft === undefined ? undefined : (
+              <Button onClick={discard} size="sm" variant="outline">
+                Discard
+              </Button>
+            )
+          }
+        />
         {refusal}
-      </CommentForm>
-    );
-  }
-  if (isReplying) {
-    return (
-      <CommentForm
-        clearOnSubmit={false}
-        initialBody=""
-        label="Reply"
-        onCancel={() => setIsReplying(false)}
-        onSubmit={saveDraft}
-        shouldFocus={true}
-        submitLabel="Save reply"
-        unsentTextKey={replyKey}
-      />
+      </>
     );
   }
   return (
-    <Cluster gap={2}>
-      <Button onClick={() => setIsReplying(true)} size="sm" variant="secondary">
-        Reply
-      </Button>
-      {status === "open" && (
-        <Button onClick={() => void run(() => api.resolveThread(id))} size="sm" variant="outline">
-          Resolve
+    <Stack gap={2}>
+      {draft !== undefined && <SavedDraft body={draft.body} isReply={status !== "draft"} />}
+      <Cluster gap={2} justify="end">
+        {status === "open" && (
+          <Button onClick={() => void run(() => api.resolveThread(id))} size="sm" variant="outline">
+            Resolve
+          </Button>
+        )}
+        <Button onClick={() => editor.request({ kind: "thread", threadId: id })} size="sm" variant="secondary">
+          {draft === undefined ? "Reply" : "Edit"}
         </Button>
-      )}
+      </Cluster>
       {refusal}
-    </Cluster>
+    </Stack>
   );
+}
+
+function SavedDraft({ body, isReply }: { body: string; isReply: boolean }): JSX.Element {
+  if (!isReply) {
+    return (
+      <Text as="p" className={styles.body} size="sm">
+        {body}
+      </Text>
+    );
+  }
+  return (
+    <>
+      <Divider />
+      <Message author="user" body={body} sentAt={null} />
+    </>
+  );
+}
+
+function editorLabelOf({ draft, status }: Thread): string {
+  if (status === "draft") {
+    return "Draft comment";
+  }
+  return draft === undefined ? "Reply" : "Draft reply";
 }

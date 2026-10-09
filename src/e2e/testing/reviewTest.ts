@@ -124,32 +124,42 @@ export async function writeDraftComment(page: Page, from: string, through: strin
   await selectText(page, from, through);
   await page.getByRole("button", { exact: true, name: "Comment" }).click();
   await page.keyboard.type(body);
-  await page.getByRole("button", { name: "Save draft" }).click();
+  await page.getByRole("region", { name: "New comment" }).getByRole("button", { exact: true, name: "Save" }).click();
   await expect(page.getByRole("region", { name: "Drafts" })).toBeVisible();
+}
+
+/**
+ * @returns the name of the review bar's Submit button when the user has the given number of drafts
+ */
+export function submitButtonName(draftCount: number): string {
+  if (draftCount === 0) {
+    return "Submit";
+  }
+  return `Submit ${draftCount} ${draftCount === 1 ? "draft" : "drafts"}`;
 }
 
 /**
  * Submits the user's drafts from the review bar
  *
  * @param draftCount how many drafts the submit button counts
- * @param verdict the menu's button for the verdict
+ * @param verdict the verdict to choose in the popover
  */
 export async function submitDrafts(
   page: Page,
   draftCount: number,
   verdict: "Approve" | "Request changes"
 ): Promise<void> {
-  await page.getByRole("button", { name: `Submit (${draftCount})` }).click();
-  await page.getByRole("button", { name: verdict }).click();
+  await page.getByRole("button", { exact: true, name: submitButtonName(draftCount) }).click();
+  const popover = page.getByRole("dialog", { name: "Submit review" });
+  await popover.getByRole("radio", { name: verdict }).check();
+  await popover.getByRole("button", { exact: true, name: "Submit" }).click();
 }
 
 /**
- * @returns the text of each passage the page highlights as a thread
+ * @returns the text of each passage the page highlights under the given name; by default, the threads' highlight
  */
-export function highlightedText(page: Page): Promise<string[]> {
-  return page.evaluate(() =>
-    [...(CSS.highlights.get("markdown-review-threads") ?? [])].map((range) => range.toString())
-  );
+export function highlightedText(page: Page, highlightName = "markdown-review-threads"): Promise<string[]> {
+  return page.evaluate((name) => [...(CSS.highlights.get(name) ?? [])].map((range) => range.toString()), highlightName);
 }
 
 function collectErrors(page: Page): string[] {

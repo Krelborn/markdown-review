@@ -1,5 +1,6 @@
 import { render as renderBase, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { JSX } from "react";
 import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
 
@@ -7,6 +8,7 @@ import type { ReviewState } from "../../../shared/review/ReviewState";
 import { buildPassageAnchor, buildThread, testTime } from "../../../shared/review/testing/reviewBuilders";
 import { ReviewApiContext } from "../../api/ReviewApiContext";
 import { ReviewApiError } from "../../api/ReviewApiError";
+import type { DraftCount } from "../../review/countDraftsByDocument";
 import { createFakeReviewApi } from "../../testing/createFakeReviewApi";
 
 import { ReviewBar } from "./ReviewBar";
@@ -17,6 +19,8 @@ const draftThread = buildThread({
   messages: [],
   status: "draft",
 });
+
+const oneDraft: DraftCount[] = [{ count: 1, document: "docs/plan.md" }];
 
 describe("ReviewBar", () => {
   test("must say the agent is listening when the agent has a poll open", () => {
@@ -42,13 +46,13 @@ describe("ReviewBar", () => {
       explanation: "The agent isn't listening. It will find this in its inbox when it next looks.",
     },
   ])(
-    "must explain in the submit menu what the agent will do when its poll open state is $agentWaiting",
+    "must explain in the submit popover what the agent will do when its poll open state is $agentWaiting",
     async ({ agentWaiting, explanation }) => {
       const { render } = setUpTest();
       const user = userEvent.setup();
       render({ agentWaiting });
 
-      await user.click(screen.getByRole("button", { name: "Submit (0)" }));
+      await user.click(screen.getByRole("button", { name: "Submit" }));
 
       expect(elements.submitDialog().getByText(explanation)).toBeInTheDocument();
     }
@@ -65,21 +69,40 @@ describe("ReviewBar", () => {
   test("must offer only approval when the user has no drafts", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
-    render({ draftCount: 0 });
+    render();
 
-    await user.click(screen.getByRole("button", { name: "Submit (0)" }));
+    await user.click(screen.getByRole("button", { name: "Submit" }));
 
-    expect(elements.submitDialog().getByRole("button", { name: "Request changes" })).toBeDisabled();
-    expect(elements.submitDialog().getByRole("button", { name: "Approve" })).toBeEnabled();
+    expect(elements.submitDialog().getByText("You have no drafts.")).toBeInTheDocument();
+    expect(elements.submitDialog().getByRole("radio", { name: "Request changes" })).toBeDisabled();
+    expect(elements.submitDialog().getByRole("radio", { name: "Approve" })).toBeChecked();
+  });
+
+  test("must say how many drafts a submit sends, and which docs they are on", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render({
+      drafts: [
+        { count: 1, document: null },
+        { count: 2, document: "docs/plan.md" },
+      ],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Submit 3 drafts" }));
+
+    expect(elements.submitDialog().getByText("Sends 3 drafts:")).toBeInTheDocument();
+    expect(elements.submitDialog().getByText("Whole review 1")).toBeInTheDocument();
+    expect(elements.submitDialog().getByText("plan.md 2")).toHaveAttribute("title", "docs/plan.md");
   });
 
   test("must send the drafts to the agent when the user requests changes", async () => {
     const { fake, onSubmitted, render } = setUpTest();
     const user = userEvent.setup();
-    render({ draftCount: 1 });
+    render({ drafts: oneDraft });
 
-    await user.click(screen.getByRole("button", { name: "Submit (1)" }));
-    await user.click(elements.submitDialog().getByRole("button", { name: "Request changes" }));
+    await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
+    expect(elements.submitDialog().getByRole("radio", { name: "Request changes" })).toBeChecked();
+    await user.click(elements.submitDialog().getByRole("button", { name: "Submit" }));
 
     expect(fake.snapshot.threads).toMatchObject([{ messages: [{ author: "user", body: "Why 24h?" }], status: "open" }]);
     expect(fake.snapshot.review.approved).toBe(false);
@@ -87,13 +110,14 @@ describe("ReviewBar", () => {
     expect(screen.queryByRole("dialog", { name: "Submit review" })).not.toBeInTheDocument();
   });
 
-  test("must approve the review when the user approves", async () => {
+  test("must approve the review when the user chooses Approve", async () => {
     const { fake, render } = setUpTest();
     const user = userEvent.setup();
-    render({ draftCount: 1 });
+    render({ drafts: oneDraft });
 
-    await user.click(screen.getByRole("button", { name: "Submit (1)" }));
-    await user.click(elements.submitDialog().getByRole("button", { name: "Approve" }));
+    await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
+    await user.click(elements.submitDialog().getByRole("radio", { name: "Approve" }));
+    await user.click(elements.submitDialog().getByRole("button", { name: "Submit" }));
 
     expect(fake.snapshot.review.approved).toBe(true);
   });
@@ -102,12 +126,36 @@ describe("ReviewBar", () => {
     const { fake, render } = setUpTest();
     fake.api.submit.mockRejectedValueOnce(new ReviewApiError(409, "invalid-state", "There are no drafts to submit"));
     const user = userEvent.setup();
-    render({ draftCount: 1 });
+    render({ drafts: oneDraft });
 
-    await user.click(screen.getByRole("button", { name: "Submit (1)" }));
-    await user.click(elements.submitDialog().getByRole("button", { name: "Request changes" }));
+    await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
+    await user.click(elements.submitDialog().getByRole("button", { name: "Submit" }));
 
     expect(await elements.submitDialog().findByRole("alert")).toHaveTextContent("There are no drafts to submit");
+  });
+
+  test("must ask the user to save or discard their comment, and not submit, while they have unsaved text", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render({ drafts: oneDraft, hasUnsavedText: true });
+
+    await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
+
+    expect(
+      elements.submitDialog().getByText("Save or discard the comment you're writing before you submit.")
+    ).toBeInTheDocument();
+    expect(elements.submitDialog().getByRole("button", { name: "Submit" })).toBeDisabled();
+  });
+
+  test("must not submit a request for changes when the drafts go while the user has it chosen", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    const { rerender } = render({ drafts: oneDraft });
+    await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
+
+    rerender({ drafts: [] });
+
+    expect(elements.submitDialog().getByRole("button", { name: "Submit" })).toBeDisabled();
   });
 
   test.each([
@@ -137,7 +185,8 @@ describe("ReviewBar", () => {
 
 interface RenderOptions {
   agentWaiting?: boolean;
-  draftCount?: number;
+  drafts?: DraftCount[];
+  hasUnsavedText?: boolean;
   isPanelOpen?: boolean;
   review?: ReviewState;
 }
@@ -146,26 +195,30 @@ function setUpTest() {
   const fake = createFakeReviewApi({ threads: [draftThread] });
   const onSubmitted = vi.fn();
   const onTogglePanel = vi.fn();
-  const render = ({
+  const view = ({
     agentWaiting = false,
-    draftCount = 0,
+    drafts = [],
+    hasUnsavedText = false,
     isPanelOpen = false,
     review = fake.snapshot.review,
-  }: RenderOptions = {}): void => {
-    renderBase(
-      <ReviewApiContext value={fake.api}>
-        <ReviewBar
-          agentWaiting={agentWaiting}
-          draftCount={draftCount}
-          isPanelOpen={isPanelOpen}
-          onSubmitted={onSubmitted}
-          onTogglePanel={onTogglePanel}
-          panelId="comments-panel"
-          panelToggleRef={createRef()}
-          review={review}
-        />
-      </ReviewApiContext>
-    );
+  }: RenderOptions = {}): JSX.Element => (
+    <ReviewApiContext value={fake.api}>
+      <ReviewBar
+        agentWaiting={agentWaiting}
+        drafts={drafts}
+        hasUnsavedText={hasUnsavedText}
+        isPanelOpen={isPanelOpen}
+        onSubmitted={onSubmitted}
+        onTogglePanel={onTogglePanel}
+        panelId="comments-panel"
+        panelToggleRef={createRef()}
+        review={review}
+      />
+    </ReviewApiContext>
+  );
+  const render = (options?: RenderOptions) => {
+    const { rerender } = renderBase(view(options));
+    return { rerender: (next?: RenderOptions) => rerender(view(next)) };
   };
   return { fake, onSubmitted, onTogglePanel, render };
 }

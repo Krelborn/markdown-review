@@ -9,3 +9,7 @@
   padding-inline-start: var(--sui-space-2);
   white-space: pre-wrap;
 }
+
+.pending {
+  border-inline-start-color: var(--sui-color-primary);
+}

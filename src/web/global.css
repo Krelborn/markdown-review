@@ -6,3 +6,14 @@
     color: var(--shiki-dark) !important;
   }
 }
+
+/* github-light paints code blocks the page's white, so in light mode they take the surface colour instead */
+.shiki {
+  border: var(--sui-border-width) solid var(--sui-color-border);
+}
+
+@media (prefers-color-scheme: light) {
+  .shiki {
+    background-color: var(--sui-color-surface) !important;
+  }
+}

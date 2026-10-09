@@ -1,0 +1,10 @@
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sui-space-1);
+}
+
+/* Lines the description up with the radio's label rather than its button */
+.description {
+  padding-inline-start: 1.75rem;
+}

@@ -20,14 +20,19 @@
 }
 
 .commentsPanel {
+  background-color: var(--sui-color-surface);
   border-inline-start: var(--sui-border-width) solid var(--sui-color-border);
   grid-area: comments;
   overflow-y: auto;
   padding: var(--sui-space-4);
+
+  /* The sticky header covers the top of this scroller, so what scrolls into view stops below it. The header is 3rem
+     tall, or 5rem while it has tabs. */
+  scroll-padding-block-start: calc(3rem + var(--sui-space-2));
 }
 
-.drawerHeader {
-  display: none;
+.commentsPanel:has([role="tablist"]) {
+  scroll-padding-block-start: calc(5rem + var(--sui-space-2));
 }
 
 .reviewBar {
@@ -46,7 +51,7 @@
 
   /* The drawer shares the doc's cell and covers its right edge */
   .commentsPanel {
-    background-color: var(--sui-color-background);
+    background-color: var(--sui-color-surface);
     box-shadow: var(--sui-shadow-sm);
     grid-area: document;
     inline-size: min(24rem, 100% - 3rem);
@@ -56,21 +61,6 @@
 
   .commentsPanel:not(.open) {
     display: none;
-  }
-
-  /* Takes over the drawer's top and end padding, so the button sits near the corner, and pads its own foot, so the
-     comments scrolling under it stay clear of the button. A sticky box keeps within its scroller's padding, so the
-     negative top lets it stick at the drawer's edge. */
-  .drawerHeader {
-    background-color: var(--sui-color-background);
-    display: flex;
-    justify-content: flex-end;
-    margin-block-start: calc(-1 * var(--sui-space-4));
-    margin-inline: calc(-1 * var(--sui-space-4));
-    padding: var(--sui-space-2);
-    position: sticky;
-    top: calc(-1 * var(--sui-space-4));
-    z-index: 1;
   }
 
   .reviewBar {

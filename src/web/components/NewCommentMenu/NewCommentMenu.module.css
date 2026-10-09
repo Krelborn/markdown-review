@@ -1,0 +1,11 @@
+.item {
+  inline-size: 100%;
+  justify-content: flex-start;
+}
+
+.itemText {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  text-align: start;
+}
