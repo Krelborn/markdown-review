@@ -39,9 +39,19 @@ export function TopBar({ documentPath, onNavigate }: TopBarProps): JSX.Element {
         Markdown Review
       </Link>
       <Heading className={styles.path} level={1} size="md" title={documentPath ?? undefined}>
-        <span className={styles.pathText}>{documentPath ?? "Docs"}</span>
+        <span className={styles.pathText}>{documentPath === null ? "Docs" : <PathText path={documentPath} />}</span>
       </Heading>
       <DocumentsMenu onNavigate={onNavigate} />
     </header>
+  );
+}
+
+function PathText({ path }: { path: string }): JSX.Element {
+  const fileStart = path.lastIndexOf("/") + 1;
+  return (
+    <>
+      <span className={styles.folders}>{path.slice(0, fileStart)}</span>
+      {path.slice(fileStart)}
+    </>
   );
 }

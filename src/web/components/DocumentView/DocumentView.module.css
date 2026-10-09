@@ -1,4 +1,7 @@
+/* The prose keeps a reading width, and the + and the markers sit in the padding either side of it */
 .view {
+  margin-inline: auto;
+  max-inline-size: calc(72ch + 5rem);
   padding-inline: 2.5rem;
   position: relative;
 }
@@ -12,6 +15,10 @@
 }
 
 .content ::highlight(markdown-review-selected) {
+  background-color: var(--sui-color-primary-subtle);
+}
+
+.content ::highlight(markdown-review-pending) {
   background-color: var(--sui-color-primary-subtle);
 }
 

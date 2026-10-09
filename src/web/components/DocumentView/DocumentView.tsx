@@ -3,6 +3,7 @@ import type { JSX } from "react";
 import { useMemo, useRef } from "react";
 
 import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
+import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { isHighlighted } from "../../review/isHighlighted";
 import type { NewComment } from "../../review/NewComment";
@@ -43,6 +44,11 @@ export interface DocumentViewProps {
   onSelectThread: (threadId: number) => void;
 
   /**
+   * The passage of the comment the user is writing on this doc, or null
+   */
+  pendingPassage: NewPassageAnchor | null;
+
+  /**
    * Counts the user's requests to see the selected thread in its doc; each new one scrolls its passage into view
    */
   revealCount: number;
@@ -64,6 +70,7 @@ export function DocumentView({
   onComment,
   onNavigate,
   onSelectThread,
+  pendingPassage,
   revealCount,
   selectedThreadId,
   threads,
@@ -75,7 +82,14 @@ export function DocumentView({
     () => threads.filter((thread) => isHighlighted(thread, selectedThreadId)),
     [selectedThreadId, threads]
   );
-  const markers = useThreadHighlights(viewRef, contentRef, rendered, highlightedThreads, selectedThreadId);
+  const markers = useThreadHighlights(
+    viewRef,
+    contentRef,
+    rendered,
+    highlightedThreads,
+    selectedThreadId,
+    pendingPassage
+  );
   const selectionComment = useSelectionComment(viewRef, contentRef, rendered, shown.path);
   const hoveredBlock = useHoveredBlock(viewRef, contentRef);
   useDocumentNavigation(contentRef, rendered, {
@@ -90,11 +104,7 @@ export function DocumentView({
   useMermaidDiagrams(contentRef, rendered);
   return (
     <Stack gap={3}>
-      {error !== null && (
-        <Alert role="alert" title="The doc could not be shown" tone="danger">
-          {error}
-        </Alert>
-      )}
+      <RenderFailure error={error} />
       <div className={styles.view} ref={viewRef}>
         <Prose
           as="article"
@@ -115,5 +125,13 @@ export function DocumentView({
         />
       </div>
     </Stack>
+  );
+}
+
+function RenderFailure({ error }: { error: string | null }): JSX.Element | null {
+  return error === null ? null : (
+    <Alert role="alert" title="The doc could not be shown" tone="danger">
+      {error}
+    </Alert>
   );
 }

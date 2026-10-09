@@ -94,6 +94,7 @@ export function App(): JSX.Element {
                 onComment={startComment}
                 onNavigate={navigate}
                 onSelectThread={selectThreadInDocument}
+                pendingComment={editor.newComment}
                 revealCount={selection.revealCount}
                 selectedThreadId={selection.selectedThreadId}
                 state={documentSource.state}

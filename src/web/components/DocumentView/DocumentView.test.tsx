@@ -3,11 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, onTestFinished, test, vi } from "vitest";
 
 import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
+import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import { buildPassageAnchor, buildThread } from "../../../shared/review/testing/reviewBuilders";
 import type { Thread } from "../../../shared/review/threadSchema";
 
 import { DocumentView } from "./DocumentView";
-import { selectedHighlightName, threadsHighlightName } from "./useThreadHighlights";
+import { pendingHighlightName, selectedHighlightName, threadsHighlightName } from "./useThreadHighlights";
 
 const source = [
   "# Plan",
@@ -94,6 +95,24 @@ describe("DocumentView", () => {
       "1",
       "2",
     ]);
+  });
+
+  test("must highlight the passage of the comment the user is writing", async () => {
+    const { render } = setUpTest({
+      pendingPassage: {
+        document: "docs/plan.md",
+        endOffset: 29,
+        kind: "passage",
+        prefix: "Plan\nWe ",
+        quote: "cache results for 24h",
+        startOffset: 8,
+        suffix: "",
+      },
+    });
+
+    await render();
+
+    expect(elements.highlighted(pendingHighlightName)).toEqual(["cache results for 24h"]);
   });
 
   test("must select a thread when the user clicks its marker", async () => {
@@ -221,11 +240,18 @@ describe("DocumentView", () => {
 interface SetUpOptions {
   container?: HTMLElement;
   hash?: string;
+  pendingPassage?: NewPassageAnchor | null;
   selectedThreadId?: number | null;
   threads?: Thread[];
 }
 
-function setUpTest({ container, hash = "", selectedThreadId = null, threads = [] }: SetUpOptions = {}) {
+function setUpTest({
+  container,
+  hash = "",
+  pendingPassage = null,
+  selectedThreadId = null,
+  threads = [],
+}: SetUpOptions = {}) {
   const onComment = vi.fn();
   const onNavigate = vi.fn();
   const onSelectThread = vi.fn();
@@ -236,6 +262,7 @@ function setUpTest({ container, hash = "", selectedThreadId = null, threads = []
       onComment={onComment}
       onNavigate={onNavigate}
       onSelectThread={onSelectThread}
+      pendingPassage={pendingPassage}
       revealCount={0}
       selectedThreadId={selectedThreadId}
       threads={threads}

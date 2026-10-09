@@ -26,3 +26,7 @@
   direction: ltr;
   unicode-bidi: isolate;
 }
+
+.folders {
+  color: var(--sui-color-text-muted);
+}
