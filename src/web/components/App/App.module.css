@@ -58,12 +58,18 @@
     display: none;
   }
 
+  /* Takes over the drawer's top and end padding, so the button sits near the corner, and pads its own foot, so the
+     comments scrolling under it stay clear of the button. A sticky box keeps within its scroller's padding, so the
+     negative top lets it stick at the drawer's edge. */
   .drawerHeader {
     background-color: var(--sui-color-background);
     display: flex;
     justify-content: flex-end;
+    margin-block-start: calc(-1 * var(--sui-space-4));
+    margin-inline: calc(-1 * var(--sui-space-4));
+    padding: var(--sui-space-2);
     position: sticky;
-    top: 0;
+    top: calc(-1 * var(--sui-space-4));
     z-index: 1;
   }
 
