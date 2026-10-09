@@ -125,6 +125,20 @@ test("must keep Comment in full view inside the doc column when the window narro
   expect(await page.getByRole("main").evaluate((main) => main.scrollWidth <= main.clientWidth)).toBe(true);
 });
 
+test("must lay a short doc out at the same reading width as a long one", async ({ page, review }) => {
+  await page.setViewportSize(wideWindow);
+  await review.writeDocument("docs/plan.md", "# Plan\n\nShort.\n");
+  await review.open("docs/plan.md");
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+  await expect(article.getByText("Short.")).toBeVisible();
+  const shortDocWidth = await widthOf(article);
+
+  await review.writeDocument("docs/plan.md", `# Plan\n\nLong ${"words ".repeat(100)}end.\n`);
+
+  await expect(article.getByText("Long words")).toBeVisible();
+  expect(await widthOf(article)).toBe(shortDocWidth);
+});
+
 test("must hide the comments when the user presses Hide comments in a narrow window", async ({ page, review }) => {
   await page.setViewportSize(narrowWindow);
   await review.open("docs/plan.md");
@@ -231,4 +245,8 @@ function commentsToggle(page: Page): Locator {
 
 async function heightOf(element: Locator): Promise<number | undefined> {
   return (await element.boundingBox())?.height;
+}
+
+async function widthOf(element: Locator): Promise<number | undefined> {
+  return (await element.boundingBox())?.width;
 }

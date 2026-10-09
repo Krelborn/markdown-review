@@ -1,5 +1,6 @@
 /* The prose keeps a reading width, and the + and the markers sit in the padding either side of it */
 .view {
+  inline-size: 100%;
   margin-inline: auto;
   max-inline-size: calc(72ch + 5rem);
   padding-inline: 2.5rem;
