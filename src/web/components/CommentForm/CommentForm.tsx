@@ -27,7 +27,6 @@ export interface CommentFormProps {
 export function CommentForm({ label, leading }: CommentFormProps): JSX.Element {
   const editor = useCommentEditorContext();
   const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isSubmittingRef = useRef(false);
@@ -42,14 +41,12 @@ export function CommentForm({ label, leading }: CommentFormProps): JSX.Element {
       return;
     }
     isSubmittingRef.current = true;
-    setIsSaving(true);
     try {
       await editor.save();
     } catch (failure) {
       setError(describeFailure(failure));
     } finally {
       isSubmittingRef.current = false;
-      setIsSaving(false);
     }
   };
   return (
@@ -57,6 +54,7 @@ export function CommentForm({ label, leading }: CommentFormProps): JSX.Element {
       {question !== null && <UnsavedQuestion isDraft={editor.savedBody !== null} question={question} />}
       <Textarea
         onChange={(event) => editor.changeBody(event.target.value)}
+        readOnly={editor.isSaving}
         ref={textareaRef}
         rows={3}
         value={editor.body}
@@ -67,7 +65,7 @@ export function CommentForm({ label, leading }: CommentFormProps): JSX.Element {
           {error}
         </Alert>
       )}
-      <CommentFormButtons isSaving={isSaving} leading={leading} />
+      <CommentFormButtons leading={leading} />
     </Stack>
   );
 }

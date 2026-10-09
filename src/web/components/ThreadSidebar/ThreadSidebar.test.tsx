@@ -1,4 +1,4 @@
-import { fireEvent, render as renderBase, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render as renderBase, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 
@@ -273,6 +273,25 @@ describe("ThreadSidebar", () => {
 
     expect(screen.getByRole("textbox", { name: "Draft comment" })).toHaveValue("Why 24h?");
     expect(fake.snapshot.threads[1]?.draft).toBeUndefined();
+  });
+
+  test("must keep a reply the user starts while a draft is being discarded when the discard finishes", async () => {
+    const { fake, render } = setUpTest();
+    let finishDiscard = (): void => {};
+    fake.api.deleteDraft.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishDiscard = () => resolve();
+      })
+    );
+    const user = userEvent.setup();
+    render();
+    await user.click(within(elements.thread(1)).getByRole("button", { name: "Edit" }));
+    await user.click(screen.getByRole("button", { name: "Discard" }));
+    await startReplyOnThread(user, 2, "Hourly");
+
+    await act(async () => finishDiscard());
+
+    expect(screen.getByRole("textbox", { name: "Reply" })).toHaveValue("Hourly");
   });
 
   test("must move focus to Save again when the user starts yet another comment while asked", async () => {

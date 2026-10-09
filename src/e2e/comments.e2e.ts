@@ -47,3 +47,19 @@ test("must keep a half-written reply when the user goes to another doc and back"
   await expect(page.getByRole("heading", { level: 1, name: "docs/plan.md" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
 });
+
+test("must close a draft reply's editor when the user discards the draft", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  await submitDrafts(page, 1, "Request changes");
+  const thread = page.getByRole("article", { name: "Thread #1" });
+  await thread.getByRole("button", { name: "Reply" }).click();
+  await page.keyboard.type("Hourly");
+  await thread.getByRole("button", { name: "Save" }).click();
+  await thread.getByRole("button", { name: "Edit" }).click();
+
+  await thread.getByRole("button", { name: "Discard" }).click();
+
+  await expect(thread.getByRole("textbox")).toHaveCount(0);
+  await expect(thread.getByRole("button", { name: "Reply" })).toBeVisible();
+});

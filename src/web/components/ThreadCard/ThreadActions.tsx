@@ -43,9 +43,11 @@ export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.El
     </Alert>
   );
   if (editor.editingThreadId === id) {
-    const discard = async (): Promise<void> => {
-      await api.deleteDraft(id);
-      editor.close();
+    const discard = (): void => {
+      if (editor.isSaving) {
+        return;
+      }
+      void run(() => api.deleteDraft(id));
     };
     return (
       <>
@@ -53,7 +55,7 @@ export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.El
           label={editorLabelOf(thread)}
           leading={
             draft === undefined ? undefined : (
-              <Button onClick={() => void run(discard)} size="sm" variant="outline">
+              <Button onClick={discard} size="sm" variant="outline">
                 Discard
               </Button>
             )

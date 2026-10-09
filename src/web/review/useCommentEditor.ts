@@ -86,6 +86,12 @@ export interface CommentEditor {
   hasUnsavedText: boolean;
 
   /**
+   * Whether the open editor's text is saving. Until the save ends, changing the text, closing the editor and answering
+   * its question do nothing, and a request for another editor waits on the save.
+   */
+  isSaving: boolean;
+
+  /**
    * Answers the question by dropping the request on hold and going back to the text
    */
   keepEditing: () => void;
@@ -107,13 +113,14 @@ export interface CommentEditor {
 
   /**
    * Asks for an editor on the target. It opens at once when the open editor holds nothing unsaved, and takes focus
-   * when it is the open editor. Otherwise it waits while the open editor asks what to do with its text.
+   * when it is the open editor. Otherwise it waits while the open editor asks what to do with its text, or while it
+   * saves.
    */
   request: (target: EditorTarget) => void;
 
   /**
    * Saves the open editor's text, as a new draft thread or as its thread's draft, then opens the request on hold, or
-   * closes the editor when nothing is on hold; does nothing when there is nothing to save
+   * closes the editor when nothing is on hold; does nothing when there is nothing to save or a save is in flight
    *
    * @returns a promise that rejects with the server's refusal, which leaves the editor open with its text and drops
    *   the request on hold
@@ -144,6 +151,7 @@ interface OpenEditor {
 
 interface EditorState {
   focusRevision: number;
+  isSaving: boolean;
   open: OpenEditor | null;
   questionRevision: number;
 }
@@ -156,7 +164,12 @@ interface EditorState {
  */
 export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): CommentEditor {
   const api = useReviewApi();
-  const [state, setState] = useState<EditorState>({ focusRevision: 0, open: null, questionRevision: 0 });
+  const [state, setState] = useState<EditorState>({
+    focusRevision: 0,
+    isSaving: false,
+    open: null,
+    questionRevision: 0,
+  });
   const open = state.open !== null && isStillOpen(state.open, threads) ? state.open : null;
   const savedBody = open === null ? null : savedBodyOf(open.target, threads);
   const hasUnsavedText = open !== null && differsFromSaved(open.body, savedBody);
@@ -175,53 +188,74 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
   const update = (change: Partial<OpenEditor>): void => {
     setState((current) => ({ ...current, open: current.open && { ...current.open, ...change } }));
   };
+  // Reads the request on hold from the latest state, not this render's, because the user can make one while a save is
+  // in flight
   const openHeldRequest = (): void => {
-    const held = open?.question?.held ?? null;
-    show(held === null ? null : editorFor(held, threads));
+    setState((current) => {
+      const held = current.open?.question?.held ?? null;
+      return {
+        ...current,
+        focusRevision: current.focusRevision + 1,
+        isSaving: false,
+        open: held === null ? null : editorFor(held, threads),
+      };
+    });
+  };
+  const unlessSaving = (action: () => void): void => {
+    if (!state.isSaving) {
+      action();
+    }
   };
   const keepEditing = (): void => show(open && { ...open, question: null });
+  const escape = (): void => {
+    if (!hasUnsavedText) {
+      show(null);
+    } else if (open?.question === null) {
+      ask(null);
+    } else {
+      keepEditing();
+    }
+  };
   const save = async (): Promise<void> => {
-    if (open === null || !canSave) {
+    if (open === null || !canSave || state.isSaving) {
       return;
     }
     const { body, target } = open;
+    setState((current) => ({ ...current, isSaving: true }));
     try {
       await (target.kind === "new"
         ? api.createThread({ ...target.comment, body })
         : api.writeDraft(target.threadId, body));
     } catch (failure) {
-      update({ question: null });
+      setState((current) => ({
+        ...current,
+        isSaving: false,
+        open: current.open && { ...current.open, question: null },
+      }));
       throw failure;
     }
-    onChanged();
     openHeldRequest();
+    onChanged();
   };
   return {
     body: open?.body ?? "",
     canSave,
-    changeBody: (body) => update({ body }),
-    close: () => show(null),
-    discardChanges: openHeldRequest,
+    changeBody: (body) => unlessSaving(() => update({ body })),
+    close: () => unlessSaving(() => show(null)),
+    discardChanges: () => unlessSaving(openHeldRequest),
     editingThreadId: threadIdOf(open),
-    escape: () => {
-      if (!hasUnsavedText) {
-        show(null);
-      } else if (open?.question === null) {
-        ask(null);
-      } else {
-        keepEditing();
-      }
-    },
+    escape: () => unlessSaving(escape),
     focusRevision: state.focusRevision,
     hasUnsavedText,
-    keepEditing,
+    isSaving: state.isSaving,
+    keepEditing: () => unlessSaving(keepEditing),
     newComment: newCommentOf(open),
     question: questionOf(open, threads),
     questionRevision: state.questionRevision,
     request: (target) => {
       if (open !== null && isSameTarget(open.target, target)) {
         show(open);
-      } else if (hasUnsavedText) {
+      } else if (hasUnsavedText || state.isSaving) {
         ask(target);
       } else {
         show(editorFor(target, threads));

@@ -8,11 +8,6 @@ import styles from "./CommentForm.module.css";
 
 export interface CommentFormButtonsProps {
   /**
-   * Whether the editor is saving, which marks Save busy
-   */
-  isSaving: boolean;
-
-  /**
    * Shown at the start of the row while the editor is not asking, away from Save
    */
   leading?: ReactNode;
@@ -21,7 +16,7 @@ export interface CommentFormButtonsProps {
 /**
  * The editor's buttons: Cancel and Save, or, while it asks about unsaved text, Discard, Keep editing and Save
  */
-export function CommentFormButtons({ isSaving, leading }: CommentFormButtonsProps): JSX.Element {
+export function CommentFormButtons({ leading }: CommentFormButtonsProps): JSX.Element {
   const editor = useCommentEditorContext();
   const keepEditingRef = useRef<HTMLButtonElement>(null);
   const saveRef = useRef<HTMLButtonElement>(null);
@@ -47,7 +42,7 @@ export function CommentFormButtons({ isSaving, leading }: CommentFormButtonsProp
       <Button onClick={isAsking ? editor.keepEditing : editor.close} ref={keepEditingRef} size="sm" variant="outline">
         {isAsking ? "Keep editing" : "Cancel"}
       </Button>
-      <Button busy={isSaving} disabled={!editor.canSave} ref={saveRef} size="sm" type="submit">
+      <Button busy={editor.isSaving} disabled={!editor.canSave} ref={saveRef} size="sm" type="submit">
         Save
       </Button>
     </div>

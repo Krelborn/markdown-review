@@ -175,6 +175,33 @@ describe("ThreadCard", () => {
     expect(fake.snapshot.threads).toEqual([]);
   });
 
+  test("must make the text box read-only when the user's reply is saving", async () => {
+    const { fake, render } = setUpTest({ thread: conversation });
+    fake.api.writeDraft.mockReturnValueOnce(new Promise(() => {}));
+    const user = userEvent.setup();
+    render();
+    await user.click(elements.button("Reply"));
+    await user.type(elements.textbox("Reply"), "Hourly");
+
+    await user.click(elements.button("Save"));
+
+    expect(elements.textbox("Reply")).toHaveAttribute("readonly");
+  });
+
+  test("must keep the draft when the user discards it while their changes to it are saving", async () => {
+    const { fake, render } = setUpTest({ thread: draftComment });
+    fake.api.writeDraft.mockReturnValueOnce(new Promise(() => {}));
+    const user = userEvent.setup();
+    render();
+    await user.click(elements.button("Edit"));
+    await user.type(elements.textbox("Draft comment"), " Really?");
+    await user.click(elements.button("Save"));
+
+    await user.click(elements.button("Discard"));
+
+    expect(fake.snapshot.threads).toHaveLength(1);
+  });
+
   test("must remove only the reply when the user discards a draft reply", async () => {
     const { fake, render } = setUpTest({ thread: draftReply });
     const user = userEvent.setup();

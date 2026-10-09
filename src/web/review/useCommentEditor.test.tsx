@@ -9,7 +9,7 @@ import { ReviewApiError } from "../api/ReviewApiError";
 import { createFakeReviewApi } from "../testing/createFakeReviewApi";
 
 import type { EditorTarget } from "./EditorTarget";
-import type { HeldRequest } from "./useCommentEditor";
+import type { CommentEditor, HeldRequest } from "./useCommentEditor";
 import { useCommentEditor } from "./useCommentEditor";
 
 const reviewComment: EditorTarget = { comment: { anchor: { kind: "review" } }, kind: "new" };
@@ -238,7 +238,71 @@ describe("useCommentEditor", () => {
 
     await act(() => expect(result.current.save()).rejects.toThrow("review.json is not valid"));
 
-    expect(result.current).toMatchObject({ body: "Hourly", editingThreadId: 2, question: null });
+    expect(result.current).toMatchObject({ body: "Hourly", editingThreadId: 2, isSaving: false, question: null });
+  });
+
+  test.each<{ action: string; change: (editor: CommentEditor) => void }>([
+    { action: "type", change: (editor) => editor.changeBody("Hourly, then") },
+    { action: "cancel", change: (editor) => editor.close() },
+    { action: "press Escape", change: (editor) => editor.escape() },
+    { action: "keep editing", change: (editor) => editor.keepEditing() },
+    { action: "discard the text", change: (editor) => editor.discardChanges() },
+  ])("must keep the editor as the user saved it when they $action while the save is in flight", ({ change }) => {
+    const { fake, render } = setUpTest();
+    fake.api.writeDraft.mockReturnValueOnce(new Promise(() => {}));
+    const { result } = render();
+    act(() => result.current.request(reply));
+    act(() => result.current.changeBody("Hourly"));
+    act(() => result.current.request(editDraft));
+    act(() => void result.current.save());
+
+    act(() => change(result.current));
+
+    expect(result.current).toMatchObject({
+      body: "Hourly",
+      editingThreadId: 2,
+      isSaving: true,
+      question: { held: { kind: "edit", threadId: 1 } },
+    });
+  });
+
+  test("must open the request the user makes while the save is in flight when the save succeeds", async () => {
+    const { fake, render } = setUpTest();
+    let finishSave = (): void => {};
+    fake.api.writeDraft.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        finishSave = () => resolve();
+      })
+    );
+    const { result } = render();
+    act(() => result.current.request(reply));
+    act(() => result.current.changeBody("Hourly"));
+    let saving = Promise.resolve();
+    act(() => {
+      saving = result.current.save();
+    });
+    act(() => result.current.request(editDraft));
+
+    await act(async () => {
+      finishSave();
+      await saving;
+    });
+
+    expect(result.current).toMatchObject({ body: "Why 24h?", editingThreadId: 1, isSaving: false, question: null });
+  });
+
+  test("must hold a request until the save ends when the saved text arrives before the save does", () => {
+    const { fake, render } = setUpTest();
+    fake.api.writeDraft.mockReturnValueOnce(new Promise(() => {}));
+    const { rerender, result } = render();
+    act(() => result.current.request(reply));
+    act(() => result.current.changeBody("Hourly"));
+    act(() => void result.current.save());
+    rerender({ shown: [draftComment, { ...openThread, draft: { at: testTime, body: "Hourly" } }] });
+
+    act(() => result.current.request(editDraft));
+
+    expect(result.current).toMatchObject({ editingThreadId: 2, question: { held: { kind: "edit", threadId: 1 } } });
   });
 
   test("must hold only the latest request when the user starts yet another while asked", () => {

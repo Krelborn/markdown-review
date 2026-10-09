@@ -100,9 +100,9 @@ When another doc has threads, the header has two rows. The first holds the title
 | Reply | **Reply** on an open or resolved thread | Nothing | Cancel, Save |
 | Draft | **Edit** on a draft comment or a draft reply | The saved draft | Discard; Cancel, Save |
 
-- **Save** stays disabled while the text is blank or matches the saved draft, as now. A successful save closes the editor. A failed save shows the error in the editor and keeps the text.
+- **Save** stays disabled while the text is blank or matches the saved draft, as now. A successful save closes the editor. A failed save shows the error in the editor and keeps the text. While a save is in flight, Save is busy, the text box is read-only, and Cancel, Discard, Keep editing and Escape do nothing.
 - **Cancel** closes the editor at once and throws away the unsaved text. In a draft editor it leaves the saved draft as it was.
-- **Discard** deletes the draft, as "Discard draft" does now: a draft comment's thread goes, and a draft reply leaves its thread. It does not ask first.
+- **Discard** deletes the draft, as "Discard draft" does now: a draft comment's thread goes, and a draft reply leaves its thread. It does not ask first. The editor closes once the threads show the draft gone, so an editor opened while the delete was in flight stays open.
 
 ### Unsaved text
 
@@ -115,8 +115,9 @@ An editor holds **unsaved text** when:
 
 Any action in the "Opened by" column is a request for an editor. When one arrives:
 
-- **No editor is open, or the open one holds no unsaved text:** the open editor closes and the new one opens.
+- **No editor is open, or the open one holds no unsaved text and is not saving:** the open editor closes and the new one opens.
 - **The open editor holds unsaved text:** the request is put on hold, and the open editor asks what to do with its text. It scrolls into view, the drawer opens in the narrow layout, and focus moves to its Save button.
+- **The open editor is saving:** the request is put on hold, as above, and opens once the save succeeds.
 - **The request is for the editor that is already open:** focus moves to its text box, and nothing else changes.
 
 Selecting a thread, by its highlight, its marker or its card, is not a request, so it never asks.
