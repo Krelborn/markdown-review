@@ -19,7 +19,7 @@ export const plan = [
 ].join("\n");
 
 /**
- * @returns the doc's source followed by paragraphs numbered from "Paragraph 1.", enough of them to make it scroll
+ * @returns the doc's source followed by `count` paragraphs, numbered from "Paragraph 1."
  */
 export function withParagraphs(source: string, count: number): string {
   return [source, ...Array.from({ length: count }, (_, index) => `Paragraph ${index + 1}.`)].join("\n\n");

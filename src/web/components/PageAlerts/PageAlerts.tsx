@@ -3,7 +3,7 @@ import type { JSX } from "react";
 
 import type { ThreadsState } from "../../review/useThreads";
 
-import styles from "./App.module.css";
+import styles from "./PageAlerts.module.css";
 
 export interface PageAlertsProps {
   /**

@@ -2,10 +2,6 @@
   block-size: 100dvh;
 }
 
-.pageAlerts {
-  padding: var(--sui-space-2) var(--sui-space-4);
-}
-
 .columns {
   display: grid;
   flex-grow: 1;

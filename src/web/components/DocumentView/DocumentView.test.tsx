@@ -284,7 +284,6 @@ function setUpTestWithScrollContainer({ passageTop }: { passageTop: number }) {
   const scrollContainer = document.createElement("div");
   scrollContainer.style.overflowY = "auto";
   document.body.append(scrollContainer);
-  onTestFinished(() => scrollContainer.remove());
   vi.spyOn(scrollContainer, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 100, 800, 400));
   vi.spyOn(Range.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, passageTop, 200, 20));
   const scrolledTo: string[] = [];

@@ -15,13 +15,13 @@ import { useDocumentSource } from "../../review/useDocumentSource";
 import { useThreads } from "../../review/useThreads";
 import { useThreadSelection } from "../../review/useThreadSelection";
 import { DocumentsPage } from "../DocumentsPage/DocumentsPage";
+import { PageAlerts } from "../PageAlerts/PageAlerts";
 import { ReviewBar } from "../ReviewBar/ReviewBar";
 import { ThreadSidebar } from "../ThreadSidebar/ThreadSidebar";
 import { TopBar } from "../TopBar/TopBar";
 
 import styles from "./App.module.css";
 import { DocumentPane } from "./DocumentPane";
-import { PageAlerts } from "./PageAlerts";
 
 const unrequestedReview: ReviewState = { approved: false, approvedAt: null, requestedAt: null };
 
