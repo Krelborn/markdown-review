@@ -1,0 +1,6 @@
+.reviewBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sui-space-3);
+  padding: var(--sui-space-3) var(--sui-space-4);
+}

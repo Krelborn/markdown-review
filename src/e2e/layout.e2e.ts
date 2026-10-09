@@ -48,6 +48,22 @@ test("must keep the user's place in a long doc when the agent edits it", async (
   expect(await documentScrollTop(page)).toBe(scrolledTo);
 });
 
+test("must keep Submit and its menu in full view when the comments outgrow their column", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+  for (let count = 1; count <= 12; count++) {
+    await page.getByRole("textbox", { name: "Comment on the whole review" }).fill(`Note ${count}`);
+    await page.getByRole("button", { name: "Add comment" }).click();
+    await expect(page.getByRole("button", { exact: true, name: `Submit (${count})` })).toBeVisible();
+  }
+
+  const submit = page.getByRole("button", { exact: true, name: "Submit (12)" });
+  await expect(submit).toBeInViewport();
+
+  await submit.click();
+
+  await expect(page.getByRole("dialog", { name: "Submit review" })).toBeInViewport({ ratio: 1 });
+});
+
 function documentScrollTop(page: Page): Promise<number> {
   return page.getByRole("main").evaluate((main) => main.scrollTop);
 }

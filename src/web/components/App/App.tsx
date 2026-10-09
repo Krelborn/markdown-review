@@ -13,6 +13,7 @@ import { useDocumentSource } from "../../review/useDocumentSource";
 import { useThreads } from "../../review/useThreads";
 import { useThreadSelection } from "../../review/useThreadSelection";
 import { DocumentsPage } from "../DocumentsPage/DocumentsPage";
+import { ReviewBar } from "../ReviewBar/ReviewBar";
 import { ThreadSidebar } from "../ThreadSidebar/ThreadSidebar";
 import { TopBar } from "../TopBar/TopBar";
 
@@ -23,8 +24,8 @@ import { PageAlerts } from "./PageAlerts";
 const unrequestedReview: ReviewState = { approved: false, approvedAt: null, requestedAt: null };
 
 /**
- * The review page: the bar across the top and any alerts, then the docs list or a doc beside the comments, each
- * scrolling on its own
+ * The review page: the bar across the top and any alerts, then the docs list or a doc beside the comments and the
+ * review bar, each column scrolling on its own
  */
 export function App(): JSX.Element {
   const api = useReviewApi();
@@ -59,14 +60,7 @@ export function App(): JSX.Element {
   return (
     <Theme mode="system">
       <PageLayout className={styles.page}>
-        <TopBar
-          agentWaiting={connection.agentWaiting}
-          documentPath={documentPath}
-          draftCount={countDrafts(allThreads)}
-          onNavigate={navigate}
-          onSubmitted={threads.refresh}
-          review={threads.snapshot?.review ?? unrequestedReview}
-        />
+        <TopBar documentPath={documentPath} onNavigate={navigate} />
         <PageAlerts isConnected={connection.isConnected} threads={threads} />
         <div className={styles.columns}>
           <main className={styles.documentColumn} ref={documentColumnRef}>
@@ -95,6 +89,14 @@ export function App(): JSX.Element {
               onSelectThread={selection.revealThread}
               selectedThreadId={selection.selectedThreadId}
               threads={allThreads}
+            />
+          </div>
+          <div className={styles.reviewBar}>
+            <ReviewBar
+              agentWaiting={connection.agentWaiting}
+              draftCount={countDrafts(allThreads)}
+              onSubmitted={threads.refresh}
+              review={threads.snapshot?.review ?? unrequestedReview}
             />
           </div>
         </div>

@@ -434,9 +434,14 @@ Layout: a page exactly the height of the window, which itself never scrolls. It 
 
 - Doc path (repo-relative).
 - **Docs** menu: docs with open or draft threads, with counts, plus recently opened docs.
+
+### Review bar
+
+The review bar sits at the foot of the sidebar and stays in view whatever the user has scrolled. It holds:
+
 - Agent status: "Agent waiting" while a poll is open, otherwise "Agent not listening, comments will wait in the inbox".
 - An "Approved" badge while the review is approved.
-- **Submit (N)**, where N is the number of draft threads and draft replies across the whole repo. It offers **Request changes** (disabled when N is 0) and **Approve** (always available; submits any drafts too).
+- **Submit (N)**, where N is the number of draft threads and draft replies across the whole repo. It offers **Request changes** (disabled when N is 0) and **Approve** (always available; submits any drafts too). Its menu opens above the button.
 
 ### Writing comments
 

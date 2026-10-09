@@ -128,7 +128,7 @@ export async function writeDraftComment(page: Page, from: string, through: strin
 }
 
 /**
- * Submits the user's drafts from the top bar
+ * Submits the user's drafts from the review bar
  *
  * @param draftCount how many drafts the submit button counts
  * @param verdict the menu's button for the verdict

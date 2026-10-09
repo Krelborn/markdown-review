@@ -9,9 +9,11 @@
 .columns {
   display: grid;
   flex-grow: 1;
-  grid-template-areas: "document comments";
+  grid-template-areas:
+    "document comments"
+    "document review";
   grid-template-columns: minmax(0, 1fr) clamp(18rem, 30vw, 24rem);
-  grid-template-rows: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   min-block-size: 0;
 }
 
@@ -26,4 +28,10 @@
   grid-area: comments;
   overflow-y: auto;
   padding: var(--sui-space-4);
+}
+
+.reviewBar {
+  border-block-start: var(--sui-border-width) solid var(--sui-color-border);
+  border-inline-start: var(--sui-border-width) solid var(--sui-color-border);
+  grid-area: review;
 }

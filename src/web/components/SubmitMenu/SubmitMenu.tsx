@@ -23,7 +23,7 @@ export interface SubmitMenuProps {
  */
 export function SubmitMenu({ draftCount, onSubmitted }: SubmitMenuProps): JSX.Element {
   const api = useReviewApi();
-  const popover = usePopover({ placement: "bottom" });
+  const popover = usePopover({ placement: "top" });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<Verdict | null>(null);
   const submit = async (verdict: Verdict): Promise<void> => {
