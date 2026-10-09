@@ -8,7 +8,12 @@ import { buildPassageAnchor, buildThread } from "../../../shared/review/testing/
 import type { Thread } from "../../../shared/review/threadSchema";
 
 import { DocumentView } from "./DocumentView";
-import { pendingHighlightName, selectedHighlightName, threadsHighlightName } from "./useThreadHighlights";
+import {
+  overlapHighlightName,
+  pendingHighlightName,
+  selectedHighlightName,
+  threadsHighlightName,
+} from "./useThreadHighlights";
 
 const source = [
   "# Plan",
@@ -26,6 +31,13 @@ const plan: DocumentSource = { hash: "hash of the plan", path: "docs/plan.md", s
 const cacheAnchor = buildPassageAnchor({ endOffset: 29, prefix: "Plan\nWe ", startOffset: 8 });
 
 const retriesAnchor = buildPassageAnchor({ anchoredText: "Retries", endOffset: 64, quote: "Retries", startOffset: 57 });
+
+const todayAnchor = buildPassageAnchor({
+  anchoredText: "24h today",
+  endOffset: 35,
+  quote: "24h today",
+  startOffset: 26,
+});
 
 afterEach(() => {
   Reflect.deleteProperty(document, "caretPositionFromPoint");
@@ -113,6 +125,16 @@ describe("DocumentView", () => {
     await render();
 
     expect(elements.highlighted(pendingHighlightName)).toEqual(["cache results for 24h"]);
+  });
+
+  test("must deepen the highlight where two threads' passages overlap", async () => {
+    const { render } = setUpTest({
+      threads: [buildThread({ anchor: cacheAnchor, id: 1 }), buildThread({ anchor: todayAnchor, id: 2 })],
+    });
+
+    await render();
+
+    expect(elements.highlighted(overlapHighlightName)).toEqual(["24h"]);
   });
 
   test("must select a thread when the user clicks its marker", async () => {

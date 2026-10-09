@@ -82,14 +82,11 @@ export function DocumentView({
     () => threads.filter((thread) => isHighlighted(thread, selectedThreadId)),
     [selectedThreadId, threads]
   );
-  const markers = useThreadHighlights(
-    viewRef,
-    contentRef,
-    rendered,
-    highlightedThreads,
+  const markers = useThreadHighlights(viewRef, contentRef, rendered, {
+    pendingPassage,
     selectedThreadId,
-    pendingPassage
-  );
+    threads: highlightedThreads,
+  });
   const selectionComment = useSelectionComment(viewRef, contentRef, rendered, shown.path);
   const hoveredBlock = useHoveredBlock(viewRef, contentRef);
   useDocumentNavigation(contentRef, rendered, {

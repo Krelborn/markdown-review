@@ -62,15 +62,34 @@
 }
 
 .content ::highlight(markdown-review-threads) {
-  background-color: var(--sui-color-warning-subtle);
+  background-color: color-mix(in srgb, var(--sui-color-warning) 30%, transparent);
+  text-decoration-color: var(--sui-color-warning-text);
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.content ::highlight(markdown-review-overlap) {
+  background-color: color-mix(in srgb, var(--sui-color-warning) 30%, transparent);
 }
 
 .content ::highlight(markdown-review-selected) {
-  background-color: var(--sui-color-primary-subtle);
+  background-color: color-mix(in srgb, var(--sui-color-primary) 25%, transparent);
+  text-decoration-color: var(--sui-color-primary);
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 .content ::highlight(markdown-review-pending) {
-  background-color: var(--sui-color-primary-subtle);
+  background-color: color-mix(in srgb, var(--sui-color-primary) 25%, transparent);
+  text-decoration-color: var(--sui-color-primary);
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 .blockButton,
