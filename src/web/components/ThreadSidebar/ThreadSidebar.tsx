@@ -64,12 +64,34 @@ export function ThreadSidebar({
   if (!inView.hasChoice && chosenView !== "document") {
     setChosenView("document");
   }
-  const header = (title: ReactNode): JSX.Element => (
+  const header = (
     <CommentsHeader
       closeButton={closeButton}
       documentPath={documentPath}
       onComment={(comment) => editor.request({ comment, kind: "new" })}
-      title={title}
+      tabs={
+        inView.hasChoice ? (
+          <TabList aria-label="Show comments on">
+            <Tab className={styles.tab} value="document">
+              This doc <Counter count={inView.counts.document} />
+            </Tab>
+            <Tab className={styles.tab} value="all">
+              All docs <Counter count={inView.counts.all} />
+            </Tab>
+          </TabList>
+        ) : undefined
+      }
+      title={
+        <Text weight="bold">
+          {inView.hasChoice ? (
+            "Comments"
+          ) : (
+            <>
+              Comments <Counter count={inView.threads.length} />
+            </>
+          )}
+        </Text>
+      }
     />
   );
   const list = (
@@ -92,26 +114,13 @@ export function ThreadSidebar({
             size="sm"
             value={inView.view}
           >
-            {header(
-              <TabList aria-label="Show comments on">
-                <Tab className={styles.tab} value="document">
-                  This doc <Counter count={inView.counts.document} />
-                </Tab>
-                <Tab className={styles.tab} value="all">
-                  All docs <Counter count={inView.counts.all} />
-                </Tab>
-              </TabList>
-            )}
+            {header}
             {/* One panel, always the selected one, so the list stays mounted when the user switches tabs */}
             <TabPanel value={inView.view}>{list}</TabPanel>
           </Tabs>
         ) : (
           <>
-            {header(
-              <Text weight="bold">
-                Comments <Counter count={inView.threads.length} />
-              </Text>
-            )}
+            {header}
             {list}
           </>
         )}

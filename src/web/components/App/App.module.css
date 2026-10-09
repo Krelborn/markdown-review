@@ -25,6 +25,14 @@
   grid-area: comments;
   overflow-y: auto;
   padding: var(--sui-space-4);
+
+  /* The sticky header covers the top of this scroller, so what scrolls into view stops below it. The header is 3rem
+     tall, or 5rem while it has tabs. */
+  scroll-padding-block-start: calc(3rem + var(--sui-space-2));
+}
+
+.commentsPanel:has([role="tablist"]) {
+  scroll-padding-block-start: calc(5rem + var(--sui-space-2));
 }
 
 .reviewBar {

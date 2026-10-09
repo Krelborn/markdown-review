@@ -97,6 +97,15 @@ describe("ThreadSidebar", () => {
     expect(screen.getByText("Comments")).toHaveTextContent("Comments 5");
   });
 
+  test("must keep the title, without a count, and the + Comment button when the tabs show", () => {
+    const { render } = setUpTest();
+
+    render();
+
+    expect(screen.getByText("Comments").textContent).toBe("Comments");
+    expect(screen.getByRole("button", { name: "+ Comment" })).toBeInTheDocument();
+  });
+
   test("must go back to This doc when the user chose All docs and the other doc's threads went", async () => {
     const { render, showThreads } = setUpTest();
     const user = userEvent.setup();

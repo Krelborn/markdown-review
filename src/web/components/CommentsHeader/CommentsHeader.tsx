@@ -22,23 +22,38 @@ export interface CommentsHeaderProps {
   onComment: (newComment: NewComment) => void;
 
   /**
-   * The start of the header: the title and its count, or the tabs that choose which threads to list
+   * The tabs that choose which threads to list, which fill a second row under the title and the buttons; left out when
+   * there is nothing to choose
+   */
+  tabs?: ReactNode;
+
+  /**
+   * The start of the header's first row: the title, and its count when there are no tabs to carry the counts
    */
   title: ReactNode;
 }
 
 /**
- * The top of the comments, which stays in view as they scroll: their title or tabs, the button that starts a comment on
- * the doc or the review, and in a narrow window the button that hides them
+ * The top of the comments, which stays in view as they scroll: a row with their title, the button that starts a comment
+ * on the doc or the review and, in a narrow window, the button that hides them; and, when given, the tabs on a row below
  */
-export function CommentsHeader({ closeButton, documentPath, onComment, title }: CommentsHeaderProps): JSX.Element {
+export function CommentsHeader({
+  closeButton,
+  documentPath,
+  onComment,
+  tabs,
+  title,
+}: CommentsHeaderProps): JSX.Element {
   return (
-    <div className={styles.header}>
-      <div className={styles.title}>{title}</div>
-      <div className={styles.actions}>
-        <NewCommentMenu documentPath={documentPath} onComment={onComment} />
-        <div className={styles.closeButton}>{closeButton}</div>
+    <header className={styles.header}>
+      <div className={styles.row}>
+        <div className={styles.title}>{title}</div>
+        <div className={styles.actions}>
+          <NewCommentMenu documentPath={documentPath} onComment={onComment} />
+          <div className={styles.closeButton}>{closeButton}</div>
+        </div>
       </div>
-    </div>
+      {tabs}
+    </header>
   );
 }
