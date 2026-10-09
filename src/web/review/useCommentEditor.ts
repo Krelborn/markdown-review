@@ -135,8 +135,8 @@ export interface CommentEditor {
 
 interface OpenEditor {
   /**
-   * The user's text, or null while it does not differ from the saved draft, so that the editor shows any newer draft
-   * saved elsewhere
+   * The user's text, or null while it adds nothing to the saved draft, so that the editor shows any newer draft saved
+   * elsewhere
    */
   body: string | null;
 
@@ -151,6 +151,11 @@ interface OpenEditor {
   question: { held: EditorTarget | null } | null;
 
   target: EditorTarget;
+
+  /**
+   * The saved draft when the user last changed the text, or null when there was none
+   */
+  writtenOver: string | null;
 }
 
 interface EditorState {
@@ -256,7 +261,7 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
   return {
     body,
     canSave,
-    changeBody: (text) => unlessSaving(() => update({ body: text })),
+    changeBody: (text) => unlessSaving(() => update({ body: text, writtenOver: savedBody })),
     close: () => unlessSaving(() => show(null)),
     discardChanges: () => unlessSaving(openHeldRequest),
     editingThreadId: threadIdOf(open),
@@ -286,19 +291,28 @@ export function useCommentEditor({ onChanged, threads }: CommentEditorOptions): 
  * The stored editor as the threads leave it
  *
  * @returns null once its thread or the draft it was editing has gone; the editor with no text of its own once its text
- *   no longer differs from the saved draft, as when the user changes it back, another tab saves it, or the user erases
- *   a reply that has no draft; otherwise the editor as it is
+ *   adds nothing to the saved draft; otherwise the editor as it is
  */
 function reconcile(open: OpenEditor | null, threads: readonly Thread[]): OpenEditor | null {
   if (open === null || !isStillOpen(open, threads)) {
     return null;
   }
-  const isSaved = open.body !== null && !differsFromSaved(open.body, savedBodyOf(open.target, threads));
-  return isSaved ? { ...open, body: null } : open;
+  const { body, target, writtenOver } = open;
+  return body !== null && isClean(body, writtenOver, savedBodyOf(target, threads)) ? { ...open, body: null } : open;
+}
+
+/**
+ * Whether the user's text adds nothing to the saved draft: it matches it, as when the user changes it back or another
+ * tab saves it, or the draft has changed since the user wrote over it and the text did not differ from what it was, as
+ * when they erased a reply before another tab saved a draft on the thread. Blank text over no draft stays, so the user
+ * can start a comment with spaces or blank lines.
+ */
+function isClean(body: string, writtenOver: string | null, savedBody: string | null): boolean {
+  return body === savedBody || (savedBody !== writtenOver && !differsFromSaved(body, writtenOver));
 }
 
 function editorFor(target: EditorTarget, threads: readonly Thread[]): OpenEditor {
-  return { body: null, hadDraft: savedBodyOf(target, threads) !== null, question: null, target };
+  return { body: null, hadDraft: savedBodyOf(target, threads) !== null, question: null, target, writtenOver: null };
 }
 
 function questionOf(open: OpenEditor | null, threads: readonly Thread[]): EditorQuestion | null {
