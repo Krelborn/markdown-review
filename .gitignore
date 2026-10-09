@@ -7,3 +7,4 @@ coverage/
 .superpowers/
 playwright-report/
 test-results/
+*.tgz
