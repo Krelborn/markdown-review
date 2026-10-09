@@ -9,6 +9,7 @@ import { ReviewApiError } from "../api/ReviewApiError";
 import { createFakeReviewApi } from "../testing/createFakeReviewApi";
 
 import type { EditorTarget } from "./EditorTarget";
+import type { HeldRequest } from "./useCommentEditor";
 import { useCommentEditor } from "./useCommentEditor";
 
 const reviewComment: EditorTarget = { comment: { anchor: { kind: "review" } }, kind: "new" };
@@ -140,15 +141,167 @@ describe("useCommentEditor", () => {
     expect(result.current.editingThreadId).toBe(1);
   });
 
-  test("must open the new editor in place of the open one when the user starts another", () => {
+  test("must open another editor at once when the open one holds nothing unsaved", () => {
+    const { render } = setUpTest();
+    const { result } = render();
+    act(() => result.current.request(reply));
+
+    act(() => result.current.request(editDraft));
+
+    expect(result.current).toMatchObject({ body: "Why 24h?", editingThreadId: 1, question: null });
+  });
+
+  test.each<{ condition: string; expected: HeldRequest; target: EditorTarget }>([
+    {
+      condition: "another comment",
+      expected: { kind: "comment" },
+      target: { comment: { anchor: { document: "docs/plan.md", kind: "document" } }, kind: "new" },
+    },
+    { condition: "a reply", expected: { kind: "reply", threadId: 2 }, target: reply },
+    { condition: "an edit of a draft", expected: { kind: "edit", threadId: 1 }, target: editDraft },
+  ])(
+    "must keep the open editor and ask about its text when the user starts $condition while it holds unsaved text",
+    ({ expected, target }) => {
+      const { render } = setUpTest();
+      const { result } = render();
+      act(() => result.current.request(reviewComment));
+      act(() => result.current.changeBody("Overall?"));
+
+      act(() => result.current.request(target));
+
+      expect(result.current).toMatchObject({
+        body: "Overall?",
+        newComment: { anchor: { kind: "review" } },
+        question: { held: expected },
+      });
+    }
+  );
+
+  test("must save the text, then open the request on hold, when the user answers Save", async () => {
+    const { fake, render } = setUpTest();
+    const { result } = render();
+    act(() => result.current.request(reply));
+    act(() => result.current.changeBody("Hourly"));
+    act(() => result.current.request(editDraft));
+
+    await act(() => result.current.save());
+
+    expect(fake.snapshot.threads[1]?.draft?.body).toBe("Hourly");
+    expect(result.current).toMatchObject({ body: "Why 24h?", editingThreadId: 1, question: null });
+  });
+
+  test("must throw the text away, then open the request on hold, when the user discards it", () => {
+    const { fake, render } = setUpTest();
+    const { result } = render();
+    act(() => result.current.request(reply));
+    act(() => result.current.changeBody("Hourly"));
+    act(() => result.current.request(editDraft));
+
+    act(() => result.current.discardChanges());
+
+    expect(fake.snapshot.threads[1]?.draft).toBeUndefined();
+    expect(result.current).toMatchObject({ editingThreadId: 1, question: null });
+  });
+
+  test("must leave a draft's saved text as it was when the user discards their changes to it", () => {
+    const { fake, render } = setUpTest();
+    const { result } = render();
+    act(() => result.current.request(editDraft));
+    act(() => result.current.changeBody("Why 1h?"));
+    act(() => result.current.request(reply));
+
+    act(() => result.current.discardChanges());
+
+    expect(fake.snapshot.threads[0]?.draft?.body).toBe("Why 24h?");
+    expect(result.current.editingThreadId).toBe(2);
+  });
+
+  test("must drop the request on hold and keep the text when the user keeps editing", () => {
+    const { render } = setUpTest();
+    const { result } = render();
+    act(() => result.current.request(reply));
+    act(() => result.current.changeBody("Hourly"));
+    act(() => result.current.request(editDraft));
+
+    act(() => result.current.keepEditing());
+
+    expect(result.current).toMatchObject({ body: "Hourly", editingThreadId: 2, question: null });
+  });
+
+  test("must drop the request on hold and keep the text when saving fails", async () => {
+    const { fake, render } = setUpTest();
+    fake.api.writeDraft.mockRejectedValueOnce(new ReviewApiError(409, "invalid-file", "review.json is not valid"));
+    const { result } = render();
+    act(() => result.current.request(reply));
+    act(() => result.current.changeBody("Hourly"));
+    act(() => result.current.request(editDraft));
+
+    await act(() => expect(result.current.save()).rejects.toThrow("review.json is not valid"));
+
+    expect(result.current).toMatchObject({ body: "Hourly", editingThreadId: 2, question: null });
+  });
+
+  test("must hold only the latest request when the user starts yet another while asked", () => {
+    const { render } = setUpTest();
+    const { result } = render();
+    act(() => result.current.request(reply));
+    act(() => result.current.changeBody("Hourly"));
+    act(() => result.current.request(editDraft));
+
+    act(() => result.current.request(reviewComment));
+
+    expect(result.current.question).toEqual({ held: { kind: "comment" } });
+  });
+
+  test("must close the editor when the user presses Escape with nothing unsaved", () => {
+    const { render } = setUpTest();
+    const { result } = render();
+    act(() => result.current.request(reply));
+
+    act(() => result.current.escape());
+
+    expect(result.current.editingThreadId).toBeNull();
+  });
+
+  test("must ask about the text, then keep editing, when the user presses Escape twice with unsaved text", () => {
     const { render } = setUpTest();
     const { result } = render();
     act(() => result.current.request(reply));
     act(() => result.current.changeBody("Hourly"));
 
-    act(() => result.current.request(editDraft));
+    act(() => result.current.escape());
+    const question = result.current.question;
+    act(() => result.current.escape());
 
-    expect(result.current).toMatchObject({ body: "Why 24h?", editingThreadId: 1 });
+    expect(question).toEqual({ held: null });
+    expect(result.current).toMatchObject({ body: "Hourly", editingThreadId: 2, question: null });
+  });
+
+  test("must close the editor when the user discards after pressing Escape", () => {
+    const { render } = setUpTest();
+    const { result } = render();
+    act(() => result.current.request(reply));
+    act(() => result.current.changeBody("Hourly"));
+    act(() => result.current.escape());
+
+    act(() => result.current.discardChanges());
+
+    expect(result.current.editingThreadId).toBeNull();
+  });
+
+  test.each([
+    { condition: "the editor holds unsaved text", expected: true, text: "Hourly" },
+    { condition: "the editor holds nothing unsaved", expected: false, text: "" },
+  ])("must ask the browser to warn before the page closes as $expected when $condition", ({ expected, text }) => {
+    const { render } = setUpTest();
+    const { result } = render();
+    act(() => result.current.request(reply));
+    act(() => result.current.changeBody(text));
+
+    const leaving = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(leaving);
+
+    expect(leaving.defaultPrevented).toBe(expected);
   });
 
   test("must keep the text and move focus back when the user asks again for the open editor", () => {

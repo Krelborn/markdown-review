@@ -3,6 +3,7 @@ import type { JSX } from "react";
 
 import type { NewComment } from "../../review/NewComment";
 import { CommentForm } from "../CommentForm/CommentForm";
+import { SaveShortcutHint } from "../CommentForm/SaveShortcutHint";
 import { Quote } from "../Quote/Quote";
 
 import styles from "./NewCommentForm.module.css";
@@ -35,7 +36,7 @@ export function NewCommentForm({ documentPath, newComment: { anchor } }: NewComm
           )}
         </Cluster>
         {anchor.kind === "passage" && <Quote isPending={true} text={anchor.quote} />}
-        <CommentForm label={labelOf(anchor)} />
+        <CommentForm label={labelOf(anchor)} leading={<SaveShortcutHint />} />
       </Stack>
     </Card>
   );

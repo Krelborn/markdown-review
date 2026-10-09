@@ -1,4 +1,4 @@
-import { render as renderBase, screen, within } from "@testing-library/react";
+import { render as renderBase, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 
@@ -173,6 +173,157 @@ describe("ThreadSidebar", () => {
       screen.getByText("No comments yet. Select text in the doc, or press + beside a block, to comment on it.")
     ).toBeInTheDocument();
   });
+
+  test("must ask what to do with a reply's text, and say what waits, when the user starts editing a draft", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await startReplyOnThread(user, 2, "Hourly");
+
+    await user.click(within(elements.thread(1)).getByRole("button", { name: "Edit" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Save this comment first?");
+    expect(screen.getByRole("alert")).toHaveTextContent("You started editing #1.");
+    expect(screen.getByRole("button", { name: "Save" })).toHaveFocus();
+  });
+
+  test("must save the reply and open the draft when the user answers Save", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await startReplyOnThread(user, 2, "Hourly");
+    await user.click(within(elements.thread(1)).getByRole("button", { name: "Edit" }));
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByRole("textbox", { name: "Draft comment" })).toHaveValue("Why 24h?");
+    expect(fake.snapshot.threads[1]?.draft?.body).toBe("Hourly");
+  });
+
+  test("must throw the reply away and open the draft when the user answers Discard", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await startReplyOnThread(user, 2, "Hourly");
+    await user.click(within(elements.thread(1)).getByRole("button", { name: "Edit" }));
+
+    await user.click(screen.getByRole("button", { name: "Discard" }));
+
+    expect(screen.getByRole("textbox", { name: "Draft comment" })).toHaveValue("Why 24h?");
+    expect(fake.snapshot.threads[1]?.draft).toBeUndefined();
+  });
+
+  test("must keep the reply and go back to it when the user keeps editing", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await startReplyOnThread(user, 2, "Hourly");
+    await user.click(within(elements.thread(1)).getByRole("button", { name: "Edit" }));
+
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Reply" })).toHaveValue("Hourly");
+    expect(screen.getByRole("textbox", { name: "Reply" })).toHaveFocus();
+  });
+
+  test("must offer to discard only the changes when the user has edited a saved draft", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await user.click(within(elements.thread(1)).getByRole("button", { name: "Edit" }));
+    await user.type(screen.getByRole("textbox", { name: "Draft comment" }), " Or 1h?");
+    await user.click(within(elements.thread(2)).getByRole("button", { name: "Reply" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Save your changes first?");
+
+    await user.click(screen.getByRole("button", { name: "Discard changes" }));
+
+    expect(within(elements.thread(1)).getByText("Why 24h?")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Reply" })).toHaveFocus();
+    expect(fake.snapshot.threads[0]?.draft?.body).toBe("Why 24h?");
+  });
+
+  test("must let the user only discard or keep editing when they cleared a draft and start another comment", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await user.click(within(elements.thread(1)).getByRole("button", { name: "Edit" }));
+    await user.clear(screen.getByRole("textbox", { name: "Draft comment" }));
+
+    await user.click(within(elements.thread(2)).getByRole("button", { name: "Reply" }));
+
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Keep editing" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Discard changes" }));
+    expect(fake.snapshot.threads[0]?.draft?.body).toBe("Why 24h?");
+  });
+
+  test("must close an editor with nothing unsaved when the user presses Escape", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await user.click(within(elements.thread(2)).getByRole("button", { name: "Reply" }));
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  test("must ask about unsaved text, then keep editing, when the user presses Escape twice", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await startReplyOnThread(user, 2, "Hourly");
+
+    await user.keyboard("{Escape}");
+    const question = screen.getByRole("alert");
+    expect(question).toHaveTextContent("Save this comment?");
+    expect(question).not.toHaveTextContent("You started");
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Reply" })).toHaveValue("Hourly");
+  });
+
+  test.each([
+    { keys: "{Meta>}{Enter}{/Meta}", shortcut: "Cmd+Enter" },
+    { keys: "{Control>}{Enter}{/Control}", shortcut: "Ctrl+Enter" },
+  ])("must save the reply when the user presses $shortcut", async ({ keys }) => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await startReplyOnThread(user, 2, "Hourly");
+
+    await user.keyboard(keys);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    });
+    expect(fake.snapshot.threads[1]?.draft?.body).toBe("Hourly");
+  });
+
+  test("must save nothing and keep the reply open when the user presses Cmd+Enter in an empty reply", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await user.click(within(elements.thread(2)).getByRole("button", { name: "Reply" }));
+
+    await user.keyboard("{Meta>}{Enter}{/Meta}");
+
+    expect(screen.getByRole("textbox", { name: "Reply" })).toHaveValue("");
+    expect(fake.snapshot.threads[1]?.draft).toBeUndefined();
+  });
+
+  test("must tell the user how to save from the keyboard when they start a comment", async () => {
+    const { render } = setUpTest({ threads: [] });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(screen.getByRole("button", { name: "+ Comment" }));
+    await user.click(screen.getByRole("button", { name: "On the whole review" }));
+
+    expect(within(screen.getByRole("region", { name: "New comment" })).getByText("to save")).toBeInTheDocument();
+  });
 });
 
 function setUpTest({
@@ -202,6 +353,15 @@ function setUpTest({
     );
   };
   return { fake, onChanged, onSelectThread, render };
+}
+
+async function startReplyOnThread(
+  user: ReturnType<typeof userEvent.setup>,
+  threadId: number,
+  text: string
+): Promise<void> {
+  await user.click(within(elements.thread(threadId)).getByRole("button", { name: "Reply" }));
+  await user.keyboard(text);
 }
 
 const elements = {

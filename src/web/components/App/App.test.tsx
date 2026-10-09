@@ -233,6 +233,39 @@ describe("App", () => {
     expect(await screen.findByRole("button", { name: "Submit (1)" })).toBeInTheDocument();
   });
 
+  test("must ask about the user's unsent reply, then save it and start the comment, when the user starts a comment in the doc", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await startReply(user, "Half written");
+    await elements.article().findByText("Retries happen three times.");
+
+    selectText(elements.article().getByText("Retries happen three times."), "Retries".length);
+    await user.click(await screen.findByRole("button", { name: "Comment" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("You started another comment.");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByRole("textbox", { name: "Comment" })).toHaveFocus();
+    expect(fake.snapshot.threads[0]?.draft?.body).toBe("Half written");
+  });
+
+  test("must keep the comment's text, without asking, when the user starts a comment on the same text again", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await elements.article().findByText("Retries happen three times.");
+    selectText(elements.article().getByText("Retries happen three times."), "Retries".length);
+    await user.click(await screen.findByRole("button", { name: "Comment" }));
+    await user.keyboard("Three is too many");
+
+    selectText(elements.article().getByText("Retries happen three times."), "Retries".length);
+    await user.click(await screen.findByRole("button", { name: "Comment" }));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Comment" })).toHaveValue("Three is too many");
+    expect(screen.getByRole("textbox", { name: "Comment" })).toHaveFocus();
+  });
+
   test("must show the thread's doc when the user selects a thread on another doc", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();

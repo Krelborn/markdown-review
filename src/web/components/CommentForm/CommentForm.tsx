@@ -1,11 +1,13 @@
-import { Alert, Button, Stack, Textarea } from "@krelborn/stylesui";
+import { Alert, Stack, Textarea } from "@krelborn/stylesui";
 import type { FormEvent, JSX, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { describeFailure } from "../../api/describeFailure";
 import { useCommentEditorContext } from "../../review/useCommentEditorContext";
 
-import styles from "./CommentForm.module.css";
+import { CommentFormButtons } from "./CommentFormButtons";
+import { UnsavedQuestion } from "./UnsavedQuestion";
+import { useEditorKeys } from "./useEditorKeys";
 
 export interface CommentFormProps {
   /**
@@ -20,17 +22,19 @@ export interface CommentFormProps {
 }
 
 /**
- * The open comment editor: its text box, then Cancel and Save
+ * The open comment editor: its text box and buttons, and, while it holds text the user might lose, what to do with it
  */
 export function CommentForm({ label, leading }: CommentFormProps): JSX.Element {
   const editor = useCommentEditorContext();
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { focusRevision } = editor;
+  const { escape, focusRevision, question } = editor;
   useEffect(() => {
     textareaRef.current?.focus();
   }, [focusRevision]);
+  useEditorKeys(formRef, escape);
   const submit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
     setIsSaving(true);
@@ -43,7 +47,8 @@ export function CommentForm({ label, leading }: CommentFormProps): JSX.Element {
     }
   };
   return (
-    <Stack as="form" gap={2} onSubmit={(event: FormEvent) => void submit(event)}>
+    <Stack as="form" gap={2} onSubmit={(event: FormEvent) => void submit(event)} ref={formRef}>
+      {question !== null && <UnsavedQuestion isDraft={editor.savedBody !== null} question={question} />}
       <Textarea
         onChange={(event) => editor.changeBody(event.target.value)}
         ref={textareaRef}
@@ -56,15 +61,7 @@ export function CommentForm({ label, leading }: CommentFormProps): JSX.Element {
           {error}
         </Alert>
       )}
-      <div className={styles.buttons}>
-        {leading !== undefined && <div className={styles.leading}>{leading}</div>}
-        <Button onClick={editor.close} size="sm" variant="outline">
-          Cancel
-        </Button>
-        <Button busy={isSaving} disabled={!editor.canSave} size="sm" type="submit">
-          Save
-        </Button>
-      </div>
+      <CommentFormButtons isSaving={isSaving} leading={leading} />
     </Stack>
   );
 }
