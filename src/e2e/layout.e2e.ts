@@ -358,12 +358,7 @@ test("must frame a table row inside its table when the table is wider than the d
   page,
   review,
 }) => {
-  const cells = Array.from({ length: 12 }, (_, index) => `Configuration${index + 1}`);
-  const row = (rowCells: string[]): string => `| ${rowCells.join(" | ")} |`;
-  await review.writeDocument("docs/plan.md", [plan, row(cells), row(cells.map(() => "-")), row(cells)].join("\n"));
-  await review.open("docs/plan.md");
-  const table = page.getByRole("article", { name: "docs/plan.md" }).getByRole("table");
-  expect(await table.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+  const table = await openPlanWithScrollingTable(page, review);
 
   await table.getByRole("cell").first().hover();
   await page.getByRole("button", { name: "Comment on this block" }).hover();
@@ -374,36 +369,19 @@ test("must frame a table row inside its table when the table is wider than the d
   expect(frame.x + frame.width).toBeLessThanOrEqual(shown.x + shown.width + 5);
 });
 
-test("must start a wide table at the prose's left edge and reach 28ch past its right edge when the window is large", async ({
+test("must start each table at the prose's left edge, and let only a wide one reach 28ch past it, when the window is large", async ({
   page,
   review,
 }) => {
-  await page.setViewportSize(largeWindow);
-  await review.writeDocument("docs/plan.md", wideBlocksDoc);
-  await review.open("docs/plan.md");
-  const article = page.getByRole("article", { name: "docs/plan.md" });
+  const article = await openWideBlocksDoc(page, review);
 
   const prose = await boxOf(article);
-  const table = await boxOf(article.getByRole("table").first());
+  const wide = await boxOf(article.getByRole("table").first());
+  const fitting = await boxOf(article.getByRole("table").last());
 
-  expect(table.x).toBeCloseTo(prose.x, 0);
-  expect(table.x + table.width - (prose.x + prose.width)).toBeCloseTo(prose.width * wideRoomShare, 0);
-});
-
-test("must keep a table that fits the prose as wide as its content when the window is large", async ({
-  page,
-  review,
-}) => {
-  await page.setViewportSize(largeWindow);
-  await review.writeDocument("docs/plan.md", wideBlocksDoc);
-  await review.open("docs/plan.md");
-  const article = page.getByRole("article", { name: "docs/plan.md" });
-
-  const prose = await boxOf(article);
-  const table = await boxOf(article.getByRole("table").last());
-
-  expect(table.x).toBeCloseTo(prose.x, 0);
-  expect(table.width).toBeLessThan(prose.width / 2);
+  expectToFillTheRoom(wide, prose);
+  expect(fitting.x).toBeCloseTo(prose.x, 0);
+  expect(fitting.width).toBeLessThan(prose.width / 2);
 });
 
 for (const { size, width } of [
@@ -415,12 +393,8 @@ for (const { size, width } of [
     page,
     review,
   }) => {
-    await page.setViewportSize(size);
-    await review.writeDocument("docs/plan.md", wideBlocksDoc);
-    await review.open("docs/plan.md");
-    await expect(
-      page.getByRole("article", { name: "docs/plan.md" }).locator("[data-mermaid-definition] > svg")
-    ).toHaveCount(2);
+    const article = await openWideBlocksDoc(page, review, size);
+    await expect(article.locator("[data-mermaid-definition] > svg")).toHaveCount(2);
 
     expect(await page.getByRole("main").evaluate((main) => main.scrollWidth <= main.clientWidth)).toBe(true);
   });
@@ -430,10 +404,7 @@ test("must keep a short code block as wide as the prose and scroll a long one si
   page,
   review,
 }) => {
-  await page.setViewportSize(largeWindow);
-  await review.writeDocument("docs/plan.md", wideBlocksDoc);
-  await review.open("docs/plan.md");
-  const article = page.getByRole("article", { name: "docs/plan.md" });
+  const article = await openWideBlocksDoc(page, review);
   const shortCode = article.locator("pre", { hasText: "const ttl" });
   const longCode = article.locator("pre", { hasText: "retryDelays" });
 
@@ -443,8 +414,7 @@ test("must keep a short code block as wide as the prose and scroll a long one si
 
   expect(short.x).toBeCloseTo(prose.x, 0);
   expect(short.width).toBeCloseTo(prose.width, 0);
-  expect(long.x).toBeCloseTo(prose.x, 0);
-  expect(long.x + long.width - (prose.x + prose.width)).toBeCloseTo(prose.width * wideRoomShare, 0);
+  expectToFillTheRoom(long, prose);
   expect(await longCode.evaluate((pre) => pre.scrollWidth > pre.clientWidth)).toBe(true);
   expect(await linesIn(longCode)).toBe(1);
 });
@@ -453,10 +423,7 @@ test("must let the keyboard reach a code block that is too wide for its room, so
   page,
   review,
 }) => {
-  await page.setViewportSize(largeWindow);
-  await review.writeDocument("docs/plan.md", wideBlocksDoc);
-  await review.open("docs/plan.md");
-  const article = page.getByRole("article", { name: "docs/plan.md" });
+  const article = await openWideBlocksDoc(page, review);
   await article.locator("pre", { hasText: "const ttl" }).focus();
 
   await page.keyboard.press("Tab");
@@ -468,10 +435,7 @@ test("must draw a wide diagram past the prose and keep a narrow one centred in i
   page,
   review,
 }) => {
-  await page.setViewportSize(largeWindow);
-  await review.writeDocument("docs/plan.md", wideBlocksDoc);
-  await review.open("docs/plan.md");
-  const article = page.getByRole("article", { name: "docs/plan.md" });
+  const article = await openWideBlocksDoc(page, review);
   const diagrams = article.locator("[data-mermaid-definition] > svg");
   await expect(diagrams).toHaveCount(2);
 
@@ -479,16 +443,13 @@ test("must draw a wide diagram past the prose and keep a narrow one centred in i
   const wide = await boxOf(diagrams.first());
   const narrow = await boxOf(diagrams.last());
 
-  expect(wide.x).toBeCloseTo(prose.x, 0);
-  expect(wide.x + wide.width - (prose.x + prose.width)).toBeCloseTo(prose.width * wideRoomShare, 0);
+  expectToFillTheRoom(wide, prose);
   expect(narrow.width).toBeLessThan(prose.width / 2);
   expect(narrow.x + narrow.width / 2).toBeCloseTo(prose.x + prose.width / 2, 0);
 });
 
 test("must space the prose's lines at 1.6 and code's at 1.5", async ({ page, review }) => {
-  await review.writeDocument("docs/plan.md", wideBlocksDoc);
-  await review.open("docs/plan.md");
-  const article = page.getByRole("article", { name: "docs/plan.md" });
+  const article = await openWideBlocksDoc(page, review, wideWindow);
   const lineHeightOf = (element: Locator): Promise<string> =>
     element.evaluate((shown) => getComputedStyle(shown).lineHeight);
 
@@ -501,14 +462,12 @@ test("must put a thread's marker just right of the wide table its passage is in 
   page,
   review,
 }) => {
-  await page.setViewportSize(largeWindow);
-  await review.writeDocument("docs/plan.md", wideBlocksDoc);
-  await review.open("docs/plan.md");
+  const article = await openWideBlocksDoc(page, review);
 
   await writeDraftComment(page, "The network drops", "now and then.", "How often?");
 
   const marker = await boxOf(page.getByRole("main").getByRole("button", { exact: true, name: "Thread #1" }));
-  const table = await boxOf(page.getByRole("article", { name: "docs/plan.md" }).getByRole("table").first());
+  const table = await boxOf(article.getByRole("table").first());
   const column = await boxOf(page.getByRole("main"));
   expect(marker.x).toBeGreaterThanOrEqual(table.x + table.width);
   expect(marker.x + marker.width).toBeLessThanOrEqual(column.x + column.width);
@@ -518,14 +477,12 @@ test("must keep the marker of a thread in the prose beside the prose when the do
   page,
   review,
 }) => {
-  await page.setViewportSize(largeWindow);
-  await review.writeDocument("docs/plan.md", wideBlocksDoc);
-  await review.open("docs/plan.md");
+  const article = await openWideBlocksDoc(page, review);
 
   await writeDraftComment(page, "Prose runs on", "to the end.", "Shorter?");
 
   const marker = await boxOf(page.getByRole("main").getByRole("button", { exact: true, name: "Thread #1" }));
-  const prose = await boxOf(page.getByRole("article", { name: "docs/plan.md" }));
+  const prose = await boxOf(article);
   const markerLane = 40;
   expect(marker.x).toBeGreaterThanOrEqual(prose.x + prose.width);
   expect(marker.x + marker.width).toBeLessThanOrEqual(prose.x + prose.width + markerLane);
@@ -535,15 +492,13 @@ test("must show Comment past the prose beside a selection that ends in a wide ta
   page,
   review,
 }) => {
-  await page.setViewportSize(largeWindow);
-  await review.writeDocument("docs/plan.md", wideBlocksDoc);
-  await review.open("docs/plan.md");
+  const article = await openWideBlocksDoc(page, review);
 
   await selectText(page, "Platform", "team");
 
   const selectionEnd = await page.evaluate(() => getSelection()?.getRangeAt(0).getBoundingClientRect().right ?? 0);
   const button = await boxOf(page.getByRole("button", { exact: true, name: "Comment" }));
-  const prose = await boxOf(page.getByRole("article", { name: "docs/plan.md" }));
+  const prose = await boxOf(article);
   const column = await boxOf(page.getByRole("main"));
   expect(selectionEnd).toBeGreaterThan(prose.x + prose.width);
   expect(button.x).toBeGreaterThan(prose.x + prose.width);
@@ -552,12 +507,7 @@ test("must show Comment past the prose beside a selection that ends in a wide ta
 });
 
 test("must put a thread's marker just right of what a table shows when the table scrolls", async ({ page, review }) => {
-  const cells = Array.from({ length: 12 }, (_, index) => `Configuration${index + 1}`);
-  const row = (rowCells: string[]): string => `| ${rowCells.join(" | ")} |`;
-  await review.writeDocument("docs/plan.md", [plan, row(cells), row(cells.map(() => "-")), row(cells)].join("\n"));
-  await review.open("docs/plan.md");
-  const table = page.getByRole("article", { name: "docs/plan.md" }).getByRole("table");
-  expect(await table.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+  const table = await openPlanWithScrollingTable(page, review);
 
   await writeDraftComment(page, "Configuration1", "Configuration1", "Rename?");
 
@@ -650,6 +600,42 @@ function linesIn(element: Locator): Promise<number> {
     range.selectNodeContents(shown);
     return new Set([...range.getClientRects()].map((box) => Math.round(box.top))).size;
   });
+}
+
+/**
+ * Expects a block to start at the prose's left edge and reach as far past its right edge as a wide block may
+ */
+function expectToFillTheRoom(block: { width: number; x: number }, prose: { width: number; x: number }): void {
+  expect(block.x).toBeCloseTo(prose.x, 0);
+  expect(block.x + block.width - (prose.x + prose.width)).toBeCloseTo(prose.width * wideRoomShare, 0);
+}
+
+/**
+ * Opens a doc with blocks that need more room than the prose has
+ *
+ * @param size the window, large by default
+ * @returns the rendered doc
+ */
+async function openWideBlocksDoc(page: Page, review: ReviewFixture, size = largeWindow): Promise<Locator> {
+  await page.setViewportSize(size);
+  await review.writeDocument("docs/plan.md", wideBlocksDoc);
+  await review.open("docs/plan.md");
+  return page.getByRole("article", { name: "docs/plan.md" });
+}
+
+/**
+ * Opens a doc whose table is too wide for the doc column, so the table scrolls
+ *
+ * @returns the table
+ */
+async function openPlanWithScrollingTable(page: Page, review: ReviewFixture): Promise<Locator> {
+  const cells = Array.from({ length: 12 }, (_, index) => `Configuration${index + 1}`);
+  const row = (rowCells: string[]): string => `| ${rowCells.join(" | ")} |`;
+  await review.writeDocument("docs/plan.md", [plan, row(cells), row(cells.map(() => "-")), row(cells)].join("\n"));
+  await review.open("docs/plan.md");
+  const table = page.getByRole("article", { name: "docs/plan.md" }).getByRole("table");
+  expect(await table.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+  return table;
 }
 
 async function openPlanWithDrafts(page: Page, review: ReviewFixture): Promise<void> {
