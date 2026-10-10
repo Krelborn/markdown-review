@@ -123,6 +123,15 @@ describe("renderDocument", () => {
     expect([...page.querySelectorAll<HTMLElement>("table, pre")].map((block) => block.tabIndex)).toEqual([0, 0, 0]);
   });
 
+  test.each([
+    { source: "## Steps <pre>npm test</pre>\n", where: "a heading" },
+    { source: "- Run <pre>npm test</pre>\n", where: "a tight list item" },
+  ])("must leave a pre out of the tab order when the doc writes it inline in $where", async ({ source }) => {
+    const page = await renderPage(source);
+
+    expect([...page.querySelectorAll<HTMLElement>("pre")].map((pre) => pre.tabIndex)).toEqual([-1]);
+  });
+
   test("must name a heading by its text alone when it has a link", async () => {
     const page = await renderPage("# Retry `Policy`\n");
 

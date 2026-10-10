@@ -483,7 +483,7 @@ test("must space the prose's lines at 1.6 and code's at 1.5", async ({ page, rev
   expect(await lineHeightOf(article.locator("pre", { hasText: "const ttl" }))).toBe("21px");
 });
 
-test("must wrap a pre that is not a code block and space it as the text around it when it is wider than the prose", async ({
+test("must wrap a pre that is not a code block, with no tab stop, and space it as the text around it when it is wider than the prose", async ({
   page,
   review,
 }) => {
@@ -499,12 +499,15 @@ test("must wrap a pre that is not a code block and space it as the text around i
       "",
       `## Steps <pre>${longText}</pre>`,
       "",
+      `- Then <pre>${longText}</pre>`,
+      "",
     ].join("\n"),
   });
   const pres = article.locator("pre");
-  await expect(pres).toHaveCount(3);
+  await expect(pres).toHaveCount(4);
 
   for (const pre of await pres.all()) {
+    expect(await pre.evaluate((shown) => shown.tabIndex)).toBe(-1);
     expect(await linesIn(pre)).toBeGreaterThan(1);
     expect(await pre.evaluate((shown) => shown.scrollWidth <= shown.clientWidth)).toBe(true);
     expect(await lineHeightRatio(pre)).toBeCloseTo(await lineHeightRatio(pre.locator("xpath=..")));
