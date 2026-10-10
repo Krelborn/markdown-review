@@ -4,7 +4,7 @@ import { addHeadingIds } from "./addHeadingIds";
 import { addHeadingLinks } from "./addHeadingLinks";
 import { findFenceLanguages } from "./findFenceLanguages";
 import { loadHighlight } from "./loadHighlight";
-import { makeTablesFocusable } from "./makeTablesFocusable";
+import { makeScrollableBlocksFocusable } from "./makeScrollableBlocksFocusable";
 import { pointLinksAtReview } from "./pointLinksAtReview";
 import { renderFrontMatter } from "./renderFrontMatter";
 import { sanitizeRenderedHtml } from "./sanitizeRenderedHtml";
@@ -16,7 +16,7 @@ import { sanitizeRenderedHtml } from "./sanitizeRenderedHtml";
  * @param documentPath the doc's repo-relative path
  * @returns sanitized HTML whose leaf block elements carry `data-md-block`, `data-md-start` and `data-md-end`, with
  *   frontmatter shown as properties, fenced code highlighted, headings given GitHub's ids and a link to themselves,
- *   tables in the tab order, and links and images pointed at the review app
+ *   tables and code blocks in the tab order, and links and images pointed at the review app
  */
 export async function renderDocument(source: string, documentPath: string): Promise<string> {
   const highlight = await loadHighlight(findFenceLanguages(source));
@@ -26,6 +26,6 @@ export async function renderDocument(source: string, documentPath: string): Prom
   addHeadingIds(template.content);
   pointLinksAtReview(template.content, documentPath);
   addHeadingLinks(template.content);
-  makeTablesFocusable(template.content);
+  makeScrollableBlocksFocusable(template.content);
   return template.innerHTML;
 }

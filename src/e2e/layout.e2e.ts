@@ -26,7 +26,7 @@ const largeWindow = { height: 1080, width: 1920 };
 const wideRoomShare = 28 / 72;
 
 /**
- * A doc whose first table needs more room than the prose has, and whose second fits it
+ * A doc whose first table and second code block need more room than the prose has, and whose other blocks fit it
  */
 const wideBlocksDoc = [
   "# Plan",
@@ -40,6 +40,14 @@ const wideBlocksDoc = [
   "| Key | Value |",
   "| --- | --- |",
   "| ttl | 24h |",
+  "",
+  "```ts",
+  "const ttl = 24;",
+  "```",
+  "",
+  "```ts",
+  `const retryDelays = [${Array.from({ length: 30 }, (_, index) => (index + 1) * 100).join(", ")}];`,
+  "```",
   "",
 ].join("\n");
 
@@ -404,6 +412,44 @@ for (const { size, width } of [
   });
 }
 
+test("must keep a short code block as wide as the prose and scroll a long one sideways without wrapping when the window is large", async ({
+  page,
+  review,
+}) => {
+  await page.setViewportSize(largeWindow);
+  await review.writeDocument("docs/plan.md", wideBlocksDoc);
+  await review.open("docs/plan.md");
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+  const shortCode = article.locator("pre").first();
+  const longCode = article.locator("pre").last();
+
+  const prose = await boxOf(article);
+  const short = await boxOf(shortCode);
+  const long = await boxOf(longCode);
+
+  expect(short.x).toBeCloseTo(prose.x, 0);
+  expect(short.width).toBeCloseTo(prose.width, 0);
+  expect(long.x).toBeCloseTo(prose.x, 0);
+  expect(long.x + long.width - (prose.x + prose.width)).toBeCloseTo(prose.width * wideRoomShare, 0);
+  expect(await longCode.evaluate((pre) => pre.scrollWidth > pre.clientWidth)).toBe(true);
+  expect(await linesIn(longCode)).toBe(1);
+});
+
+test("must let the keyboard reach a code block that is too wide for its room, so it can scroll it", async ({
+  page,
+  review,
+}) => {
+  await page.setViewportSize(largeWindow);
+  await review.writeDocument("docs/plan.md", wideBlocksDoc);
+  await review.open("docs/plan.md");
+  const code = page.getByRole("article", { name: "docs/plan.md" }).locator("pre");
+  await code.first().focus();
+
+  await page.keyboard.press("Tab");
+
+  await expect(code.last()).toBeFocused();
+});
+
 test("must put a thread's marker just right of the wide table its passage is in when the window is large", async ({
   page,
   review,
@@ -546,6 +592,17 @@ async function heightOf(element: Locator): Promise<number | undefined> {
 
 async function widthOf(element: Locator): Promise<number | undefined> {
   return (await element.boundingBox())?.width;
+}
+
+/**
+ * @returns how many lines the element's text takes on the page
+ */
+function linesIn(element: Locator): Promise<number> {
+  return element.evaluate((shown) => {
+    const range = document.createRange();
+    range.selectNodeContents(shown);
+    return new Set([...range.getClientRects()].map((box) => Math.round(box.top))).size;
+  });
 }
 
 async function openPlanWithDrafts(page: Page, review: ReviewFixture): Promise<void> {

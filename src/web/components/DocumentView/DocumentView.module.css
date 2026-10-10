@@ -53,6 +53,20 @@
   margin: 0;
 }
 
+/* A code block is as wide as its longest line, from the prose's width up to the room beside it, so that its language
+   header spans the code */
+.content div[data-md-block]:has(> pre) {
+  inline-size: max-content;
+  max-inline-size: calc(100% + var(--wide-room));
+  min-inline-size: 100%;
+}
+
+/* Code keeps its lines whole, as wrapping would break its indentation and any diagram drawn in text */
+.content div[data-md-block] > pre {
+  overflow-x: auto;
+  white-space: pre;
+}
+
 /* The header is generated content, so it is in neither the selection nor the canonical text that comments anchor to */
 .content div[data-language]:has(> pre)::before {
   background-color: color-mix(in srgb, var(--sui-color-surface), var(--sui-color-text) 5%);
