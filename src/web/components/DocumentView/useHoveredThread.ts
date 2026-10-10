@@ -6,6 +6,7 @@ import { offsetAtPoint } from "../../anchoring/offsetAtPoint";
 import { threadAtOffset } from "../../review/threadAtOffset";
 import { useThreadReporter } from "../../review/useThreadReporter";
 
+import { useLayoutRevision } from "./useLayoutRevision";
 import type { RenderedDocument } from "./useRenderedDocument";
 
 interface Point {
@@ -39,30 +40,33 @@ export function useHoveredThread(
   const { report } = useThreadReporter(onPointedThread);
   // Where the pointer last moved over the content, or null once it has left
   const lastPointRef = useRef<Point | null>(null);
+  const layoutRevision = useLayoutRevision(contentRef);
   useEffect(() => {
     const content = contentRef.current;
     if (content === null || rendered === null) {
       return;
     }
-    if (highlightedThreads.length === 0) {
-      // With no highlights there is nothing to look up on each move, so the pointer is no longer followed
-      lastPointRef.current = null;
-      report(null);
-      return;
-    }
+    const hasHighlights = highlightedThreads.length > 0;
     const threadAt = ({ clientX, clientY }: Point): number | null => {
+      // With no highlights there is nothing to look up
+      if (!hasHighlights) {
+        return null;
+      }
       const offset = offsetAtPoint(content, rendered.documentText, clientX, clientY);
       return offset === null ? null : (threadAtOffset(highlightedThreads, offset)?.id ?? null);
     };
-    // The doc or its highlights changed under a pointer that may not move again, so what it is over is looked up now
+    // The doc, its highlights or its layout changed under a pointer that may not move again, so what it is over is
+    // looked up now
     const lastPoint = lastPointRef.current;
     report(lastPoint === null ? null : threadAt(lastPoint));
     let frame = 0;
     const move = ({ clientX, clientY }: PointerEvent): void => {
       const point = { clientX, clientY };
       lastPointRef.current = point;
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => report(threadAt(point)));
+      if (hasHighlights) {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => report(threadAt(point)));
+      }
     };
     const leave = (): void => {
       lastPointRef.current = null;
@@ -76,6 +80,6 @@ export function useHoveredThread(
       content.removeEventListener("pointermove", move);
       content.removeEventListener("pointerleave", leave);
     };
-  }, [contentRef, highlightedThreads, rendered, report]);
+  }, [contentRef, highlightedThreads, layoutRevision, rendered, report]);
   return pointedThreadId !== null;
 }

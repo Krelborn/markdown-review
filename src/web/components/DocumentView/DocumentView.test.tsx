@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render as renderBase,
   screen,
@@ -442,6 +443,36 @@ describe("DocumentView", () => {
     await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
   });
 
+  test("must report the thread under a still pointer when a highlight appears under it", async () => {
+    const { onHoverThread, render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+
+    await rerender(plan, { threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+  });
+
+  test("must report no hovered thread when the doc's layout moves the thread away from a still pointer", async () => {
+    const resizes = standInForResizes();
+    const { onHoverThread, render } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+    const heading = within(elements.article()).getByRole("heading", { level: 1, name: "Plan" });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 0, offsetNode: heading.firstChild }) });
+
+    resizes.resize();
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
   test("must report no hovered thread when the doc goes away while the pointer is on a highlight", async () => {
     const { onHoverThread, render, unmount } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
     const user = userEvent.setup();
@@ -751,6 +782,31 @@ function setUpTestWithScrollContainer({ passageTop }: { passageTop: number }) {
 /**
  * Moves keyboard focus from the start of the page to the + beside the hovered block, past each of the doc's links
  */
+/**
+ * Stands in for ResizeObserver with one that reports a resize of everything observed when the test asks
+ */
+function standInForResizes(): { resize: () => void } {
+  const callbacks: (() => void)[] = [];
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      public constructor(callback: () => void) {
+        callbacks.push(callback);
+      }
+
+      public disconnect(): void {}
+
+      public observe(): void {}
+
+      public unobserve(): void {}
+    }
+  );
+  onTestFinished(() => {
+    vi.unstubAllGlobals();
+  });
+  return { resize: () => act(() => callbacks.forEach((callback) => callback())) };
+}
+
 async function tabToBlockButton(user: UserEvent): Promise<void> {
   const linkCount = within(elements.article()).getAllByRole("link").length;
   for (let tabCount = 0; tabCount <= linkCount; tabCount += 1) {
