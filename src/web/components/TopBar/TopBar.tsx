@@ -2,6 +2,7 @@ import { Heading, Link } from "@krelborn/stylesui";
 import type { JSX } from "react";
 
 import { isPlainLeftClick } from "../../navigation/isPlainLeftClick";
+import { AboutPopover } from "../AboutPopover/AboutPopover";
 import { AppIcon } from "../AppIcon/AppIcon";
 import { DocumentSwitcher } from "../DocumentSwitcher/DocumentSwitcher";
 
@@ -20,8 +21,8 @@ export interface TopBarProps {
 }
 
 /**
- * The bar across the top of the page: the app's icon, which goes to the docs list, and where the user is, which opens
- * the menu of docs to go to
+ * The bar across the top of the page: the app's icon, which goes to the docs list; where the user is, which opens the
+ * menu of docs to go to; and, at the right end, the About button
  */
 export function TopBar({ documentPath, onNavigate }: TopBarProps): JSX.Element {
   return (
@@ -47,6 +48,7 @@ export function TopBar({ documentPath, onNavigate }: TopBarProps): JSX.Element {
       ) : (
         <DocumentSwitcher className={styles.title} documentPath={documentPath} onNavigate={onNavigate} />
       )}
+      <AboutPopover />
     </header>
   );
 }

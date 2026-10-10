@@ -31,6 +31,15 @@ export function registerShellRoutes(app: Hono, { webDirectory }: AppDependencies
   app.get("/", serveShell);
   app.get("/document/*", serveShell);
 
+  // Plain text, because some browsers download text/markdown instead of showing it
+  app.get("/licences", async (context) => {
+    const licences = await readTextFileOrNull(path.join(webDirectory, "licences.md"));
+    if (licences === null) {
+      throw new HttpError(404, "missing-file", "This build of markdown-review has no list of third-party licences");
+    }
+    return context.text(licences, 200, { "X-Content-Type-Options": "nosniff" });
+  });
+
   app.get("/assets/*", async (context) => {
     const name = context.req.path.slice("/assets/".length);
     if (!isRepositoryRelativePath(name)) {

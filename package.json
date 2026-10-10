@@ -2,6 +2,10 @@
   "name": "@krelborn/markdown-review",
   "version": "0.1.0",
   "description": "Review agent-written markdown in the browser and hand the comments back to the agent",
+  "homepage": "https://github.com/Krelborn/markdown-review#readme",
+  "bugs": {
+    "url": "https://github.com/Krelborn/markdown-review/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -45,7 +49,7 @@
   },
   "devDependencies": {
     "@babel/core": "^8.0.7",
-    "@krelborn/stylesui": "^0.2.2",
+    "@krelborn/stylesui": "^0.3.0",
     "@playwright/test": "^1.64.0",
     "@rolldown/plugin-babel": "^0.2.4",
     "@testing-library/dom": "^10.4.2",

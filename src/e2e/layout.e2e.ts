@@ -343,6 +343,45 @@ test("must line the + up with a heading's line and keep it clear of the heading'
   expect(frame.x - (button.x + button.width)).toBeGreaterThanOrEqual(4);
 });
 
+for (const { size, width } of [
+  { size: wideWindow, width: "wide" },
+  { size: narrowWindow, width: "narrow" },
+  { size: phoneWindow, width: "very narrow" },
+]) {
+  test(`must show the About popover in full from the top bar's right end when the window is ${width}`, async ({
+    page,
+    review,
+  }) => {
+    await page.setViewportSize(size);
+    await review.open("docs/plan.md");
+
+    await aboutButton(page).click();
+
+    const about = page.getByRole("dialog", { name: "About Markdown Review" });
+    await expect(about).toContainText(/Version \d+\.\d+\.\d+/u);
+    await expect(about).toBeInViewport({ ratio: 1 });
+  });
+}
+
+test("must list the licences of the bundled packages when the user follows Third-party licences", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await aboutButton(page).click();
+  const opened = page.waitForEvent("popup");
+
+  await page.getByRole("link", { name: "Third-party licences" }).click();
+
+  const licences = await opened;
+  await expect(licences.locator("body")).toContainText("## react - ");
+  await expect(licences.locator("body")).toContainText("## @krelborn/stylesui - ");
+});
+
+function aboutButton(page: Page): Locator {
+  return page.getByRole("banner").getByRole("button", { name: "About Markdown Review" });
+}
+
 function documentScrollTop(page: Page): Promise<number> {
   return page.getByRole("main").evaluate((main) => main.scrollTop);
 }

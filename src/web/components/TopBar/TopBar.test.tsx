@@ -40,6 +40,17 @@ describe("TopBar", () => {
     expect(screen.getByRole("heading", { level: 1, name: "All docs" })).toBeInTheDocument();
   });
 
+  test.each([
+    { documentPath: "docs/plan.md", page: "a doc" },
+    { documentPath: null, page: "the docs list" },
+  ])("must offer the About button when $page is on screen", ({ documentPath }) => {
+    const { render } = setUpTest({ documentPath });
+
+    render();
+
+    expect(within(screen.getByRole("banner")).getByRole("button", { name: "About Markdown Review" })).toBeVisible();
+  });
+
   test("must show the docs list when the user clicks the app's icon", async () => {
     const { onNavigate, render } = setUpTest();
     const user = userEvent.setup();
