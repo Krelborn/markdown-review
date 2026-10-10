@@ -18,6 +18,31 @@ const wideWindow = { height: 720, width: 1280 };
 
 const phoneWindow = { height: 800, width: 470 };
 
+const largeWindow = { height: 1080, width: 1920 };
+
+/**
+ * How far a wide block may reach past the prose, as a share of the prose's width: 28ch beyond 72ch
+ */
+const wideRoomShare = 28 / 72;
+
+/**
+ * A doc whose first table needs more room than the prose has, and whose second fits it
+ */
+const wideBlocksDoc = [
+  "# Plan",
+  "",
+  `Prose ${"runs on ".repeat(40)}to the end.`,
+  "",
+  "| Topic | Choice | Why |",
+  "| --- | --- | --- |",
+  `| Retries | Three times | ${"The network drops a request now and then. ".repeat(4)}|`,
+  "",
+  "| Key | Value |",
+  "| --- | --- |",
+  "| ttl | 24h |",
+  "",
+].join("\n");
+
 test("must keep the header and Submit in view, and the window still, when the user scrolls to the end of a long doc", async ({
   page,
   review,
@@ -328,6 +353,56 @@ test("must frame a table row inside its table when the table is wider than the d
   expect(frame.x).toBeGreaterThanOrEqual(shown.x - 5);
   expect(frame.x + frame.width).toBeLessThanOrEqual(shown.x + shown.width + 5);
 });
+
+test("must start a wide table at the prose's left edge and reach 28ch past its right edge when the window is large", async ({
+  page,
+  review,
+}) => {
+  await page.setViewportSize(largeWindow);
+  await review.writeDocument("docs/plan.md", wideBlocksDoc);
+  await review.open("docs/plan.md");
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+
+  const prose = await boxOf(article);
+  const table = await boxOf(article.getByRole("table").first());
+
+  expect(table.x).toBeCloseTo(prose.x, 0);
+  expect(table.x + table.width - (prose.x + prose.width)).toBeCloseTo(prose.width * wideRoomShare, 0);
+});
+
+test("must keep a table that fits the prose as wide as its content when the window is large", async ({
+  page,
+  review,
+}) => {
+  await page.setViewportSize(largeWindow);
+  await review.writeDocument("docs/plan.md", wideBlocksDoc);
+  await review.open("docs/plan.md");
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+
+  const prose = await boxOf(article);
+  const table = await boxOf(article.getByRole("table").last());
+
+  expect(table.x).toBeCloseTo(prose.x, 0);
+  expect(table.width).toBeLessThan(prose.width / 2);
+});
+
+for (const { size, width } of [
+  { size: largeWindow, width: "large" },
+  { size: wideWindow, width: "wide" },
+  { size: narrowWindow, width: "narrow" },
+]) {
+  test(`must never scroll the doc column sideways when the doc has wide blocks and the window is ${width}`, async ({
+    page,
+    review,
+  }) => {
+    await page.setViewportSize(size);
+    await review.writeDocument("docs/plan.md", wideBlocksDoc);
+    await review.open("docs/plan.md");
+    await expect(page.getByRole("article", { name: "docs/plan.md" }).getByRole("table").first()).toBeVisible();
+
+    expect(await page.getByRole("main").evaluate((main) => main.scrollWidth <= main.clientWidth)).toBe(true);
+  });
+}
 
 test("must line the + up with a heading's line and keep it clear of the heading's frame", async ({ page, review }) => {
   await review.open("docs/plan.md");

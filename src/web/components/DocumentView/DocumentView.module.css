@@ -1,20 +1,42 @@
-/* The prose keeps a reading width, and the gutter with its + and the markers sit in the padding either side of it */
+/* Registered, so that it computes to a length in the view, where ch is the prose's, and script can read it */
+@property --wide-room {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+/* A size container, so that the view can tell how much room the doc column has beside the prose */
+.frame {
+  container-type: inline-size;
+}
+
+/* The prose keeps a reading width, and the gutter with its + and the markers sit in the padding either side of it.
+   Tables, code and diagrams that need more room reach into the margin to its right. */
 .view {
   --block-button-size: 1.75rem;
   --gutter-size: 3rem;
+  --max-view-size: calc(72ch + var(--gutter-size) + 2.5rem);
 
   /* The middle of the +, where the gutter's track and bar run */
   --gutter-lane: calc(var(--gutter-size) - var(--sui-space-3) - var(--block-button-size) / 2);
 
+  /* How far a wide block may reach past the prose: the view's margin, but no further than 28ch */
+  --wide-room: clamp(0px, (100cqi - var(--max-view-size)) / 2, 28ch);
+
   inline-size: 100%;
   margin-inline: auto;
-  max-inline-size: calc(72ch + var(--gutter-size) + 2.5rem);
+  max-inline-size: var(--max-view-size);
   padding-inline: var(--gutter-size) 2.5rem;
   position: relative;
 }
 
 .content {
   min-block-size: 50vh;
+}
+
+/* Prose already makes a table as wide as its content and scrolls it when that is too wide */
+.content table {
+  max-inline-size: calc(100% + var(--wide-room));
 }
 
 /* markdown-it renders some blocks with no element of their own, so a wrapper carries their attributes and needs the

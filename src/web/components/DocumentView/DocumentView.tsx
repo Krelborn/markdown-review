@@ -100,7 +100,7 @@ export function DocumentView({
   });
   useMermaidDiagrams(contentRef, rendered);
   return (
-    <Stack gap={3}>
+    <Stack className={styles.frame} gap={3}>
       <RenderFailure error={error} />
       <div
         className={clsx(styles.view, { [styles.pointingAtHighlight ?? ""]: overlay.isPointingAtHighlight })}
