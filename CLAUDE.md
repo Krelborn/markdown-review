@@ -4,7 +4,7 @@ The project guidance shared with other agents is in `AGENTS.md`, imported at the
 
 ## Coding standards
 
-The `coding-standards` plugin (enabled in `.claude/settings.json`) loads the TypeScript, React, comments and Vitest standards whenever a matching file is read or edited. They are authoritative over any code in the spec or plan.
+The `coding-standards` plugin (enabled in `.claude/settings.json`) loads the TypeScript, React, comments and Vitest standards whenever a matching file is read or edited. They are authoritative over any code in a spec.
 
 <!-- fallow:agent-install v1 claude-import:start -->
 

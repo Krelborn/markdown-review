@@ -10,7 +10,6 @@
     "pnpm-lock.yaml",
     "dist/**",
     "docs/**",
-    ".superpowers/**",
     // The conformance corpus keeps the exact markdown it was written with
     "src/**/testing/*.md",
     // Skill pointers written by `fallow agent install`, which rewrites them when they are reformatted

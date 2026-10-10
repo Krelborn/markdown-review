@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Markdown Review: a local tool for reviewing agent-written markdown in a browser and handing the comments back to the coding agent through a CLI. The design is `docs/superpowers/specs/2026-10-08-markdown-review-design.md`; the build plans are in `docs/superpowers/plans/`.
+Markdown Review: a local tool for reviewing agent-written markdown in a browser and handing the comments back to the coding agent through a CLI. The design is `docs/specs/2026-10-08-markdown-review-design.md`. Write new specs to `docs/specs/`, named `YYYY-MM-DD-<topic>-design.md`. A spec records the design when its feature was built; later work may change the behaviour, so leave old specs as they are.
 
 ## Commands
 
