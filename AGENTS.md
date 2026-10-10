@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Markdown Review: a local tool for reviewing agent-written markdown in a browser and handing the comments back to the coding agent through a CLI. The design is `docs/superpowers/specs/2026-10-08-markdown-review-design.md`; the build plans are in `docs/superpowers/plans/`.
+Markdown Review: a local tool for reviewing agent-written markdown in a browser and handing the comments back to the coding agent through a CLI. Write new specs to `docs/specs/`, named `YYYY-MM-DD-<topic>-design.md`. A spec records the design when its feature was built; later work may change the behaviour, so trust the code over an old spec and leave old specs as they are.
 
 ## Commands
 
@@ -8,7 +8,7 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 - `pnpm test`: all tests: the `node` project (`src/cli`, `src/server`, `src/shared`), the `web` project in jsdom (`src/web`), and the `integration` project, which builds `dist/cli.js` first and runs it as separate processes against temporary git repositories
 - `pnpm test:e2e`: Playwright end-to-end tests in Chromium and WebKit. They build the package first, then run the CLI and the web app together against temporary git repositories. Install the browsers once with `pnpm exec playwright install chromium webkit`.
 - `pnpm test:coverage`: tests with v8 coverage, written to `coverage/istanbul.json`
-- `pnpm verify`: lint, format check, typecheck and tests
+- `pnpm verify`: lint, format check, typecheck and tests. CI also runs `pnpm build` and `pnpm test:e2e`.
 - Try the agent loop by hand: `pnpm build`, then in any git repository run `node <this repo>/dist/cli.js open <doc.md>`, `inbox`, `poll`, `reply`, `resolve`, `stop` and `install-skill`. Set `MARKDOWN_REVIEW_NO_BROWSER=1` to keep `open` from launching a browser.
 
 ## Layout
@@ -27,9 +27,11 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 
 ## Anchoring
 
-Comments anchor to offsets in a doc's canonical text, which `parseBlocks` computes from markdown-it tokens and the browser reads back from the rendered page with `layOutBlockText`. The two must agree exactly: run the `web` project's conformance test after any change to `createMarkdownIt`, the markdown plugins, Shiki or DOMPurify, and add a case to `src/web/rendering/testing/conformanceCorpus.md` for any new kind of content. A change that gives the same source different canonical text, such as a new markdown plugin, must also raise `anchoringVersion` in `src/shared/markdown/anchoringVersion.ts`, so threads stored under the old text are re-anchored.
+Comments anchor to offsets in a doc's canonical text, which `parseBlocks` computes from markdown-it tokens and the browser reads back from the rendered page with `layOutBlockText`. The two must agree exactly: run the conformance test (`pnpm vitest run --project web src/web/rendering/blockConformance.test.ts`) after any change to `createMarkdownIt`, the markdown plugins, Shiki or DOMPurify, and add a case to `src/web/rendering/testing/conformanceCorpus.md` for any new kind of content. A change that gives the same source different canonical text, such as a new markdown plugin, must also raise `anchoringVersion` in `src/shared/markdown/anchoringVersion.ts`, so threads stored under the old text are re-anchored.
 
 Install dependencies with `pnpm add` and no hand-written version, then run `pnpm format`, which sorts `package.json`. `@krelborn/stylesui` comes from GitHub Packages, and `.npmrc` reads a token with `read:packages` from `GITHUB_TOKEN`, so run pnpm as `GITHUB_TOKEN=$(gh auth token) pnpm install`.
+
+Run that install first in a new clone or worktree: husky creates the hooks in `.husky/_` during install, and until then commits skip lint-staged and `fallow audit` without warning.
 
 ## Fallow
 
