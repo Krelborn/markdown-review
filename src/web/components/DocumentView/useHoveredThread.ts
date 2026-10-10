@@ -1,9 +1,10 @@
 import type { RefObject } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { Thread } from "../../../shared/review/threadSchema";
 import { offsetAtPoint } from "../../anchoring/offsetAtPoint";
 import { threadAtOffset } from "../../review/threadAtOffset";
+import { useThreadReporter } from "../../review/useThreadReporter";
 
 import type { RenderedDocument } from "./useRenderedDocument";
 
@@ -22,22 +23,22 @@ export function useHoveredThread(
   onHoverThread: (threadId: number | null) => void
 ): boolean {
   const [pointedThreadId, setPointedThreadId] = useState<number | null>(null);
+  const onPointedThread = useCallback(
+    (threadId: number | null): void => {
+      setPointedThreadId(threadId);
+      onHoverThread(threadId);
+    },
+    [onHoverThread]
+  );
   // Outlives each run of the effect, so a move off a highlight is still reported after the highlighted threads change
-  const reportedRef = useRef<number | null>(null);
+  const { report, reported } = useThreadReporter(onPointedThread);
   useEffect(() => {
     const content = contentRef.current;
     if (content === null || rendered === null) {
       return;
     }
     let frame = 0;
-    const report = (threadId: number | null): void => {
-      if (threadId !== reportedRef.current) {
-        reportedRef.current = threadId;
-        setPointedThreadId(threadId);
-        onHoverThread(threadId);
-      }
-    };
-    if (!highlightedThreads.some(({ id }) => id === reportedRef.current)) {
+    if (!highlightedThreads.some(({ id }) => id === reported())) {
       // A hover on a thread that is no longer highlighted must end, without waiting for the pointer to move
       report(null);
     }
@@ -63,6 +64,6 @@ export function useHoveredThread(
       content.removeEventListener("pointermove", move);
       content.removeEventListener("pointerleave", leave);
     };
-  }, [contentRef, highlightedThreads, onHoverThread, rendered]);
+  }, [contentRef, highlightedThreads, rendered, report, reported]);
   return pointedThreadId !== null;
 }

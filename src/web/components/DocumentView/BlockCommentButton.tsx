@@ -14,23 +14,38 @@ export interface BlockCommentButtonProps {
    */
   isFramed: boolean;
 
+  /**
+   * Whether the + has the keyboard focus
+   */
+  isFocused: boolean;
+
   onComment: () => void;
+
+  /**
+   * Called when the + gains or loses the keyboard focus
+   */
+  onFocusChange: (isFocused: boolean) => void;
 }
 
 /**
  * The + beside the block under the pointer, which frames the block while the user points at it or focuses it
  */
-export function BlockCommentButton({ block, isFramed, onComment }: BlockCommentButtonProps): JSX.Element {
-  const [isFocused, setIsFocused] = useState(false);
+export function BlockCommentButton({
+  block,
+  isFocused,
+  isFramed,
+  onComment,
+  onFocusChange,
+}: BlockCommentButtonProps): JSX.Element {
   const [isPointedAt, setIsPointedAt] = useState(false);
   return (
     <>
       {(isFocused || isPointedAt) && !isFramed && <BlockTarget box={block} />}
       <Button
         className={styles.blockButton}
-        onBlur={() => setIsFocused(false)}
+        onBlur={() => onFocusChange(false)}
         onClick={onComment}
-        onFocus={() => setIsFocused(true)}
+        onFocus={() => onFocusChange(true)}
         onPointerEnter={() => setIsPointedAt(true)}
         onPointerLeave={() => setIsPointedAt(false)}
         size="sm"

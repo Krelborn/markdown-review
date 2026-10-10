@@ -100,6 +100,7 @@ All underlines are 2px with a 3px offset, written as the longhand `text-decorati
   - A 2px `--sui-color-primary` border, a background of `--sui-color-primary` at 7%, and `--sui-radius-lg` corners.
   - `pointer-events: none`, `aria-hidden`, `data-md-ignore`.
   - It fades in over 120ms, unless the user prefers reduced motion.
+- **Keeping focus.** While the + has focus it stays on its last block after the pointer leaves the view, so the focus and the target are not lost with it.
 - **While writing.** The open editor's new comment can be a passage that covers exactly one block's whole text, as `blockPassage` builds it. While it is, the target stays on that block. It is measured like the markers, again whenever the content resizes, and goes when the editor closes or saves.
 - The target sits above the doc's text and below the + and the markers. Its fill is light enough to read through.
 
@@ -168,7 +169,7 @@ Frontmatter (section 7) and alerts (section 11) change the canonical text of doc
   - Hovering a marker hovers its thread.
   - While the pointer is over a highlight, the content shows a pointer cursor, since a click selects the thread.
 - **In the panel.** A thread card puts its thread under the pointer on `pointerenter` and clears it on `pointerleave`. It makes its thread the focused one on `focusin`, and clears that on `focusout` when the focus leaves the card.
-- **Removal.** A hover ends when what set it goes away without a `pointerleave` or `focusout`: a thread under the pointer that is no longer highlighted, a marker removed from under the pointer, or a card removed while it has the pointer or the focus.
+- **Removal.** A hover ends when what set it goes away without a `pointerleave` or `focusout`: a thread under the pointer that is no longer highlighted, a marker removed from under the pointer, a card removed while it has the pointer or the focus, or the doc view removed while the pointer is on a highlight or a marker.
 - **Effects.**
   - An unselected hovered thread's passage moves into the `markdown-review-hovered` highlight.
   - Its marker gets a 2px `--sui-color-primary` outline.

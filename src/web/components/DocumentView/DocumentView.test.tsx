@@ -141,6 +141,19 @@ describe("DocumentView", () => {
     expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveFocus();
   });
 
+  test("must keep the + and its frame when the pointer leaves the doc while the + has focus", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+    await tabToBlockButton(user);
+
+    await user.hover(document.body);
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveFocus();
+    expect(screen.getByTestId("block-target")).toBeInTheDocument();
+  });
+
   test("must keep the block framed when the user writes a comment on the whole of it", async () => {
     const { render } = setUpTest({
       pendingPassage: {
@@ -322,6 +335,20 @@ describe("DocumentView", () => {
     await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
   });
 
+  test("must report no hovered thread when the doc goes away while the pointer is on a highlight", async () => {
+    const { onHoverThread, render, unmount } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+
+    unmount();
+
+    expect(onHoverThread).toHaveBeenLastCalledWith(null);
+  });
+
   test("must not look for a highlight under the pointer when the doc has no highlighted threads", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
@@ -369,6 +396,17 @@ describe("DocumentView", () => {
     await rerender(plan, { threads: [retries] });
 
     await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
+  test("must report no hovered thread when the doc goes away while the pointer is on a marker", async () => {
+    const { onHoverThread, render, unmount } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    await user.hover(screen.getByRole("button", { name: "Thread #1" }));
+
+    unmount();
+
+    expect(onHoverThread).toHaveBeenLastCalledWith(null);
   });
 
   test("must paint each kind of highlight over the kinds before it when the doc has every kind", async () => {
@@ -561,8 +599,9 @@ function setUpTest({
     </HoveredThreadContext>
   );
   let rerenderBase: (ui: ReturnType<typeof view>) => void = () => {};
+  let unmount: () => void = () => {};
   const render = async (shown = plan): Promise<void> => {
-    rerenderBase = renderBase(view(shown, selectedThreadId, threads), { container }).rerender;
+    ({ rerender: rerenderBase, unmount } = renderBase(view(shown, selectedThreadId, threads), { container }));
     if (shown.source !== "") {
       await within(elements.article()).findByRole("heading", { level: 1, name: "Plan" });
     }
@@ -577,7 +616,7 @@ function setUpTest({
     rerenderBase(view(shown, rerenderedSelectedThreadId, rerenderedThreads));
     await within(elements.article()).findByRole("heading", { level: 1, name: "Plan" });
   };
-  return { onComment, onHoverThread, onNavigate, onSelectThread, render, rerender };
+  return { onComment, onHoverThread, onNavigate, onSelectThread, render, rerender, unmount: () => unmount() };
 }
 
 /**

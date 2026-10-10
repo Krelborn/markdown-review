@@ -1,5 +1,6 @@
 import { Button } from "@krelborn/stylesui";
 import type { JSX } from "react";
+import { useState } from "react";
 
 import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
 import { blockPassage } from "../../anchoring/blockPassage";
@@ -58,6 +59,13 @@ export function DocumentControls({
   selectedThreadId,
   selectionComment,
 }: DocumentControlsProps): JSX.Element {
+  const [isButtonFocused, setIsButtonFocused] = useState(false);
+  const [buttonBlock, setButtonBlock] = useState<BlockBox | null>(null);
+  // The + follows the pointer, and stays on its last block while it has the focus, so the focus is not lost with it
+  const shownButtonBlock = hoveredBlock ?? (isButtonFocused ? buttonBlock : null);
+  if (shownButtonBlock !== buttonBlock) {
+    setButtonBlock(shownButtonBlock);
+  }
   const commentOnBlock = (blockIndex: number): void => {
     const anchor = rendered === null ? null : blockPassage(rendered.documentText, shown.path, blockIndex);
     if (anchor !== null) {
@@ -71,11 +79,13 @@ export function DocumentControls({
   return (
     <>
       {pendingBlock !== null && <BlockTarget box={pendingBlock} />}
-      {hoveredBlock !== null && (
+      {shownButtonBlock !== null && (
         <BlockCommentButton
-          block={hoveredBlock}
-          isFramed={pendingBlock?.index === hoveredBlock.index}
-          onComment={() => commentOnBlock(hoveredBlock.index)}
+          block={shownButtonBlock}
+          isFocused={isButtonFocused}
+          isFramed={pendingBlock?.index === shownButtonBlock.index}
+          onComment={() => commentOnBlock(shownButtonBlock.index)}
+          onFocusChange={setIsButtonFocused}
         />
       )}
       <ThreadMarkers markers={markers} onSelectThread={onSelectThread} selectedThreadId={selectedThreadId} />
