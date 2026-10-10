@@ -74,7 +74,7 @@ test("must open the linked doc without reloading the page when the user follows 
 
   await page.getByRole("link", { name: "spec" }).click();
 
-  await expect(page.getByRole("heading", { level: 1, name: "docs/spec.md" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "spec.md" })).toBeVisible();
   expect(await page.evaluate(() => "loadedBeforeTheLink" in window)).toBe(true);
   await expect(page).toHaveURL((url) => url.pathname + url.hash === "/document/docs/spec.md#goals");
   await expect(page.getByRole("heading", { level: 2, name: "Goals" })).toBeInViewport();

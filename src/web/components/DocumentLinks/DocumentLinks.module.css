@@ -1,0 +1,9 @@
+.fileName {
+  display: block;
+}
+
+.folder {
+  color: var(--sui-color-text-muted);
+  display: block;
+  font-size: var(--sui-font-size-xs);
+}

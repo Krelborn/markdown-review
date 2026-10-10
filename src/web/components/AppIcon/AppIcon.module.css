@@ -1,0 +1,17 @@
+.appIcon {
+  block-size: 1.5rem;
+  display: block;
+  inline-size: 1.5rem;
+}
+
+.bubble {
+  fill: var(--sui-color-primary);
+}
+
+.mark {
+  fill: none;
+  stroke: var(--sui-color-on-primary);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+}
