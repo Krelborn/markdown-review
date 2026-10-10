@@ -101,6 +101,7 @@ All underlines are 2px with a 3px offset, written as the longhand `text-decorati
   - `pointer-events: none`, `aria-hidden`, `data-md-ignore`.
   - It fades in over 120ms, unless the user prefers reduced motion.
 - **Keeping focus.** While the + has focus it stays on its last block after the pointer leaves the view, so the focus and the target are not lost with it.
+- **Re-rendering.** When the doc renders again, the + and its target go until the pointer moves onto a block, since the block they were on may have moved or be another block now.
 - **While writing.** The open editor's new comment can be a passage that covers exactly one block's whole text, as `blockPassage` builds it. While it is, the target stays on that block. It is measured like the markers, again whenever the content resizes, and goes when the editor closes or saves.
 - The target sits above the doc's text and below the + and the markers. Its fill is light enough to read through.
 

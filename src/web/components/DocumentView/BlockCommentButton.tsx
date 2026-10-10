@@ -1,6 +1,6 @@
 import { Button } from "@krelborn/stylesui";
 import type { JSX } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { BlockBox } from "./BlockBox";
 import { BlockTarget } from "./BlockTarget";
@@ -38,6 +38,8 @@ export function BlockCommentButton({
   onFocusChange,
 }: BlockCommentButtonProps): JSX.Element {
   const [isPointedAt, setIsPointedAt] = useState(false);
+  // Removing the + while it has the focus fires no blur, so the focus is reported lost here
+  useEffect(() => () => onFocusChange(false), [onFocusChange]);
   return (
     <>
       {(isFocused || isPointedAt) && !isFramed && <BlockTarget box={block} />}

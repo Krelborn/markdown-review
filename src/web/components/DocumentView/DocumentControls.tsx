@@ -60,11 +60,13 @@ export function DocumentControls({
   selectionComment,
 }: DocumentControlsProps): JSX.Element {
   const [isButtonFocused, setIsButtonFocused] = useState(false);
-  const [buttonBlock, setButtonBlock] = useState<BlockBox | null>(null);
-  // The + follows the pointer, and stays on its last block while it has the focus, so the focus is not lost with it
-  const shownButtonBlock = hoveredBlock ?? (isButtonFocused ? buttonBlock : null);
-  if (shownButtonBlock !== buttonBlock) {
-    setButtonBlock(shownButtonBlock);
+  const [buttonBlock, setButtonBlock] = useState<{ block: BlockBox; rendered: RenderedDocument | null } | null>(null);
+  // The + follows the pointer, and stays on its last block while it has the focus, so the focus is not lost with it;
+  // not after the doc renders again, though, as the block may have moved or be another block now
+  const keptBlock = isButtonFocused && buttonBlock?.rendered === rendered ? buttonBlock.block : null;
+  const shownButtonBlock = hoveredBlock ?? keptBlock;
+  if (shownButtonBlock !== null && shownButtonBlock !== buttonBlock?.block) {
+    setButtonBlock({ block: shownButtonBlock, rendered });
   }
   const commentOnBlock = (blockIndex: number): void => {
     const anchor = rendered === null ? null : blockPassage(rendered.documentText, shown.path, blockIndex);

@@ -31,6 +31,15 @@ const source = [
 
 const plan: DocumentSource = { hash: "hash of the plan", path: "docs/plan.md", source };
 
+/**
+ * The plan with a paragraph added before its others, so each of them is a different block than before
+ */
+const revisedPlan: DocumentSource = {
+  hash: "hash of the revised plan",
+  path: "docs/plan.md",
+  source: source.replace("# Plan\n", "# Plan\n\nA new first paragraph.\n"),
+};
+
 const cacheAnchor = buildPassageAnchor({ endOffset: 29, prefix: "Plan\nWe ", startOffset: 8 });
 
 const retriesAnchor = buildPassageAnchor({ anchoredText: "Retries", endOffset: 64, quote: "Retries", startOffset: 57 });
@@ -152,6 +161,47 @@ describe("DocumentView", () => {
 
     expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveFocus();
     expect(screen.getByTestId("block-target")).toBeInTheDocument();
+  });
+
+  test("must take the + away when the doc changes under the pointer", async () => {
+    const { render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+
+    await rerender(revisedPlan);
+    await within(elements.article()).findByText("A new first paragraph.");
+
+    expect(screen.queryByRole("button", { name: "Comment on this block" })).not.toBeInTheDocument();
+  });
+
+  test("must take a focused + away when the doc changes after the pointer has left", async () => {
+    const { render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+    await tabToBlockButton(user);
+    await user.hover(document.body);
+
+    await rerender(revisedPlan);
+    await within(elements.article()).findByText("A new first paragraph.");
+
+    expect(screen.queryByRole("button", { name: "Comment on this block" })).not.toBeInTheDocument();
+  });
+
+  test("must not frame a block when the pointer comes back after the doc changed under a focused +", async () => {
+    const { render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+    await tabToBlockButton(user);
+    await user.hover(document.body);
+    await rerender(revisedPlan);
+
+    await user.hover(await within(elements.article()).findByText("A new first paragraph."));
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toBeInTheDocument();
+    expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
   });
 
   test("must keep the block framed when the user writes a comment on the whole of it", async () => {

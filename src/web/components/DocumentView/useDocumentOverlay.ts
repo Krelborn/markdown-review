@@ -74,7 +74,7 @@ export function useDocumentOverlay(
   });
   const isPointingAtHighlight = useHoveredThread(contentRef, rendered, highlightedThreads, onHoverThread);
   const selectionComment = useSelectionComment(viewRef, contentRef, rendered, documentPath);
-  const hoveredBlock = useHoveredBlock(viewRef, contentRef);
+  const hoveredBlock = useHoveredBlock(viewRef, contentRef, rendered);
   const pendingBlock = usePendingBlock(viewRef, contentRef, rendered, pendingPassage);
   return { hoveredBlock, isPointingAtHighlight, markers, pendingBlock, selectionComment };
 }
