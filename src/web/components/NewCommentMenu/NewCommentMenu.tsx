@@ -1,8 +1,7 @@
-import { Button, Popover, Stack, Text, usePopover } from "@krelborn/stylesui";
+import { AddIcon, Button, ChevronDownIcon, Popover, Stack, Text, usePopover } from "@krelborn/stylesui";
 import type { JSX } from "react";
 
 import type { NewComment } from "../../review/NewComment";
-import { ChevronDownIcon } from "../ChevronDownIcon/ChevronDownIcon";
 
 import styles from "./NewCommentMenu.module.css";
 
@@ -31,14 +30,15 @@ export function NewCommentMenu({ documentPath, onComment }: NewCommentMenuProps)
   if (documentPath === null) {
     return (
       <Button onClick={() => onComment({ anchor: { kind: "review" } })} size="sm" variant="secondary">
-        + Review comment
+        <AddIcon /> Review comment
       </Button>
     );
   }
   return (
     <>
-      <Button {...popover.getTriggerProps()} size="sm" variant="secondary">
-        + Comment <ChevronDownIcon />
+      {/* The + is hidden from screen readers, so the name tells this apart from the Comment button on a selection */}
+      <Button {...popover.getTriggerProps()} size="sm" variant="secondary" aria-label="New comment">
+        <AddIcon /> Comment <ChevronDownIcon />
       </Button>
       <Popover {...popover.getOverlayProps()}>
         <Stack gap={1}>

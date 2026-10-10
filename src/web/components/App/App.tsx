@@ -1,4 +1,4 @@
-import { IconButton, PageLayout, Theme } from "@krelborn/stylesui";
+import { CloseIcon, IconButton, PageLayout, Theme } from "@krelborn/stylesui";
 import { clsx } from "clsx";
 import type { JSX } from "react";
 import { useMemo, useRef } from "react";
@@ -16,7 +16,6 @@ import { useCommentEditor } from "../../review/useCommentEditor";
 import { useDocumentSource } from "../../review/useDocumentSource";
 import { useThreads } from "../../review/useThreads";
 import { useThreadSelection } from "../../review/useThreadSelection";
-import { CloseIcon } from "../CloseIcon/CloseIcon";
 import { DocumentsPage } from "../DocumentsPage/DocumentsPage";
 import { PageAlerts } from "../PageAlerts/PageAlerts";
 import { ReviewBar } from "../ReviewBar/ReviewBar";

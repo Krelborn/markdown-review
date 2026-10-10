@@ -66,7 +66,7 @@ test("must keep the user's place in a long doc when the agent edits it", async (
 test("must keep Submit and its menu in full view when the comments outgrow their column", async ({ page, review }) => {
   await review.open("docs/plan.md");
   for (let count = 1; count <= 12; count++) {
-    await page.getByRole("button", { name: "+ Comment" }).click();
+    await page.getByRole("button", { name: "New comment" }).click();
     await page.getByRole("button", { name: "On the whole review" }).click();
     await page.keyboard.type(`Note ${count}`);
     await page.getByRole("button", { exact: true, name: "Save" }).click();
@@ -278,7 +278,7 @@ test("must keep the tabs on their own row below the + Comment button", async ({ 
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
   await goToSpec(page);
   const tabs = comments(page).getByRole("tablist");
-  const addComment = comments(page).getByRole("button", { name: "+ Comment" });
+  const addComment = comments(page).getByRole("button", { name: "New comment" });
   await expect(tabs).toBeVisible();
 
   expect(await topOf(tabs)).toBeGreaterThanOrEqual(await bottomOf(addComment));
@@ -307,6 +307,26 @@ test("must leave the prose gap above a code block and between two code blocks wh
 
   expect(paragraphToFence).toBeGreaterThanOrEqual(15);
   expect(fenceToCode).toBeGreaterThanOrEqual(15);
+});
+
+test("must frame a table row inside its table when the table is wider than the doc column", async ({
+  page,
+  review,
+}) => {
+  const cells = Array.from({ length: 12 }, (_, index) => `Configuration${index + 1}`);
+  const row = (rowCells: string[]): string => `| ${rowCells.join(" | ")} |`;
+  await review.writeDocument("docs/plan.md", [plan, row(cells), row(cells.map(() => "-")), row(cells)].join("\n"));
+  await review.open("docs/plan.md");
+  const table = page.getByRole("article", { name: "docs/plan.md" }).getByRole("table");
+  expect(await table.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+
+  await table.getByRole("cell").first().hover();
+  await page.getByRole("button", { name: "Comment on this block" }).hover();
+
+  const frame = await boxOf(page.getByTestId("block-target"));
+  const shown = await boxOf(table);
+  expect(frame.x).toBeGreaterThanOrEqual(shown.x - 5);
+  expect(frame.x + frame.width).toBeLessThanOrEqual(shown.x + shown.width + 5);
 });
 
 function documentScrollTop(page: Page): Promise<number> {
@@ -346,7 +366,7 @@ async function goToSpec(page: Page): Promise<void> {
 }
 
 async function startReviewComment(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "+ Comment" }).click();
+  await page.getByRole("button", { name: "New comment" }).click();
   await page.getByRole("button", { name: "On the whole review" }).click();
   await expect(page.getByRole("textbox", { name: "Comment on the whole review" })).toBeFocused();
 }
@@ -374,7 +394,7 @@ async function expectBelowHeader(page: Page, element: Locator): Promise<void> {
     .toBeGreaterThanOrEqual(0);
 }
 
-async function boxOf(element: Locator): Promise<{ height: number; y: number }> {
+async function boxOf(element: Locator): Promise<{ height: number; width: number; x: number; y: number }> {
   const box = await element.boundingBox();
   if (box === null) {
     throw new Error("The element is not on the page");

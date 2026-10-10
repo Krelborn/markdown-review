@@ -1,4 +1,4 @@
-import { Button } from "@krelborn/stylesui";
+import { AddIcon, Button } from "@krelborn/stylesui";
 import type { JSX } from "react";
 import { useEffect, useState } from "react";
 
@@ -56,7 +56,7 @@ export function BlockCommentButton({
         aria-label="Comment on this block"
         data-md-ignore=""
       >
-        +
+        <AddIcon />
       </Button>
     </>
   );
