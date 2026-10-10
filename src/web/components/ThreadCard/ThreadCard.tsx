@@ -44,15 +44,7 @@ export function ThreadCard({
   const { anchor, id, messages } = thread;
   const cardRef = useRef<HTMLElement>(null);
   const editor = useCommentEditorContext();
-  const { hoveredThreadId, onHoverThread } = useContext(HoveredThreadContext);
-  // The card hovers its thread while it has the pointer or the keyboard focus, so it clears it only when both have gone
-  const isFocusedRef = useRef(false);
-  const isPointedAtRef = useRef(false);
-  const clearHoverIfOwned = (): void => {
-    if (hoveredThreadId === id) {
-      onHoverThread(null);
-    }
-  };
+  const { hoveredThreadId, onFocusThread, onHoverThread } = useContext(HoveredThreadContext);
   useEffect(() => {
     if (isSelected) {
       cardRef.current?.scrollIntoView({ block: "nearest" });
@@ -68,28 +60,13 @@ export function ThreadCard({
         [styles.selected ?? ""]: isSelected,
       })}
       onBlur={(event) => {
-        if (event.currentTarget.contains(event.relatedTarget)) {
-          return;
-        }
-        isFocusedRef.current = false;
-        if (!isPointedAtRef.current) {
-          clearHoverIfOwned();
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          onFocusThread(null);
         }
       }}
-      onFocus={() => {
-        isFocusedRef.current = true;
-        onHoverThread(id);
-      }}
-      onPointerEnter={() => {
-        isPointedAtRef.current = true;
-        onHoverThread(id);
-      }}
-      onPointerLeave={() => {
-        isPointedAtRef.current = false;
-        if (!isFocusedRef.current) {
-          clearHoverIfOwned();
-        }
-      }}
+      onFocus={() => onFocusThread(id)}
+      onPointerEnter={() => onHoverThread(id)}
+      onPointerLeave={() => onHoverThread(null)}
       padding="sm"
       ref={cardRef}
       aria-label={`Thread #${id}`}

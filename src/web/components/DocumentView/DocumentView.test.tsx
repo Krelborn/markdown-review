@@ -515,7 +515,7 @@ function setUpTest({
   const onNavigate = vi.fn();
   const onSelectThread = vi.fn();
   const view = (shown: DocumentSource, shownSelectedThreadId: number | null, shownThreads: Thread[]) => (
-    <HoveredThreadContext value={{ hoveredThreadId, onHoverThread }}>
+    <HoveredThreadContext value={{ hoveredThreadId, onFocusThread: () => {}, onHoverThread }}>
       <DocumentView
         document={shown}
         hash={hash}

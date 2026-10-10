@@ -298,74 +298,52 @@ describe("ThreadCard", () => {
     expect(onHoverThread).toHaveBeenLastCalledWith(1);
   });
 
-  test("must report no hovered thread when the pointer leaves the card it hovers", async () => {
-    const { onHoverThread, render } = setUpTest({ hoveredThreadId: 1, thread: conversation });
-    const user = userEvent.setup();
-    render();
-    await user.hover(screen.getByRole("article"));
-
-    await user.unhover(screen.getByRole("article"));
-
-    expect(onHoverThread).toHaveBeenLastCalledWith(null);
-  });
-
-  test("must leave another thread hovered when the pointer leaves the card", async () => {
-    const { onHoverThread, render } = setUpTest({ hoveredThreadId: 2, thread: conversation });
-    const user = userEvent.setup();
-    render();
-    await user.hover(screen.getByRole("article"));
-
-    await user.unhover(screen.getByRole("article"));
-
-    expect(onHoverThread).not.toHaveBeenCalledWith(null);
-  });
-
-  test("must keep its thread hovered when the pointer leaves the card while the keyboard focus is in it", async () => {
-    const { onHoverThread, render } = setUpTest({ hoveredThreadId: 1, thread: conversation });
-    const user = userEvent.setup();
-    render();
-    await user.tab();
-    await user.hover(screen.getByRole("article"));
-
-    await user.unhover(screen.getByRole("article"));
-
-    expect(onHoverThread).not.toHaveBeenCalledWith(null);
-  });
-
-  test("must report its thread as hovered when the keyboard focus moves into the card", async () => {
+  test("must report no hovered thread when the pointer leaves the card", async () => {
     const { onHoverThread, render } = setUpTest({ thread: conversation });
     const user = userEvent.setup();
     render();
+    await user.hover(screen.getByRole("article"));
 
-    await user.tab();
-
-    expect(onHoverThread).toHaveBeenLastCalledWith(1);
-  });
-
-  test("must report no hovered thread when the keyboard focus leaves the card it hovers", async () => {
-    const { onHoverThread, render } = setUpTest({ hoveredThreadId: 1, thread: conversation });
-    const user = userEvent.setup();
-    render();
-    await user.tab();
-
-    await user.tab({ shift: true });
+    await user.unhover(screen.getByRole("article"));
 
     expect(onHoverThread).toHaveBeenLastCalledWith(null);
   });
 
-  test("must leave another thread hovered when the keyboard focus leaves the card", async () => {
-    const { onHoverThread, render } = setUpTest({ hoveredThreadId: 2, thread: conversation });
+  test("must keep its thread focused when the pointer leaves the card while the keyboard focus is in it", async () => {
+    const { onFocusThread, render } = setUpTest({ thread: conversation });
+    const user = userEvent.setup();
+    render();
+    await user.tab();
+    await user.hover(screen.getByRole("article"));
+
+    await user.unhover(screen.getByRole("article"));
+
+    expect(onFocusThread).not.toHaveBeenCalledWith(null);
+  });
+
+  test("must report its thread as focused when the keyboard focus moves into the card", async () => {
+    const { onFocusThread, render } = setUpTest({ thread: conversation });
+    const user = userEvent.setup();
+    render();
+
+    await user.tab();
+
+    expect(onFocusThread).toHaveBeenLastCalledWith(1);
+  });
+
+  test("must report no focused thread when the keyboard focus leaves the card", async () => {
+    const { onFocusThread, render } = setUpTest({ thread: conversation });
     const user = userEvent.setup();
     render();
     await user.tab();
 
     await user.tab({ shift: true });
 
-    expect(onHoverThread).not.toHaveBeenCalledWith(null);
+    expect(onFocusThread).toHaveBeenLastCalledWith(null);
   });
 
   test("must keep its thread hovered when the keyboard focus leaves the card while the pointer is over it", async () => {
-    const { onHoverThread, render } = setUpTest({ hoveredThreadId: 1, thread: conversation });
+    const { onHoverThread, render } = setUpTest({ thread: conversation });
     const user = userEvent.setup();
     render();
     await user.hover(screen.getByRole("article"));
@@ -377,23 +355,16 @@ describe("ThreadCard", () => {
   });
 });
 
-function setUpTest({
-  hasNewAgentMessage = false,
-  hoveredThreadId = null,
-  thread,
-}: {
-  hasNewAgentMessage?: boolean;
-  hoveredThreadId?: number | null;
-  thread: Thread;
-}) {
+function setUpTest({ hasNewAgentMessage = false, thread }: { hasNewAgentMessage?: boolean; thread: Thread }) {
   const fake = createFakeReviewApi({ threads: [thread] });
   const onChanged = vi.fn();
+  const onFocusThread = vi.fn();
   const onHoverThread = vi.fn();
   const onSelect = vi.fn();
   const render = (): void => {
     renderBase(
       <ReviewApiContext value={fake.api}>
-        <HoveredThreadContext value={{ hoveredThreadId, onHoverThread }}>
+        <HoveredThreadContext value={{ hoveredThreadId: null, onFocusThread, onHoverThread }}>
           <CommentEditorHarness onChanged={onChanged} threads={[thread]}>
             {() => (
               <ThreadCard
@@ -409,7 +380,7 @@ function setUpTest({
       </ReviewApiContext>
     );
   };
-  return { fake, onChanged, onHoverThread, onSelect, render };
+  return { fake, onChanged, onFocusThread, onHoverThread, onSelect, render };
 }
 
 const elements = {

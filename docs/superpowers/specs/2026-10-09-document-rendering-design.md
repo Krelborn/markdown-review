@@ -162,12 +162,12 @@ Frontmatter (section 7) and alerts (section 11) change the canonical text of doc
 
 ## 9. Linking highlights and cards on hover
 
-- **State.** `App` holds `hoveredThreadId`, set by the doc and by the panel, and cleared when the pointer leaves.
+- **State.** `HoveredThreadProvider` keeps the thread under the pointer, set by the doc, its markers and the cards, apart from the thread whose card has the keyboard focus. The hovered thread is the one under the pointer, else the focused one, so a focused card's thread stays hovered after the pointer passes over another thread.
 - **In the doc.**
   - On `pointermove` over the content, at most once per animation frame, the view maps the point to an offset with `offsetAtPoint` and then to a thread with `threadAtOffset`, over the highlighted threads.
   - Hovering a marker hovers its thread.
   - While the pointer is over a highlight, the content shows a pointer cursor, since a click selects the thread.
-- **In the panel.** A thread card hovers its thread on `pointerenter` and `focusin`, and clears it on `pointerleave` and `focusout`.
+- **In the panel.** A thread card puts its thread under the pointer on `pointerenter` and clears it on `pointerleave`. It makes its thread the focused one on `focusin`, and clears that on `focusout` when the focus leaves the card.
 - **Effects.**
   - An unselected hovered thread's passage moves into the `markdown-review-hovered` highlight.
   - Its marker gets a 2px `--sui-color-primary` outline.
