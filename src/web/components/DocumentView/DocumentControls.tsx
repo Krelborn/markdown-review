@@ -75,10 +75,8 @@ export function DocumentControls({
       onComment({ anchor, renderedHash: rendered.hash });
     }
   };
-  const commentOnSelection = ({ anchor }: SelectionComment): void => {
-    if (rendered !== null) {
-      onComment({ anchor, renderedHash: rendered.hash });
-    }
+  const commentOnSelection = ({ anchor, renderedHash }: SelectionComment): void => {
+    onComment({ anchor, renderedHash });
     document.getSelection()?.removeAllRanges();
   };
   return (

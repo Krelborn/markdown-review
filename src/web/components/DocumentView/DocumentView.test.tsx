@@ -94,6 +94,24 @@ describe("DocumentView", () => {
     });
   });
 
+  test("must label a selection comment with the hash of the rendering the text was selected in when the doc renders again", async () => {
+    const { onComment, render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    selectText("cache", "24h");
+    const comment = await screen.findByRole("button", { name: "Comment" });
+    await rerender({
+      hash: "hash of the plan with four retries",
+      path: "docs/plan.md",
+      source: source.replace("three", "four"),
+    });
+    await within(elements.article()).findByText("Retries happen four times.");
+
+    await user.click(comment);
+
+    expect(onComment).toHaveBeenCalledWith(expect.objectContaining({ renderedHash: "hash of the plan" }));
+  });
+
   test("must start a comment on the whole block when the user presses + beside it", async () => {
     const { onComment, render } = setUpTest();
     const user = userEvent.setup();
@@ -406,6 +424,20 @@ describe("DocumentView", () => {
     await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
 
     await rerender(plan, { threads: [retries] });
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
+  test("must report no hovered thread when the thread under the pointer moves to another passage", async () => {
+    const { onHoverThread, render, rerender } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+
+    await rerender(plan, { threads: [buildThread({ anchor: retriesAnchor, id: 1 })] });
 
     await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
   });

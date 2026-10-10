@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { Thread } from "../../../shared/review/threadSchema";
 import { offsetAtPoint } from "../../anchoring/offsetAtPoint";
@@ -7,6 +7,11 @@ import { threadAtOffset } from "../../review/threadAtOffset";
 import { useThreadReporter } from "../../review/useThreadReporter";
 
 import type { RenderedDocument } from "./useRenderedDocument";
+
+interface Point {
+  clientX: number;
+  clientY: number;
+}
 
 /**
  * Reports the highlighted thread under the pointer as the pointer moves over the rendered doc
@@ -31,29 +36,36 @@ export function useHoveredThread(
     [onHoverThread]
   );
   // Outlives each run of the effect, so a move off a highlight is still reported after the highlighted threads change
-  const { report, reported } = useThreadReporter(onPointedThread);
+  const { report } = useThreadReporter(onPointedThread);
+  // Where the pointer last moved over the content, or null once it has left
+  const lastPointRef = useRef<Point | null>(null);
   useEffect(() => {
     const content = contentRef.current;
     if (content === null || rendered === null) {
       return;
     }
-    let frame = 0;
-    if (!highlightedThreads.some(({ id }) => id === reported())) {
-      // A hover on a thread that is no longer highlighted must end, without waiting for the pointer to move
-      report(null);
-    }
     if (highlightedThreads.length === 0) {
-      // With no highlights there is nothing to look up on each move
+      // With no highlights there is nothing to look up on each move, so the pointer is no longer followed
+      lastPointRef.current = null;
+      report(null);
       return;
     }
+    const threadAt = ({ clientX, clientY }: Point): number | null => {
+      const offset = offsetAtPoint(content, rendered.documentText, clientX, clientY);
+      return offset === null ? null : (threadAtOffset(highlightedThreads, offset)?.id ?? null);
+    };
+    // The doc or its highlights changed under a pointer that may not move again, so what it is over is looked up now
+    const lastPoint = lastPointRef.current;
+    report(lastPoint === null ? null : threadAt(lastPoint));
+    let frame = 0;
     const move = ({ clientX, clientY }: PointerEvent): void => {
+      const point = { clientX, clientY };
+      lastPointRef.current = point;
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        const offset = offsetAtPoint(content, rendered.documentText, clientX, clientY);
-        report(offset === null ? null : (threadAtOffset(highlightedThreads, offset)?.id ?? null));
-      });
+      frame = requestAnimationFrame(() => report(threadAt(point)));
     };
     const leave = (): void => {
+      lastPointRef.current = null;
       cancelAnimationFrame(frame);
       report(null);
     };
@@ -64,6 +76,6 @@ export function useHoveredThread(
       content.removeEventListener("pointermove", move);
       content.removeEventListener("pointerleave", leave);
     };
-  }, [contentRef, highlightedThreads, rendered, report, reported]);
+  }, [contentRef, highlightedThreads, rendered, report]);
   return pointedThreadId !== null;
 }

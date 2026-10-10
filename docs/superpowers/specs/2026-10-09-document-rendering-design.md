@@ -170,7 +170,8 @@ Frontmatter (section 7) and alerts (section 11) change the canonical text of doc
   - Hovering a marker hovers its thread.
   - While the pointer is over a highlight, the content shows a pointer cursor, since a click selects the thread.
 - **In the panel.** A thread card puts its thread under the pointer on `pointerenter` and clears it on `pointerleave`. It makes its thread the focused one on `focusin`, and clears that on `focusout` when the focus leaves the card.
-- **Removal.** A hover ends when what set it goes away without a `pointerleave` or `focusout`: a thread under the pointer that is no longer highlighted, a marker removed from under the pointer, a card removed while it has the pointer or the focus, or the doc view removed while the pointer is on a highlight or a marker.
+- **Changes under the pointer.** When the doc or its highlights change, the view looks up the thread at the pointer's last position again, since the pointer need not move: a thread that is no longer highlighted, or whose passage moved, stops being hovered.
+- **Removal.** A hover ends when what set it goes away without a `pointerleave` or `focusout`: a marker removed from under the pointer, a card removed while it has the pointer or the focus, or the doc view removed while the pointer is on a highlight or a marker.
 - **Effects.**
   - An unselected hovered thread's passage moves into the `markdown-review-hovered` highlight.
   - Its marker gets a 2px `--sui-color-primary` outline.
