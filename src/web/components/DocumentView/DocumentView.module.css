@@ -1,4 +1,4 @@
-/* Registered, so that it computes to a length in the view, where ch is the prose's, and script can read it */
+/* Registered, so that it computes to a length once, in the view, where ch is the prose's, whichever element uses it */
 @property --wide-room {
   syntax: "<length>";
   inherits: true;
@@ -71,6 +71,12 @@
   white-space: pre;
 }
 
+/* Ringed as Prose rings a focused table */
+.content div[data-md-block] > pre:focus-visible {
+  outline: var(--sui-focus-ring-width) solid var(--sui-color-focus-ring);
+  outline-offset: 2px;
+}
+
 /* The header is generated content, so it is in neither the selection nor the canonical text that comments anchor to */
 .content div[data-language]:has(> pre)::before {
   background-color: color-mix(in srgb, var(--sui-color-surface), var(--sui-color-text) 5%);
@@ -133,7 +139,10 @@
     center / contain no-repeat;
 }
 
+/* Wide blocks keep inside the alert's box */
 .content [class~="markdown-alert"] {
+  --wide-room: 0px;
+
   background-color: var(--alert-subtle);
   border-inline-start: 3px solid var(--alert-color);
   border-radius: var(--sui-radius-md);
@@ -403,8 +412,7 @@
 }
 
 .blockButton,
-.marker,
-.selectionButton {
+.marker {
   position: absolute;
   user-select: none;
 }
@@ -464,8 +472,21 @@
   cursor: pointer;
 }
 
-.selectionButton {
+/* Comment's lane spans the view and the room beside it, and Comment stays inside it by squeezing the space before it
+   rather than by a translate, as WebKit counts an element's box before its translate towards the doc column's width */
+.selectionLane {
+  display: flex;
+  inline-size: calc(100% + var(--wide-room));
+  inset-inline-start: 0;
+  pointer-events: none;
+  position: absolute;
+  user-select: none;
   z-index: 1;
+}
+
+.selectionButton {
+  flex: none;
+  pointer-events: auto;
 }
 
 .blockTarget {

@@ -81,7 +81,7 @@ export function useThreadHighlights(
   { hoveredThreadId, pendingPassage, selectedThreadId, threads }: ThreadHighlightOptions
 ): ThreadMarker[] {
   const [markers, setMarkers] = useState<ThreadMarker[]>([]);
-  const layoutRevision = useLayoutRevision(contentRef);
+  const layoutRevision = useLayoutRevision(viewRef, contentRef);
   useLayoutEffect(() => {
     const view = viewRef.current;
     const content = contentRef.current;

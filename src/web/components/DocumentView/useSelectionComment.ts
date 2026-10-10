@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import { selectedPassage } from "../../anchoring/selectedPassage";
 
+import { observeLayout } from "./useLayoutRevision";
 import type { RenderedDocument } from "./useRenderedDocument";
 
 export interface SelectionComment {
@@ -18,12 +19,6 @@ export interface SelectionComment {
    * The hash of the rendering the text was selected in, which the comment is sent with
    */
   renderedHash: string;
-
-  /**
-   * How far the room for Comment reaches beyond where the selection ends: to the view's right edge, and on into the
-   * room beside it that wide blocks reach into; negative when the selection ends past it
-   */
-  roomToRight: number;
 
   top: number;
 }
@@ -61,16 +56,15 @@ export function useSelectionComment(
               anchor,
               left: end.right - viewBox.left,
               renderedHash: rendered.hash,
-              roomToRight: viewBox.right + wideRoomOf(view) - end.right,
               top: end.bottom - viewBox.top,
             }
       );
     };
     document.addEventListener("selectionchange", update);
-    // Resizing the doc reflows its text, which moves where the selection ends
+    // Resizing the doc reflows its text and its wide blocks, which moves where the selection ends
     const observer = new ResizeObserver(update);
-    if (contentRef.current !== null) {
-      observer.observe(contentRef.current);
+    if (viewRef.current !== null && contentRef.current !== null) {
+      observeLayout(observer, viewRef.current, contentRef.current);
     }
     return () => {
       document.removeEventListener("selectionchange", update);
@@ -78,12 +72,4 @@ export function useSelectionComment(
     };
   }, [contentRef, documentPath, rendered, viewRef]);
   return selectionComment;
-}
-
-/**
- * @returns the room beside the view that wide blocks reach into, which the view's CSS works out as `--wide-room`, or 0
- *   where no CSS applies
- */
-function wideRoomOf(view: Element): number {
-  return Number.parseFloat(getComputedStyle(view).getPropertyValue("--wide-room")) || 0;
 }

@@ -110,22 +110,19 @@ export function DocumentControls({
       )}
       <ThreadMarkers markers={markers} onSelectThread={onSelectThread} selectedThreadId={selectedThreadId} />
       {selectionComment !== null && (
-        <Button
-          className={styles.selectionButton}
-          onClick={() => commentOnSelection(selectionComment)}
-          onMouseDown={(event) => event.preventDefault()}
-          size="sm"
-          // Moves left by however much of the button would stick out past the room it may use, as a translate's
-          // percentage is of the button's own width
-          style={{
-            left: selectionComment.left,
-            top: selectionComment.top,
-            translate: `min(0px, ${selectionComment.roomToRight}px - 100%)`,
-          }}
-          data-md-ignore=""
-        >
-          Comment
-        </Button>
+        <div className={styles.selectionLane} style={{ top: selectionComment.top }}>
+          {/* Reaches to where the selection ends, and gives way when Comment would pass the end of the lane */}
+          <span style={{ flexBasis: selectionComment.left }} />
+          <Button
+            className={styles.selectionButton}
+            onClick={() => commentOnSelection(selectionComment)}
+            onMouseDown={(event) => event.preventDefault()}
+            size="sm"
+            data-md-ignore=""
+          >
+            Comment
+          </Button>
+        </div>
       )}
     </>
   );

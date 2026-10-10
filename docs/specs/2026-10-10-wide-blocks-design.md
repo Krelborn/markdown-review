@@ -82,7 +82,7 @@ The view stays centred in the doc column at its current width, `72ch + var(--gut
 In `DocumentView.module.css`:
 
 ```css
-/* Registered so that it computes to a length in the view, which useSelectionComment reads */
+/* Registered, so that it computes to a length once, in the view, where ch is the prose's, whichever element uses it */
 @property --wide-room {
   syntax: "<length>";
   inherits: true;
@@ -143,10 +143,20 @@ Nested blocks, such as code in a list item, start at their own left edge and rea
 - `placeMarkers` measures it from the start of each range: `startContainer`'s element, then `closest("table") ?? closest("[data-md-block]")`, then that element's right edge less the content's.
 - `ThreadMarkers` places a marker at `insetInlineEnd: calc(${column * 2}rem - ${outset}px)`. Markers on the same line are in the same block, so they share an outset and their columns still step left.
 
-### Selection Comment button (`useSelectionComment.ts`)
+### Selection Comment button (`DocumentControls.tsx`, `useSelectionComment.ts`)
 
-- `roomToRight` measures to the view's right edge plus `--wide-room`, read from the view's computed style, instead of to the view's right edge. A selection that ends in the part of a wide block past the prose gets its button beside it, and the button still stays inside the doc column, because the room is never more than the view's margin.
-- Its doc comment changes to match.
+- Comment sits in a lane, `.selectionLane`: an absolutely positioned flex row as wide as the view plus `--wide-room`, at the selection's `top`. A spacer before the button has a `flex-basis` of the selection's `left` and shrinks when Comment would pass the lane's end. A selection that ends in the part of a wide block past the prose gets its button beside it, and the button never leaves the doc column, because the room is never more than the view's margin.
+- This replaces the `translate` that pulled Comment back inside the view. WebKit counts an element's box before its translate towards its scroll container's scrollable width, so a selection ending past the column's edge, as one in a scrolled code block can, made the column scroll sideways. `roomToRight` goes, as nothing reads it.
+
+### Re-measuring (`useLayoutRevision.ts`)
+
+- A wide block's width follows the frame's, so it can change while the content keeps its size, for example when only the window's width changes above about 1200px. `useLayoutRevision` takes the view as well as the content, and counts a revision when either the content or the frame round the view changes size. `observeLayout` holds what it observes, and `useSelectionComment`'s observer uses it too, so markers, the block frame, hovering and Comment are all measured again.
+- `useHoveredThread` takes `viewRef` for this.
+
+### Alerts and focus (`DocumentView.module.css`)
+
+- An alert sets `--wide-room: 0px`, so the blocks inside it keep inside its tinted box. The property is registered and inherits, so their markers get an outset of 0 too.
+- A focused code block gets the ring Prose gives a focused table: `var(--sui-focus-ring-width)` solid `var(--sui-color-focus-ring)`, offset 2px.
 
 ### Block measuring (`measureBlock.ts`)
 
@@ -197,9 +207,11 @@ A new window size, `largeWindow = { height: 1080, width: 1920 }`, and a doc with
 - "must draw a wide diagram past the prose and keep a narrow one centred in it when the window is large"
 - "must never scroll the doc column sideways" at the wide, narrow and large window sizes.
 - "must put a thread's marker just right of the wide table its passage is in": the marker's left edge is at or past the table's right edge, and inside the doc column.
-- "must keep a marker for a thread in the prose beside the prose when the doc also has a wide table"
-- "must show Comment beside a selection that ends past the prose in a wide table"
-- "must let the keyboard reach a code block that is too wide for its room, so it can scroll it": Tab from the code block before it focuses it. The test stops at focus, because Playwright's WebKit does not scroll a focused table or code block with the arrow keys, while Chromium does.
+- "must keep the marker of a thread in the prose beside the prose when the doc also has a wide table", and the same for a thread in a table narrower than the prose, whose negative outset is clamped to 0
+- "must show Comment past the prose beside a selection that ends in a wide table when the window is large"
+- "must keep a thread's marker just right of a wide block when only the window's width changes" and "must keep Comment inside the doc column when only the window's width changes after the user selects text in a wide block". Both use a doc whose height doesn't change, as `min-block-size: 50vh` makes a resize that changes the height re-measure by accident.
+- "must keep a wide code block inside the alert it is in when the window is large"
+- "must let the keyboard reach a code block that is too wide for its room, and ring it as a focused table is ringed": Tab from the code block before it focuses it, and its outline is solid with a 2px offset. The test stops at focus, because Playwright's WebKit does not scroll a focused table or code block with the arrow keys, while Chromium does.
 
 The existing tests still pass, notably:
 
@@ -234,7 +246,7 @@ None. The README and AGENTS.md say nothing about the doc's width, and older spec
 ## 12. Out of scope
 
 - A reading mode or a full-width toggle. Full-width prose would be about 200 characters a line at 1920px.
-- Wider images, blockquotes, alerts or the Properties panel.
+- Wider images, blockquotes or the Properties panel, or wide blocks reaching out of an alert.
 - Larger type on large screens.
 - Taking the extra room from the left margin too, or moving the prose off centre.
 - Making only the code blocks that overflow focusable.

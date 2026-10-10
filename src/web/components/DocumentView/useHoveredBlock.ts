@@ -63,7 +63,7 @@ export function useHoveredBlock(
   const [isPointerInView, setIsPointerInView] = useState(false);
   const [isPointerInGutter, setIsPointerInGutter] = useState(false);
   const [box, setBox] = useState<BlockBox | null>(null);
-  const layoutRevision = useLayoutRevision(contentRef);
+  const layoutRevision = useLayoutRevision(viewRef, contentRef);
   const measured = useRef<MeasuredBlocks | null>(null);
   const blockIndexLevelWith = useCallback(
     (clientY: number): number | null => {
