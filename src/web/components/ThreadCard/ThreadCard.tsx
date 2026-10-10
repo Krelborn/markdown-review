@@ -45,6 +45,20 @@ export function ThreadCard({
   const cardRef = useRef<HTMLElement>(null);
   const editor = useCommentEditorContext();
   const { hoveredThreadId, onFocusThread, onHoverThread } = useContext(HoveredThreadContext);
+  const hasPointerRef = useRef(false);
+  const hasFocusRef = useRef(false);
+  useEffect(
+    () => () => {
+      // A card removed while it has the pointer or the focus gets no pointerleave or blur, so it ends them here
+      if (hasPointerRef.current) {
+        onHoverThread(null);
+      }
+      if (hasFocusRef.current) {
+        onFocusThread(null);
+      }
+    },
+    [onFocusThread, onHoverThread]
+  );
   useEffect(() => {
     if (isSelected) {
       cardRef.current?.scrollIntoView({ block: "nearest" });
@@ -61,12 +75,22 @@ export function ThreadCard({
       })}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
+          hasFocusRef.current = false;
           onFocusThread(null);
         }
       }}
-      onFocus={() => onFocusThread(id)}
-      onPointerEnter={() => onHoverThread(id)}
-      onPointerLeave={() => onHoverThread(null)}
+      onFocus={() => {
+        hasFocusRef.current = true;
+        onFocusThread(id);
+      }}
+      onPointerEnter={() => {
+        hasPointerRef.current = true;
+        onHoverThread(id);
+      }}
+      onPointerLeave={() => {
+        hasPointerRef.current = false;
+        onHoverThread(null);
+      }}
       padding="sm"
       ref={cardRef}
       aria-label={`Thread #${id}`}

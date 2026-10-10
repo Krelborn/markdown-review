@@ -37,9 +37,12 @@ export function useHoveredThread(
         onHoverThread(threadId);
       }
     };
-    if (highlightedThreads.length === 0) {
-      // With no highlights there is nothing to look up on each move, but a hover set before the last one went must end
+    if (!highlightedThreads.some(({ id }) => id === reportedRef.current)) {
+      // A hover on a thread that is no longer highlighted must end, without waiting for the pointer to move
       report(null);
+    }
+    if (highlightedThreads.length === 0) {
+      // With no highlights there is nothing to look up on each move
       return;
     }
     const move = ({ clientX, clientY }: PointerEvent): void => {

@@ -1,3 +1,4 @@
+import type { RenderResult } from "@testing-library/react";
 import { render as renderBase, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, onTestFinished, test, vi } from "vitest";
@@ -353,6 +354,38 @@ describe("ThreadCard", () => {
 
     expect(onHoverThread).not.toHaveBeenCalledWith(null);
   });
+
+  test("must report no hovered thread when the card goes away while the pointer is over it", async () => {
+    const { onHoverThread, render } = setUpTest({ thread: conversation });
+    const user = userEvent.setup();
+    const { unmount } = render();
+    await user.hover(screen.getByRole("article"));
+
+    unmount();
+
+    expect(onHoverThread).toHaveBeenLastCalledWith(null);
+  });
+
+  test("must report no focused thread when the card goes away while the keyboard focus is in it", async () => {
+    const { onFocusThread, render } = setUpTest({ thread: conversation });
+    const user = userEvent.setup();
+    const { unmount } = render();
+    await user.tab();
+
+    unmount();
+
+    expect(onFocusThread).toHaveBeenLastCalledWith(null);
+  });
+
+  test("must leave the hovered and focused threads alone when the card goes away without the pointer or the focus", () => {
+    const { onFocusThread, onHoverThread, render } = setUpTest({ thread: conversation });
+    const { unmount } = render();
+
+    unmount();
+
+    expect(onHoverThread).not.toHaveBeenCalled();
+    expect(onFocusThread).not.toHaveBeenCalled();
+  });
 });
 
 function setUpTest({ hasNewAgentMessage = false, thread }: { hasNewAgentMessage?: boolean; thread: Thread }) {
@@ -361,7 +394,7 @@ function setUpTest({ hasNewAgentMessage = false, thread }: { hasNewAgentMessage?
   const onFocusThread = vi.fn();
   const onHoverThread = vi.fn();
   const onSelect = vi.fn();
-  const render = (): void => {
+  const render = (): RenderResult =>
     renderBase(
       <ReviewApiContext value={fake.api}>
         <HoveredThreadContext value={{ hoveredThreadId: null, onFocusThread, onHoverThread }}>
@@ -379,7 +412,6 @@ function setUpTest({ hasNewAgentMessage = false, thread }: { hasNewAgentMessage?
         </HoveredThreadContext>
       </ReviewApiContext>
     );
-  };
   return { fake, onChanged, onFocusThread, onHoverThread, onSelect, render };
 }
 

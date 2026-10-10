@@ -305,6 +305,23 @@ describe("DocumentView", () => {
     await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
   });
 
+  test("must report no hovered thread when the thread under the pointer goes away while another stays highlighted", async () => {
+    const retries = buildThread({ anchor: retriesAnchor, id: 2 });
+    const { onHoverThread, render, rerender } = setUpTest({
+      threads: [buildThread({ anchor: cacheAnchor, id: 1 }), retries],
+    });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+
+    await rerender(plan, { threads: [retries] });
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
   test("must not look for a highlight under the pointer when the doc has no highlighted threads", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
@@ -338,6 +355,20 @@ describe("DocumentView", () => {
     await user.hover(screen.getByRole("button", { name: "Thread #1" }));
 
     expect(onHoverThread).toHaveBeenLastCalledWith(1);
+  });
+
+  test("must report no hovered thread when the marker under the pointer goes away", async () => {
+    const retries = buildThread({ anchor: retriesAnchor, id: 2 });
+    const { onHoverThread, render, rerender } = setUpTest({
+      threads: [buildThread({ anchor: cacheAnchor, id: 1 }), retries],
+    });
+    const user = userEvent.setup();
+    await render();
+    await user.hover(screen.getByRole("button", { name: "Thread #1" }));
+
+    await rerender(plan, { threads: [retries] });
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
   });
 
   test("must paint each kind of highlight over the kinds before it when the doc has every kind", async () => {
