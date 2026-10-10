@@ -1,7 +1,7 @@
 import { Alert, Prose, Stack } from "@krelborn/stylesui";
 import { clsx } from "clsx";
 import type { JSX } from "react";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
 import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
@@ -77,6 +77,7 @@ export function DocumentView({
   const viewRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLElement>(null);
   const { error, rendered } = useRenderedDocument(shown);
+  const [isBlockButtonFocused, setIsBlockButtonFocused] = useState(false);
   const highlightedThreads = useMemo(
     () => threads.filter((thread) => isHighlighted(thread, selectedThreadId)),
     [selectedThreadId, threads]
@@ -84,6 +85,7 @@ export function DocumentView({
   const overlay = useDocumentOverlay(viewRef, contentRef, rendered, {
     documentPath: shown.path,
     highlightedThreads,
+    isBlockButtonFocused,
     pendingPassage,
     selectedThreadId,
   });
@@ -114,7 +116,9 @@ export function DocumentView({
         <DocumentControls
           document={shown}
           hoveredBlock={overlay.hoveredBlock}
+          isBlockButtonFocused={isBlockButtonFocused}
           markers={overlay.markers}
+          onBlockButtonFocusChange={setIsBlockButtonFocused}
           onComment={onComment}
           onSelectThread={onSelectThread}
           pendingBlock={overlay.pendingBlock}

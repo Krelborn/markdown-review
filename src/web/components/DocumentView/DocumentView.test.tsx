@@ -248,6 +248,36 @@ describe("DocumentView", () => {
     expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
   });
 
+  test("must move the + with its block when the layout moves the block under the pointer", async () => {
+    const resizes = standInForResizes();
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    const text = within(elements.article()).getByText("Retries happen three times.");
+    await user.hover(text);
+    moveBlockOf(text, 200);
+
+    resizes.resize();
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "200px" });
+  });
+
+  test("must move a focused + with its block when the layout moves the block after the pointer has left", async () => {
+    const resizes = standInForResizes();
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    const text = within(elements.article()).getByText("Retries happen three times.");
+    await user.hover(text);
+    await tabToBlockButton(user);
+    await user.hover(document.body);
+    moveBlockOf(text, 200);
+
+    resizes.resize();
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "200px" });
+  });
+
   test("must keep the block framed when the user writes a comment on the whole of it", async () => {
     const { render } = setUpTest({
       pendingPassage: {
@@ -469,6 +499,22 @@ describe("DocumentView", () => {
     Object.assign(document, { caretPositionFromPoint: () => ({ offset: 0, offsetNode: heading.firstChild }) });
 
     resizes.resize();
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
+  test("must report no hovered thread when the doc scrolls the thread away from a still pointer", async () => {
+    const { onHoverThread, render } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+    const heading = within(elements.article()).getByRole("heading", { level: 1, name: "Plan" });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 0, offsetNode: heading.firstChild }) });
+
+    fireEvent.scroll(document);
 
     await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
   });
@@ -805,6 +851,16 @@ function standInForResizes(): { resize: () => void } {
     vi.unstubAllGlobals();
   });
   return { resize: () => act(() => callbacks.forEach((callback) => callback())) };
+}
+
+/**
+ * Moves the block that holds the text to the given distance down the page, as the next measurement of it sees it
+ */
+function moveBlockOf(text: HTMLElement, top: number): void {
+  const block = text.closest("[data-md-block]");
+  if (block !== null) {
+    vi.spyOn(block, "getBoundingClientRect").mockReturnValue(new DOMRect(0, top, 600, 24));
+  }
 }
 
 async function tabToBlockButton(user: UserEvent): Promise<void> {

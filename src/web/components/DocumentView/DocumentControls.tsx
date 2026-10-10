@@ -1,6 +1,5 @@
 import { Button } from "@krelborn/stylesui";
 import type { JSX } from "react";
-import { useState } from "react";
 
 import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
 import { blockPassage } from "../../anchoring/blockPassage";
@@ -22,11 +21,22 @@ export interface DocumentControlsProps {
   document: DocumentSource;
 
   /**
-   * The block under the pointer, or null
+   * The block the + sits beside, or null
    */
   hoveredBlock: BlockBox | null;
 
+  /**
+   * Whether the + has the keyboard focus
+   */
+  isBlockButtonFocused: boolean;
+
   markers: ThreadMarker[];
+
+  /**
+   * Called when the + gains or loses the keyboard focus
+   */
+  onBlockButtonFocusChange: (isFocused: boolean) => void;
+
   onComment: (newComment: NewComment) => void;
   onSelectThread: (threadId: number) => void;
 
@@ -51,7 +61,9 @@ export interface DocumentControlsProps {
 export function DocumentControls({
   document: shown,
   hoveredBlock,
+  isBlockButtonFocused,
   markers,
+  onBlockButtonFocusChange,
   onComment,
   onSelectThread,
   pendingBlock,
@@ -59,15 +71,6 @@ export function DocumentControls({
   selectedThreadId,
   selectionComment,
 }: DocumentControlsProps): JSX.Element {
-  const [isButtonFocused, setIsButtonFocused] = useState(false);
-  const [buttonBlock, setButtonBlock] = useState<{ block: BlockBox; rendered: RenderedDocument | null } | null>(null);
-  // The + follows the pointer, and stays on its last block while it has the focus, so the focus is not lost with it;
-  // not after the doc renders again, though, as the block may have moved or be another block now
-  const keptBlock = isButtonFocused && buttonBlock?.rendered === rendered ? buttonBlock.block : null;
-  const shownButtonBlock = hoveredBlock ?? keptBlock;
-  if (shownButtonBlock !== null && shownButtonBlock !== buttonBlock?.block) {
-    setButtonBlock({ block: shownButtonBlock, rendered });
-  }
   // A comment is sent with the hash of the rendering it was made on, which lags the source while a newer one renders
   const commentOnBlock = (blockIndex: number): void => {
     const anchor = rendered === null ? null : blockPassage(rendered.documentText, shown.path, blockIndex);
@@ -82,13 +85,13 @@ export function DocumentControls({
   return (
     <>
       {pendingBlock !== null && <BlockTarget box={pendingBlock} />}
-      {shownButtonBlock !== null && (
+      {hoveredBlock !== null && (
         <BlockCommentButton
-          block={shownButtonBlock}
-          isFocused={isButtonFocused}
-          isFramed={pendingBlock?.index === shownButtonBlock.index}
-          onComment={() => commentOnBlock(shownButtonBlock.index)}
-          onFocusChange={setIsButtonFocused}
+          block={hoveredBlock}
+          isFocused={isBlockButtonFocused}
+          isFramed={pendingBlock?.index === hoveredBlock.index}
+          onComment={() => commentOnBlock(hoveredBlock.index)}
+          onFocusChange={onBlockButtonFocusChange}
         />
       )}
       <ThreadMarkers markers={markers} onSelectThread={onSelectThread} selectedThreadId={selectedThreadId} />

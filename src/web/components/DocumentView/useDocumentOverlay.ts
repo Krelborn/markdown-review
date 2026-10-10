@@ -27,6 +27,11 @@ export interface DocumentOverlayOptions {
   highlightedThreads: readonly Thread[];
 
   /**
+   * Whether the + has the keyboard focus, which keeps it on its block after the pointer leaves the view
+   */
+  isBlockButtonFocused: boolean;
+
+  /**
    * The passage of the comment the user is writing on this doc, or null
    */
   pendingPassage: NewPassageAnchor | null;
@@ -36,7 +41,8 @@ export interface DocumentOverlayOptions {
 
 export interface DocumentOverlay {
   /**
-   * The block under the pointer, or null
+   * The block the + sits beside: the block under the pointer, or the + kept on its block while it has the focus; or
+   * null
    */
   hoveredBlock: BlockBox | null;
 
@@ -63,7 +69,7 @@ export function useDocumentOverlay(
   viewRef: RefObject<HTMLElement | null>,
   contentRef: RefObject<HTMLElement | null>,
   rendered: RenderedDocument | null,
-  { documentPath, highlightedThreads, pendingPassage, selectedThreadId }: DocumentOverlayOptions
+  { documentPath, highlightedThreads, isBlockButtonFocused, pendingPassage, selectedThreadId }: DocumentOverlayOptions
 ): DocumentOverlay {
   const { hoveredThreadId, onHoverThread } = useContext(HoveredThreadContext);
   const markers = useThreadHighlights(viewRef, contentRef, rendered, {
@@ -74,7 +80,7 @@ export function useDocumentOverlay(
   });
   const isPointingAtHighlight = useHoveredThread(contentRef, rendered, highlightedThreads, onHoverThread);
   const selectionComment = useSelectionComment(viewRef, contentRef, rendered, documentPath);
-  const hoveredBlock = useHoveredBlock(viewRef, contentRef, rendered);
+  const hoveredBlock = useHoveredBlock(viewRef, contentRef, rendered, isBlockButtonFocused);
   const pendingBlock = usePendingBlock(viewRef, contentRef, rendered, pendingPassage);
   return { hoveredBlock, isPointingAtHighlight, markers, pendingBlock, selectionComment };
 }
