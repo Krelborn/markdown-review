@@ -298,8 +298,8 @@ describe("ThreadCard", () => {
     expect(onHoverThread).toHaveBeenLastCalledWith(1);
   });
 
-  test("must report no hovered thread when the pointer leaves the card", async () => {
-    const { onHoverThread, render } = setUpTest({ thread: conversation });
+  test("must report no hovered thread when the pointer leaves the card it hovers", async () => {
+    const { onHoverThread, render } = setUpTest({ hoveredThreadId: 1, thread: conversation });
     const user = userEvent.setup();
     render();
     await user.hover(screen.getByRole("article"));
@@ -307,6 +307,29 @@ describe("ThreadCard", () => {
     await user.unhover(screen.getByRole("article"));
 
     expect(onHoverThread).toHaveBeenLastCalledWith(null);
+  });
+
+  test("must leave another thread hovered when the pointer leaves the card", async () => {
+    const { onHoverThread, render } = setUpTest({ hoveredThreadId: 2, thread: conversation });
+    const user = userEvent.setup();
+    render();
+    await user.hover(screen.getByRole("article"));
+
+    await user.unhover(screen.getByRole("article"));
+
+    expect(onHoverThread).not.toHaveBeenCalledWith(null);
+  });
+
+  test("must keep its thread hovered when the pointer leaves the card while the keyboard focus is in it", async () => {
+    const { onHoverThread, render } = setUpTest({ hoveredThreadId: 1, thread: conversation });
+    const user = userEvent.setup();
+    render();
+    await user.tab();
+    await user.hover(screen.getByRole("article"));
+
+    await user.unhover(screen.getByRole("article"));
+
+    expect(onHoverThread).not.toHaveBeenCalledWith(null);
   });
 
   test("must report its thread as hovered when the keyboard focus moves into the card", async () => {
@@ -334,6 +357,18 @@ describe("ThreadCard", () => {
     const { onHoverThread, render } = setUpTest({ hoveredThreadId: 2, thread: conversation });
     const user = userEvent.setup();
     render();
+    await user.tab();
+
+    await user.tab({ shift: true });
+
+    expect(onHoverThread).not.toHaveBeenCalledWith(null);
+  });
+
+  test("must keep its thread hovered when the keyboard focus leaves the card while the pointer is over it", async () => {
+    const { onHoverThread, render } = setUpTest({ hoveredThreadId: 1, thread: conversation });
+    const user = userEvent.setup();
+    render();
+    await user.hover(screen.getByRole("article"));
     await user.tab();
 
     await user.tab({ shift: true });
