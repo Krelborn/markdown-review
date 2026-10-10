@@ -65,8 +65,8 @@
 }
 
 /* Prose scrolls every pre and spaces it at 1.5, which suits a code block, but any other pre, such as a property's
-   nested value or one written inside a paragraph, may have no tab stop for a keyboard to scroll it, so it wraps and
-   keeps the line height of the text around it */
+   nested value or one written inside a paragraph, has no tab stop from makeScrollableBlocksFocusable for a keyboard to
+   scroll it, so it wraps and keeps the line height of the text around it */
 .content pre:not(div[data-md-block] > pre) {
   line-height: inherit;
   overflow-x: visible;
