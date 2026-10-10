@@ -30,7 +30,9 @@
   position: relative;
 }
 
+/* Lines as long as the prose's need more space between them than Prose's 1.5 gives. measureBlock assumes this height. */
 .content {
+  line-height: 1.6;
   min-block-size: 50vh;
 }
 
@@ -61,8 +63,10 @@
   min-inline-size: 100%;
 }
 
-/* Code keeps its lines whole, as wrapping would break its indentation and any diagram drawn in text */
+/* Code keeps its lines whole, as wrapping would break its indentation and any diagram drawn in text, and keeps Prose's
+   line height, as its lines are short and a diagram's need to touch */
 .content div[data-md-block] > pre {
+  line-height: var(--sui-line-height-normal);
   overflow-x: auto;
   white-space: pre;
 }

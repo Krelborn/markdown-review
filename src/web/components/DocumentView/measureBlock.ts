@@ -1,9 +1,9 @@
 import type { BlockBox } from "./BlockBox";
 
 /**
- * The height of a line of the doc's body text
+ * The height of a line of the doc's body text: 16px at the line height of 1.6 that DocumentView.module.css gives it
  */
-const lineHeight = 24;
+const lineHeight = 25.6;
 
 /**
  * Measures where a block of the rendered doc is

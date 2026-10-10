@@ -485,6 +485,18 @@ test("must draw a wide diagram past the prose and keep a narrow one centred in i
   expect(narrow.x + narrow.width / 2).toBeCloseTo(prose.x + prose.width / 2, 0);
 });
 
+test("must space the prose's lines at 1.6 and code's at 1.5", async ({ page, review }) => {
+  await review.writeDocument("docs/plan.md", wideBlocksDoc);
+  await review.open("docs/plan.md");
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+  const lineHeightOf = (element: Locator): Promise<string> =>
+    element.evaluate((shown) => getComputedStyle(shown).lineHeight);
+
+  expect(await lineHeightOf(article.getByText("Prose runs on"))).toBe("25.6px");
+  expect(await lineHeightOf(article.getByRole("cell", { name: "Platform team" }))).toBe("25.6px");
+  expect(await lineHeightOf(article.locator("pre", { hasText: "const ttl" }))).toBe("21px");
+});
+
 test("must put a thread's marker just right of the wide table its passage is in when the window is large", async ({
   page,
   review,
