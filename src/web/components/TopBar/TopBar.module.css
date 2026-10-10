@@ -13,8 +13,10 @@
   flex-shrink: 0;
 }
 
+/* The auto margin pushes the About button to the bar's right end */
 .title {
   font-family: var(--sui-font-body);
   font-weight: var(--sui-font-weight-bold);
+  margin-inline-end: auto;
   min-inline-size: 0;
 }

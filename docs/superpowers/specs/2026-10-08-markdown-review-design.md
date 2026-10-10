@@ -438,6 +438,7 @@ Layout: a page exactly the height of the window, which itself never scrolls. It 
 - Doc path (repo-relative).
 - **Docs** menu: docs with open or draft threads, with counts, plus recently opened docs.
 - The bar stays on one line. A doc path too long to fit loses its start, so the file name stays in view, and hovering it shows the whole path.
+- **About** button at the right end. Its popover shows the app's version, description, licence and copyright, and links to the repository, its issues and the third-party licences, which the server serves at `/licences`. See the [about popover spec](2026-10-10-about-popover-design.md).
 
 ### Review bar
 

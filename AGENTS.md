@@ -4,7 +4,7 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 
 ## Commands
 
-- `pnpm build`: build the CLI and server into `dist/cli.js`, and the web app into `dist/web/`, which the server serves
+- `pnpm build`: build the CLI and server into `dist/cli.js`, and the web app into `dist/web/`, which the server serves. The web build also writes the licences of the packages it bundles to `dist/web/licences.md`, which the server serves at `/licences`.
 - `pnpm test`: all tests: the `node` project (`src/cli`, `src/server`, `src/shared`), the `web` project in jsdom (`src/web`), and the `integration` project, which builds `dist/cli.js` first and runs it as separate processes against temporary git repositories
 - `pnpm test:e2e`: Playwright end-to-end tests in Chromium and WebKit. They build the package first, then run the CLI and the web app together against temporary git repositories. Install the browsers once with `pnpm exec playwright install chromium webkit`.
 - `pnpm test:coverage`: tests with v8 coverage, written to `coverage/istanbul.json`

@@ -1,4 +1,4 @@
-import { rm } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 
@@ -7,6 +7,8 @@ import { setUpTemporaryDirectory } from "../testing/setUpTemporaryDirectory";
 import { setUpAppTest, testAppScript, testShellHtml } from "./testing/setUpAppTest";
 
 const getDirectory = setUpTemporaryDirectory();
+
+const testLicences = "# Licenses\n\n## react - 19.3.0 (MIT)\n";
 
 describe("shellRoutes", () => {
   test.each(["/", "/document/docs/plan.md"])(
@@ -45,6 +47,28 @@ describe("shellRoutes", () => {
       expect(await response.json()).toMatchObject({ error: { reason: "missing-file" } });
     }
   );
+
+  test("must serve the third-party licences as plain text when the page links to them", async () => {
+    const { request, webDirectory } = await setUpAppTest(getDirectory());
+    await writeFile(path.join(webDirectory, "licences.md"), testLicences);
+
+    const response = await request("GET", "/licences", {});
+
+    expect(Object.fromEntries(response.headers)).toMatchObject({
+      "content-type": "text/plain; charset=UTF-8",
+      "x-content-type-options": "nosniff",
+    });
+    expect(await response.text()).toBe(testLicences);
+  });
+
+  test("must answer that the licences are missing when the build has none", async () => {
+    const { request } = await setUpAppTest(getDirectory());
+
+    const response = await request("GET", "/licences", {});
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: { reason: "missing-file" } });
+  });
 
   test("must say the web app is missing when the build has none", async () => {
     const { request, webDirectory } = await setUpAppTest(getDirectory());
