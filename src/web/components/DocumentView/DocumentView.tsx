@@ -114,6 +114,7 @@ export function DocumentView({
           aria-label={shown.path}
         />
         <DocumentControls
+          blockIndexLevelWith={overlay.blockIndexLevelWith}
           document={shown}
           hoveredBlock={overlay.hoveredBlock}
           isBlockButtonFocused={isBlockButtonFocused}

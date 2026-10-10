@@ -1,9 +1,15 @@
-/* The prose keeps a reading width, and the + and the markers sit in the padding either side of it */
+/* The prose keeps a reading width, and the gutter with its + and the markers sit in the padding either side of it */
 .view {
+  --block-button-size: 1.75rem;
+  --gutter-size: 3rem;
+
+  /* The middle of the +, where the gutter's track and bar run */
+  --gutter-lane: calc(var(--gutter-size) - var(--sui-space-3) - var(--block-button-size) / 2);
+
   inline-size: 100%;
   margin-inline: auto;
-  max-inline-size: calc(72ch + 5rem);
-  padding-inline: 2.5rem;
+  max-inline-size: calc(72ch + var(--gutter-size) + 2.5rem);
+  padding-inline: var(--gutter-size) 2.5rem;
   position: relative;
 }
 
@@ -357,8 +363,50 @@
   user-select: none;
 }
 
+/* Centred on its block's first line, with its right edge clear of the frame around the block */
 .blockButton {
+  block-size: var(--block-button-size);
+  inline-size: var(--block-button-size);
+  inset-inline-start: calc(var(--gutter-size) - var(--sui-space-3));
+  translate: -100% -50%;
+}
+
+/* Opaque, so that the gutter's bar does not show through it */
+.blockButton.pickingBlockButton {
+  --sui-button-bg: var(--sui-color-primary-subtle);
+  --sui-button-bg-hover: color-mix(in srgb, var(--sui-color-primary) 15%, var(--sui-color-background));
+  --sui-button-fg: var(--sui-color-primary);
+}
+
+.gutter {
+  cursor: pointer;
+  inline-size: var(--gutter-size);
+  inset-block: 0;
   inset-inline-start: 0;
+  position: absolute;
+  user-select: none;
+}
+
+.gutter::before {
+  border-inline-start: var(--sui-border-width) dashed var(--sui-color-border);
+  content: "";
+  inset-block: 0;
+  inset-inline-start: var(--gutter-lane);
+  opacity: 0;
+  position: absolute;
+}
+
+.pickingGutter::before {
+  opacity: 1;
+}
+
+.gutterBar {
+  background-color: var(--sui-color-primary);
+  border-radius: var(--sui-radius-full);
+  inline-size: 3px;
+  inset-inline-start: var(--gutter-lane);
+  position: absolute;
+  translate: -50% 0;
 }
 
 .hoveredMarker {
@@ -385,6 +433,10 @@
 @media (prefers-reduced-motion: no-preference) {
   .blockTarget {
     animation: fadeIn 120ms ease-out;
+  }
+
+  .gutter::before {
+    transition: opacity 150ms ease-out;
   }
 }
 

@@ -35,7 +35,7 @@ A doc with frontmatter, code in several languages, a table, a blockquote, a Merm
 
 1. Every code block has the prose gap above and below it, and the same frame in light and dark mode. A fence that names a language shows the language.
 2. In both modes, and in Chromium and WebKit, unselected, selected and pending highlights are easy to tell apart from each other and from plain text.
-3. While the + has the pointer or keyboard focus, its block is framed. While a whole-block comment is being written, the frame stays on its block.
+3. While the + has the pointer or keyboard focus, or the pointer is in the gutter beside its block, its block is framed. While a whole-block comment is being written, the frame stays on its block.
 4. A doc with YAML frontmatter shows a Properties panel in place of the raw YAML. The panel takes whole-block comments, which quote the YAML.
 5. Comments made before this change, on docs with frontmatter or alerts, still sit on their text afterwards.
 6. Hovering a highlight emphasises its card and marker. Hovering or focusing a card emphasises its highlight.
@@ -56,6 +56,7 @@ A doc with frontmatter, code in several languages, a table, a blockquote, a Merm
 | Unlabelled fences | Plain, no header | Detect the language | Detection guesses wrong often enough to mislead, and needs another library |
 | Highlights | Tint plus underline; dashed underline while pending | Stronger tint only; underline, filled when selected | Chosen by the user. The underline marks the exact extent and works on any background |
 | + target | A ring drawn over the block | A bar in the gutter | Chosen by the user. Drawn outside the rendered HTML, so the doc is not changed |
+| Gutter | The pointer anywhere in the left gutter picks the block level with it, shown by a track and a bar beside the block as well as the ring | Only the + picks a block; a gutter tinted all the time | Chosen by the user. Moving down the gutter picks each block in turn, and the gutter stays out of sight while the user reads |
 | Frontmatter display | A Properties panel, collapsible, as one whole-block block | A one-line strip of key/value pairs; one block per property | Chosen by the user. Per-property comments would need YAML parsing on the server |
 | Frontmatter parsing | A block rule of our own in `createMarkdownIt` | `markdown-it-front-matter` 0.2.4 | About 30 lines, and we decide its token's lines and content. The package was last published in 2024 |
 | YAML | `yaml` 2.9.1, in the browser only, loaded when a doc has frontmatter | `js-yaml`; a hand-written parser | Maintained, no dependencies, and it reports errors without throwing |
@@ -101,6 +102,11 @@ All underlines are 2px with a 3px offset, written as the longhand `text-decorati
   - `pointer-events: none`, `aria-hidden`, `data-md-ignore`.
   - It fades in over 120ms, unless the user prefers reduced motion.
 - **Keeping focus.** While the + has focus it stays on its last block after the pointer leaves the view, so the focus and the target are not lost with it.
+- **The gutter.** The left padding of the view, 3rem wide, is a strip that picks blocks for the pointer:
+  - With the pointer anywhere in it, the block level with the pointer is picked. Each block owns the height down to halfway to its neighbours, so every point down the strip picks a block. Over the doc, the pointer picks the block it is over, or the block level with it where it is over no block, such as beside a list item's text.
+  - While the pointer is in it, the + moves to the picked block and takes the `--sui-color-primary-subtle` background, the block is framed, a dashed `--sui-color-border` track runs down the strip, and a 3px `--sui-color-primary` bar runs beside the block for the frame's height.
+  - A click anywhere in it starts a comment on the block level with the click. The strip is hidden from assistive technology: the + is the control for keyboards and screen readers.
+- **The +.** StylesUI's small ghost `IconButton`, 1.75rem square, labelled "Comment on this block" by a tooltip on its start side. It is centred on the block's first line of text, or on a line at the block's top when the text starts more than a line down, as a code block's does below its header. Its right edge is 0.75rem from the prose, clear of the frame.
 - **Layout.** `useHoveredBlock` follows the block the + is beside by its index, and measures it again whenever the content's layout changes, so the + and its target move with the block.
 - **Re-rendering.** When the doc renders again, the + and its target go until the pointer moves onto a block, since the block they were on may have moved or be another block now.
 - **While writing.** The open editor's new comment can be a passage that covers exactly one block's whole text, as `blockPassage` builds it. While it is, the target stays on that block. It is measured like the markers, again whenever the content resizes, and goes when the editor closes or saves.

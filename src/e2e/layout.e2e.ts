@@ -329,6 +329,20 @@ test("must frame a table row inside its table when the table is wider than the d
   expect(frame.x + frame.width).toBeLessThanOrEqual(shown.x + shown.width + 5);
 });
 
+test("must line the + up with a heading's line and keep it clear of the heading's frame", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+  const heading = page.getByRole("article", { name: "docs/plan.md" }).getByRole("heading", { level: 1, name: "Plan" });
+  await heading.hover();
+
+  await page.getByRole("button", { name: "Comment on this block" }).hover();
+
+  const button = await boxOf(page.getByRole("button", { name: "Comment on this block" }));
+  const line = await boxOf(heading);
+  const frame = await boxOf(page.getByTestId("block-target"));
+  expect(Math.abs(button.y + button.height / 2 - (line.y + line.height / 2))).toBeLessThanOrEqual(2);
+  expect(frame.x - (button.x + button.width)).toBeGreaterThanOrEqual(4);
+});
+
 function documentScrollTop(page: Page): Promise<number> {
   return page.getByRole("main").evaluate((main) => main.scrollTop);
 }

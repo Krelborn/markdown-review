@@ -7,14 +7,23 @@ import type { NewComment } from "../../review/NewComment";
 
 import type { BlockBox } from "./BlockBox";
 import { BlockCommentButton } from "./BlockCommentButton";
+import { BlockGutter } from "./BlockGutter";
 import { BlockTarget } from "./BlockTarget";
 import styles from "./DocumentView.module.css";
 import { ThreadMarkers } from "./ThreadMarkers";
+import type { HoveredBlock } from "./useHoveredBlock";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
 import type { ThreadMarker } from "./useThreadHighlights";
 
 export interface DocumentControlsProps {
+  /**
+   * Finds the block level with a distance down the page, as the gutter picks it
+   *
+   * @returns the block's index, or null when no block takes up any height
+   */
+  blockIndexLevelWith: (clientY: number) => number | null;
+
   /**
    * The doc as the server sent it
    */
@@ -23,7 +32,7 @@ export interface DocumentControlsProps {
   /**
    * The block the + sits beside, or null
    */
-  hoveredBlock: BlockBox | null;
+  hoveredBlock: HoveredBlock | null;
 
   /**
    * Whether the + has the keyboard focus
@@ -55,10 +64,12 @@ export interface DocumentControlsProps {
 }
 
 /**
- * The controls laid over the rendered doc: + beside the block under the pointer, a frame around the block a comment is
- * for, a numbered marker beside each thread's passage, and Comment beside the selected text
+ * The controls laid over the rendered doc: the gutter down its left, + beside the block the pointer picks, a frame
+ * around the block a comment is for, a numbered marker beside each thread's passage, and Comment beside the selected
+ * text
  */
 export function DocumentControls({
+  blockIndexLevelWith,
   document: shown,
   hoveredBlock,
   isBlockButtonFocused,
@@ -72,8 +83,9 @@ export function DocumentControls({
   selectionComment,
 }: DocumentControlsProps): JSX.Element {
   // A comment is sent with the hash of the rendering it was made on, which lags the source while a newer one renders
-  const commentOnBlock = (blockIndex: number): void => {
-    const anchor = rendered === null ? null : blockPassage(rendered.documentText, shown.path, blockIndex);
+  const commentOnBlock = (blockIndex: number | null): void => {
+    const anchor =
+      rendered === null || blockIndex === null ? null : blockPassage(rendered.documentText, shown.path, blockIndex);
     if (rendered !== null && anchor !== null) {
       onComment({ anchor, renderedHash: rendered.hash });
     }
@@ -84,13 +96,15 @@ export function DocumentControls({
   };
   return (
     <>
+      <BlockGutter hoveredBlock={hoveredBlock} onComment={(clientY) => commentOnBlock(blockIndexLevelWith(clientY))} />
       {pendingBlock !== null && <BlockTarget box={pendingBlock} />}
       {hoveredBlock !== null && (
         <BlockCommentButton
-          block={hoveredBlock}
+          block={hoveredBlock.box}
           isFocused={isBlockButtonFocused}
-          isFramed={pendingBlock?.index === hoveredBlock.index}
-          onComment={() => commentOnBlock(hoveredBlock.index)}
+          isFramed={pendingBlock?.index === hoveredBlock.box.index}
+          isPointerInGutter={hoveredBlock.isPointerInGutter}
+          onComment={() => commentOnBlock(hoveredBlock.box.index)}
           onFocusChange={onBlockButtonFocusChange}
         />
       )}

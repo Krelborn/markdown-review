@@ -1,56 +1,115 @@
 import type { RefObject } from "react";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { blockElementAt } from "../../anchoring/blockElementAt";
 
 import type { BlockBox } from "./BlockBox";
+import { blockLevelWith } from "./blockLevelWith";
 import { measureBlock } from "./measureBlock";
 import { useLayoutRevision } from "./useLayoutRevision";
 import type { RenderedDocument } from "./useRenderedDocument";
 
 /**
- * Follows the block the + sits beside, so the view can offer a comment on the whole block: the block under the
- * pointer, or while the + has the focus the last one the pointer was over; it is measured again whenever the content's
- * layout changes
+ * The block the + sits beside
+ */
+export interface HoveredBlock {
+  box: BlockBox;
+
+  /**
+   * Whether the pointer is in the gutter left of the doc, where it picks the block level with it
+   */
+  isPointerInGutter: boolean;
+}
+
+export interface BlockHover {
+  /**
+   * Finds the block level with a distance down the page, as the gutter picks it
+   *
+   * @returns the block's index, or null when no block takes up any height
+   */
+  blockIndexLevelWith: (clientY: number) => number | null;
+
+  /**
+   * The block the + sits beside, or null when the pointer has left the view and the + is not held, or when the doc has
+   * rendered again since the pointer picked the block, as the block may have moved or be another block now
+   */
+  hoveredBlock: HoveredBlock | null;
+}
+
+/**
+ * The doc's blocks, as measured for a layout and a rendering of the doc
+ */
+interface MeasuredBlocks {
+  boxes: BlockBox[];
+  layoutRevision: number;
+  rendered: RenderedDocument | null;
+}
+
+/**
+ * Follows the block the + sits beside, so the view can offer a comment on the whole block: the block the pointer
+ * picks, or while the + has the focus the last one it picked; it is measured again whenever the content's layout
+ * changes. The pointer picks the block it is over, and in the gutter, or over the doc between blocks, the block level
+ * with it.
  *
  * @param isHeld whether the + has the focus, which keeps it on its block after the pointer leaves the view
- * @returns where the block is, or null when the pointer has left the view and the + is not held, or when the doc has
- *   rendered again since the pointer moved onto the block, as the block may have moved or be another block now
  */
 export function useHoveredBlock(
   viewRef: RefObject<HTMLElement | null>,
   contentRef: RefObject<HTMLElement | null>,
   rendered: RenderedDocument | null,
   isHeld: boolean
-): BlockBox | null {
+): BlockHover {
   const [pointed, setPointed] = useState<{ index: number; rendered: RenderedDocument } | null>(null);
   const [isPointerInView, setIsPointerInView] = useState(false);
+  const [isPointerInGutter, setIsPointerInGutter] = useState(false);
   const [box, setBox] = useState<BlockBox | null>(null);
   const layoutRevision = useLayoutRevision(contentRef);
+  const measured = useRef<MeasuredBlocks | null>(null);
+  const blockIndexLevelWith = useCallback(
+    (clientY: number): number | null => {
+      const view = viewRef.current;
+      const content = contentRef.current;
+      if (view === null || content === null) {
+        return null;
+      }
+      if (measured.current?.layoutRevision !== layoutRevision || measured.current.rendered !== rendered) {
+        const boxes = [...content.querySelectorAll("[data-md-block]")].map((block) => measureBlock(view, block));
+        measured.current = { boxes, layoutRevision, rendered };
+      }
+      return blockLevelWith(measured.current.boxes, clientY - view.getBoundingClientRect().top)?.index ?? null;
+    },
+    [contentRef, layoutRevision, rendered, viewRef]
+  );
   useEffect(() => {
     const view = viewRef.current;
     const content = contentRef.current;
     if (view === null || content === null || rendered === null) {
       return;
     }
-    const enter = (event: MouseEvent): void => {
-      const block = event.target instanceof Node ? blockElementAt(content, event.target) : null;
-      if (block !== null) {
-        const index = Number(block.getAttribute("data-md-block"));
+    const point = (event: MouseEvent): void => {
+      const isInGutter = event.clientX < content.getBoundingClientRect().left;
+      const index = pickedBlockIndex(event, content, isInGutter, blockIndexLevelWith);
+      setIsPointerInGutter(isInGutter);
+      if (index !== null) {
         setIsPointerInView(true);
         setPointed((current) =>
           current?.index === index && current.rendered === rendered ? current : { index, rendered }
         );
       }
     };
-    const leave = (): void => setIsPointerInView(false);
-    content.addEventListener("mouseover", enter);
+    const leave = (): void => {
+      setIsPointerInView(false);
+      setIsPointerInGutter(false);
+    };
+    view.addEventListener("mouseover", point);
+    view.addEventListener("mousemove", point);
     view.addEventListener("mouseleave", leave);
     return () => {
-      content.removeEventListener("mouseover", enter);
+      view.removeEventListener("mouseover", point);
+      view.removeEventListener("mousemove", point);
       view.removeEventListener("mouseleave", leave);
     };
-  }, [contentRef, rendered, viewRef]);
+  }, [blockIndexLevelWith, contentRef, rendered, viewRef]);
   const blockIndex =
     pointed !== null && pointed.rendered === rendered && (isPointerInView || isHeld) ? pointed.index : null;
   useLayoutEffect(() => {
@@ -59,5 +118,25 @@ export function useHoveredBlock(
       blockIndex === null ? null : (contentRef.current?.querySelector(`[data-md-block="${blockIndex}"]`) ?? null);
     setBox(view === null || block === null ? null : measureBlock(view, block));
   }, [blockIndex, contentRef, layoutRevision, viewRef]);
-  return blockIndex === null ? null : box;
+  return {
+    blockIndexLevelWith,
+    hoveredBlock: blockIndex === null || box === null ? null : { box, isPointerInGutter },
+  };
+}
+
+/**
+ * @returns the index of the block the pointer picks, or null when it is elsewhere in the view, such as over a marker
+ */
+function pickedBlockIndex(
+  event: MouseEvent,
+  content: Element,
+  isInGutter: boolean,
+  blockIndexLevelWith: (clientY: number) => number | null
+): number | null {
+  const target = event.target instanceof Node && content.contains(event.target) ? event.target : null;
+  if (!isInGutter && target === null) {
+    return null;
+  }
+  const block = isInGutter || target === null ? null : blockElementAt(content, target);
+  return block === null ? blockIndexLevelWith(event.clientY) : Number(block.getAttribute("data-md-block"));
 }

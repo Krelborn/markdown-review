@@ -259,7 +259,7 @@ describe("DocumentView", () => {
 
     resizes.resize();
 
-    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "200px" });
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "212px" });
   });
 
   test("must move a focused + with its block when the layout moves the block after the pointer has left", async () => {
@@ -275,7 +275,82 @@ describe("DocumentView", () => {
 
     resizes.resize();
 
-    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "200px" });
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "212px" });
+  });
+
+  test("must put the + beside the block level with the pointer when the pointer moves down the gutter", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await user.pointer({ coords: { clientX: 10, clientY: 150 }, target: elements.gutter() });
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "152px" });
+  });
+
+  test("must frame the block level with the pointer when the pointer is in the gutter", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await user.pointer({ coords: { clientX: 10, clientY: 60 }, target: elements.gutter() });
+
+    expect(screen.getByTestId("block-target")).toHaveStyle({ top: "48px" });
+  });
+
+  test("must stop framing the block when the pointer leaves the gutter for the doc", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await user.pointer({ coords: { clientX: 10, clientY: 150 }, target: elements.gutter() });
+
+    await user.pointer({
+      coords: { clientX: 100, clientY: 150 },
+      target: within(elements.article()).getByText("Retries happen three times."),
+    });
+
+    expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
+  });
+
+  test("must start a comment on the block level with the pointer when the user clicks the gutter beside it", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    const coords = { clientX: 10, clientY: 60 };
+
+    await user.pointer([
+      { coords, target: elements.gutter() },
+      { coords, keys: "[MouseLeft]", target: elements.gutter() },
+    ]);
+
+    expect(onComment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        anchor: expect.objectContaining({ quote: "We cache results for 24h today. See the spec." }),
+      })
+    );
+  });
+
+  test("must move the + to the block level with the pointer when the pointer is over the doc but between blocks", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await user.pointer({
+      coords: { clientX: 100, clientY: 150 },
+      target: within(elements.article()).getByText("Retries happen three times."),
+    });
+
+    await user.pointer({ coords: { clientX: 300, clientY: 90 }, target: elements.article() });
+    await tabToBlockButton(user);
+    await user.keyboard("{Enter}");
+
+    expect(onComment).toHaveBeenCalledWith(
+      expect.objectContaining({ anchor: expect.objectContaining({ quote: "Goals" }) })
+    );
   });
 
   test("must keep the block framed when the user writes a comment on the whole of it", async () => {
@@ -863,6 +938,27 @@ function moveBlockOf(text: HTMLElement, top: number): void {
   }
 }
 
+/**
+ * Lays the plan out with the doc 40px from the view's left edge and its blocks 30px, 24px, 38px and 24px tall at 0px,
+ * 54px, 94px and 140px down
+ */
+function layOutBlocks(): void {
+  const article = elements.article();
+  vi.spyOn(article, "getBoundingClientRect").mockReturnValue(new DOMRect(40, 0, 600, 164));
+  const blocks = [
+    { text: within(article).getByRole("heading", { level: 1, name: "Plan" }), top: 0, height: 30 },
+    { text: within(article).getByText("We cache results for", { exact: false }), top: 54, height: 24 },
+    { text: within(article).getByRole("heading", { level: 2, name: "Goals" }), top: 94, height: 38 },
+    { text: within(article).getByText("Retries happen three times."), top: 140, height: 24 },
+  ];
+  for (const { height, text, top } of blocks) {
+    const block = text.closest("[data-md-block]");
+    if (block !== null) {
+      vi.spyOn(block, "getBoundingClientRect").mockReturnValue(new DOMRect(40, top, 600, height));
+    }
+  }
+}
+
 async function tabToBlockButton(user: UserEvent): Promise<void> {
   const linkCount = within(elements.article()).getAllByRole("link").length;
   for (let tabCount = 0; tabCount <= linkCount; tabCount += 1) {
@@ -883,6 +979,7 @@ function selectText(from: string, through: string): void {
 
 const elements = {
   article: () => screen.getByRole("article", { name: "docs/plan.md" }),
+  gutter: () => screen.getByTestId("block-gutter"),
   highlighted: (name: string): string[] => [...(CSS.highlights.get(name) ?? [])].map((range) => range.toString()),
   // NaN when no highlight has the name, as no comparison with NaN passes
   priority: (name: string): number => CSS.highlights.get(name)?.priority ?? Number.NaN,

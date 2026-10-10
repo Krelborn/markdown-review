@@ -5,7 +5,10 @@ import styles from "./DocumentView.module.css";
 
 const horizontalOutset = 4;
 
-const verticalOutset = 6;
+/**
+ * How far the frame reaches above and below its block
+ */
+export const verticalOutset = 6;
 
 export interface BlockTargetProps {
   box: BlockBox;
