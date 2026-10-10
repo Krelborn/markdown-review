@@ -60,25 +60,36 @@ export function useHoveredThread(
     const lastPoint = lastPointRef.current;
     report(lastPoint === null ? null : threadAt(lastPoint));
     let frame = 0;
-    const move = ({ clientX, clientY }: PointerEvent): void => {
-      const point = { clientX, clientY };
-      lastPointRef.current = point;
+    const lookUp = (point: Point): void => {
       if (hasHighlights) {
         cancelAnimationFrame(frame);
         frame = requestAnimationFrame(() => report(threadAt(point)));
       }
+    };
+    const move = ({ clientX, clientY }: PointerEvent): void => {
+      const point = { clientX, clientY };
+      lastPointRef.current = point;
+      lookUp(point);
     };
     const leave = (): void => {
       lastPointRef.current = null;
       cancelAnimationFrame(frame);
       report(null);
     };
+    // Scrolling moves the doc under a pointer that fires no event, so what it is over is looked up again
+    const scroll = (): void => {
+      if (lastPointRef.current !== null) {
+        lookUp(lastPointRef.current);
+      }
+    };
     content.addEventListener("pointermove", move);
     content.addEventListener("pointerleave", leave);
+    document.addEventListener("scroll", scroll, { capture: true, passive: true });
     return () => {
       cancelAnimationFrame(frame);
       content.removeEventListener("pointermove", move);
       content.removeEventListener("pointerleave", leave);
+      document.removeEventListener("scroll", scroll, { capture: true });
     };
   }, [contentRef, highlightedThreads, layoutRevision, rendered, report]);
   return pointedThreadId !== null;
