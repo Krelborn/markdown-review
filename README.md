@@ -19,7 +19,7 @@ Markdown Review is a local tool. It is one CLI that starts a small server for ea
 
 - Node.js 22.22.2 or later in the 22 line, 24.15.0 or later in the 24 line, or 26 and later
 - macOS or Linux
-- A current version of Chrome, Firefox or Safari (at least Chrome 105, Firefox 140 or Safari 17.2)
+- A current version of Chrome, Firefox or Safari (at least Chrome 123, Firefox 140 or Safari 17.5)
 
 The tool works best inside a git repository, where the repository root is the scope of the review. Outside one, it uses the current directory.
 

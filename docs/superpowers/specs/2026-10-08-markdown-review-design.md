@@ -474,7 +474,7 @@ Below 48rem the sidebar becomes a drawer over the right of the document view. Th
 
 ### Supported browsers
 
-Current versions of Chrome, Firefox and Safari. The CSS Custom Highlight API sets the floor: Chrome 105, Firefox 140, Safari 17.2 (MDN browser-compat-data, 2026-10-08).
+Current versions of Chrome, Firefox and Safari. StylesUI's colours, which use the CSS `light-dark()` function, and the CSS Custom Highlight API set the floor: Chrome 123, Firefox 140, Safari 17.5 (MDN browser-compat-data 8.1.5, 2026-10-10). The floor also covers the popover API, `color-mix()` and `URL.canParse`.
 
 ### Sidebar
 
