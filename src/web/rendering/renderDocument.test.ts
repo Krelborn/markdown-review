@@ -19,6 +19,23 @@ describe("renderDocument", () => {
   );
 
   test.each([
+    { condition: "names a language Shiki knows", expected: "TS", fence: "```TS\nconst ttl = 3600;\n```\n" },
+    {
+      condition: "names a language Shiki does not know",
+      expected: "not-a-language",
+      fence: "```not-a-language\nx\n```\n",
+    },
+    { condition: "names no language", expected: null, fence: "```\nx\n```\n" },
+    { condition: "holds a Mermaid diagram", expected: null, fence: "```mermaid\ngraph TD\n```\n" },
+    { condition: "names a language holding markup", expected: '"><b>x', fence: '```"><b>x\ny\n```\n' },
+  ])("must give the fence's language to its header when the fence $condition", async ({ expected, fence }) => {
+    const page = await renderPage(fence);
+
+    expect(page.querySelector('[data-md-block="0"]')?.getAttribute("data-language")).toBe(expected);
+    expect(page.querySelector("b")).toBeNull();
+  });
+
+  test.each([
     {
       condition: "another doc",
       markdown: "[Spec](../spec.md#goals)",
@@ -66,6 +83,44 @@ describe("renderDocument", () => {
       "notes",
       "notes-1",
     ]);
+  });
+
+  test("must give each heading a link to itself that the walk of its text skips when the doc has headings", async () => {
+    const page = await renderPage("# Retry Policy\n\n## Notes\n");
+
+    const links = [...page.querySelectorAll("h1 > a, h2 > a")].map((link) => [
+      link.getAttribute("href"),
+      link.getAttribute("aria-label"),
+      link.hasAttribute("data-md-ignore"),
+    ]);
+    expect(links).toEqual([
+      ["#retry-policy", "Link to Retry Policy", true],
+      ["#notes", "Link to Notes", true],
+    ]);
+  });
+
+  test.each([
+    { marker: "NOTE", title: "Note" },
+    { marker: "tip", title: "Tip" },
+    { marker: "Important", title: "Important" },
+    { marker: "WARNING", title: "Warning" },
+    { marker: "CAUTION", title: "Caution" },
+  ])(
+    "must title a $marker alert $title, apart from the walk of the doc's text, when the doc has one",
+    async ({ marker, title }) => {
+      const page = await renderPage(`> [!${marker}]\n> Read this.\n`);
+
+      const alertTitle = page.querySelector(".markdown-alert > .markdown-alert-title");
+      expect(alertTitle?.textContent).toBe(title);
+      expect(alertTitle?.hasAttribute("data-md-ignore")).toBe(true);
+      expect(page.querySelector('[data-md-block="0"]')?.textContent).toBe("Read this.");
+    }
+  );
+
+  test("must name a heading by its text alone when it has a link", async () => {
+    const page = await renderPage("# Retry `Policy`\n");
+
+    expect(page.querySelector("h1")?.getAttribute("aria-label")).toBe("Retry Policy");
   });
 });
 

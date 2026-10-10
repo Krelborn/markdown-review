@@ -5,6 +5,7 @@ import type { LeafBlock, LeafBlockKind } from "./LeafBlock";
 const leafBlockKinds: Partial<Record<string, LeafBlockKind>> = {
   code_block: "codeBlock",
   fence: "fence",
+  front_matter: "frontMatter",
   heading_open: "inline",
   html_block: "htmlBlock",
   paragraph_open: "inline",

@@ -1,12 +1,50 @@
+const definitionAttribute = "data-mermaid-definition";
+
+let renderCount = 0;
+
 /**
- * Draws a rendered doc's Mermaid diagrams in place of their source, loading Mermaid only when the doc has a diagram
+ * The drawing that runs or ran last, which the next one waits for
+ */
+let lastDrawing: Promise<void> = Promise.resolve();
+
+interface Diagram {
+  definition: string;
+
+  /**
+   * What a new drawing replaces: the diagram's source, or its last drawing
+   */
+  drawing: Element;
+}
+
+/**
+ * Tells whether a rendered doc has Mermaid diagrams, drawn or not
  *
  * @param container the rendered doc
- * @returns once every diagram is drawn; a diagram Mermaid cannot read keeps showing its source
+ * @returns true when the doc has a diagram, whether its source or its drawing is showing
  */
-export async function renderMermaidDiagrams(container: Element): Promise<void> {
-  const sources = [...container.querySelectorAll("pre > code.language-mermaid")];
-  if (sources.length === 0) {
+export function hasMermaidDiagrams(container: Element): boolean {
+  return findDiagrams(container).length > 0;
+}
+
+/**
+ * Draws a rendered doc's Mermaid diagrams in the colours of the current light or dark mode, in place of their source
+ * or their last drawing, loading Mermaid only when the doc has a diagram
+ *
+ * Drawings run one at a time, each finding the diagrams when it starts, so a drawing that starts before the last one
+ * ends replaces what that one drew rather than a node it has already replaced, and the latest mode's colours win
+ *
+ * @param container the rendered doc
+ * @returns once every diagram is drawn; a diagram Mermaid cannot read keeps showing what it showed
+ */
+export function renderMermaidDiagrams(container: Element): Promise<void> {
+  const drawing = lastDrawing.then(() => drawDiagrams(container));
+  lastDrawing = drawing.catch(() => undefined);
+  return drawing;
+}
+
+async function drawDiagrams(container: Element): Promise<void> {
+  const diagrams = findDiagrams(container);
+  if (diagrams.length === 0) {
     return;
   }
   const { default: mermaid } = await import("mermaid");
@@ -15,14 +53,33 @@ export async function renderMermaidDiagrams(container: Element): Promise<void> {
     startOnLoad: false,
     theme: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default",
   });
-  for (const [index, source] of sources.entries()) {
-    const definition = source.textContent;
+  for (const { definition, drawing } of diagrams) {
     if ((await mermaid.parse(definition, { suppressErrors: true })) === false) {
       continue;
     }
-    const { svg } = await mermaid.render(`mermaid-diagram-${index}`, definition);
+    const { svg } = await mermaid.render(nextRenderId(), definition);
     const diagram = document.createElement("template");
     diagram.innerHTML = svg;
-    source.parentElement?.replaceWith(diagram.content);
+    drawing.parentElement?.setAttribute(definitionAttribute, definition);
+    drawing.replaceWith(diagram.content);
   }
+}
+
+/**
+ * Mermaid removes the element that has the id it renders with, so each rendering needs an id no drawing already has
+ */
+function nextRenderId(): string {
+  renderCount += 1;
+  return `mermaid-diagram-${renderCount}`;
+}
+
+function findDiagrams(container: Element): Diagram[] {
+  const sources = [...container.querySelectorAll("pre > code.language-mermaid")].flatMap((code): Diagram[] =>
+    code.parentElement === null ? [] : [{ definition: code.textContent, drawing: code.parentElement }]
+  );
+  const drawn = [...container.querySelectorAll(`[${definitionAttribute}] > svg`)].flatMap((svg): Diagram[] => {
+    const definition = svg.parentElement?.getAttribute(definitionAttribute) ?? null;
+    return definition === null ? [] : [{ definition, drawing: svg }];
+  });
+  return [...sources, ...drawn];
 }

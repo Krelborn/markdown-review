@@ -1,4 +1,13 @@
-import { render as renderBase, screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render as renderBase,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+  within,
+} from "@testing-library/react";
+import type { UserEvent } from "@testing-library/user-event";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, onTestFinished, test, vi } from "vitest";
 
@@ -6,9 +15,16 @@ import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
 import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import { buildPassageAnchor, buildThread } from "../../../shared/review/testing/reviewBuilders";
 import type { Thread } from "../../../shared/review/threadSchema";
+import { HoveredThreadContext } from "../../review/HoveredThreadContext";
 
 import { DocumentView } from "./DocumentView";
-import { pendingHighlightName, selectedHighlightName, threadsHighlightName } from "./useThreadHighlights";
+import {
+  hoveredHighlightName,
+  overlapHighlightName,
+  pendingHighlightName,
+  selectedHighlightName,
+  threadsHighlightName,
+} from "./useThreadHighlights";
 
 const source = [
   "# Plan",
@@ -23,9 +39,25 @@ const source = [
 
 const plan: DocumentSource = { hash: "hash of the plan", path: "docs/plan.md", source };
 
+/**
+ * The plan with a paragraph added before its others, so each of them is a different block than before
+ */
+const revisedPlan: DocumentSource = {
+  hash: "hash of the revised plan",
+  path: "docs/plan.md",
+  source: source.replace("# Plan\n", "# Plan\n\nA new first paragraph.\n"),
+};
+
 const cacheAnchor = buildPassageAnchor({ endOffset: 29, prefix: "Plan\nWe ", startOffset: 8 });
 
 const retriesAnchor = buildPassageAnchor({ anchoredText: "Retries", endOffset: 64, quote: "Retries", startOffset: 57 });
+
+const todayAnchor = buildPassageAnchor({
+  anchoredText: "24h today",
+  endOffset: 35,
+  quote: "24h today",
+  startOffset: 26,
+});
 
 afterEach(() => {
   Reflect.deleteProperty(document, "caretPositionFromPoint");
@@ -63,6 +95,24 @@ describe("DocumentView", () => {
     });
   });
 
+  test("must label a selection comment with the hash of the rendering the text was selected in when the doc renders again", async () => {
+    const { onComment, render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    selectText("cache", "24h");
+    const comment = await screen.findByRole("button", { name: "Comment" });
+    await rerender({
+      hash: "hash of the plan with four retries",
+      path: "docs/plan.md",
+      source: source.replace("three", "four"),
+    });
+    await within(elements.article()).findByText("Retries happen four times.");
+
+    await user.click(comment);
+
+    expect(onComment).toHaveBeenCalledWith(expect.objectContaining({ renderedHash: "hash of the plan" }));
+  });
+
   test("must start a comment on the whole block when the user presses + beside it", async () => {
     const { onComment, render } = setUpTest();
     const user = userEvent.setup();
@@ -74,6 +124,194 @@ describe("DocumentView", () => {
     expect(onComment).toHaveBeenCalledWith(
       expect.objectContaining({ anchor: expect.objectContaining({ quote: "Retries happen three times." }) })
     );
+  });
+
+  test("must label a block comment with the hash of the rendering it was made on when a newer source is still rendering", async () => {
+    const { onComment, render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+    const rendering = rerender(revisedPlan);
+
+    fireEvent.click(screen.getByRole("button", { name: "Comment on this block" }));
+    await rendering;
+
+    expect(onComment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        anchor: expect.objectContaining({ quote: "Retries happen three times." }),
+        renderedHash: "hash of the plan",
+      })
+    );
+  });
+
+  test("must frame the block when the pointer is on its +", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+
+    await user.hover(screen.getByRole("button", { name: "Comment on this block" }));
+
+    expect(screen.getByTestId("block-target")).toBeInTheDocument();
+  });
+
+  test("must stop framing the block when the pointer leaves its +", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    const block = within(elements.article()).getByText("Retries happen three times.");
+    await user.hover(block);
+    await user.hover(screen.getByRole("button", { name: "Comment on this block" }));
+
+    await user.hover(block);
+
+    expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
+  });
+
+  test("must keep the block framed when the pointer leaves the + while it has focus", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    const block = within(elements.article()).getByText("Retries happen three times.");
+    await user.hover(block);
+    await user.hover(screen.getByRole("button", { name: "Comment on this block" }));
+    await tabToBlockButton(user);
+
+    await user.hover(block);
+
+    expect(screen.getByTestId("block-target")).toBeInTheDocument();
+  });
+
+  test("must keep focus on the + when the pointer moves over another block", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+    await tabToBlockButton(user);
+
+    await user.hover(within(elements.article()).getByRole("heading", { level: 2, name: "Goals" }));
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveFocus();
+  });
+
+  test("must keep the + and its frame when the pointer leaves the doc while the + has focus", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+    await tabToBlockButton(user);
+
+    await user.hover(document.body);
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveFocus();
+    expect(screen.getByTestId("block-target")).toBeInTheDocument();
+  });
+
+  test("must take the + away when the doc changes under the pointer", async () => {
+    const { render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+
+    await rerender(revisedPlan);
+    await within(elements.article()).findByText("A new first paragraph.");
+
+    expect(screen.queryByRole("button", { name: "Comment on this block" })).not.toBeInTheDocument();
+  });
+
+  test("must take a focused + away when the doc changes after the pointer has left", async () => {
+    const { render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+    await tabToBlockButton(user);
+    await user.hover(document.body);
+
+    await rerender(revisedPlan);
+    await within(elements.article()).findByText("A new first paragraph.");
+
+    expect(screen.queryByRole("button", { name: "Comment on this block" })).not.toBeInTheDocument();
+  });
+
+  test("must not frame a block when the pointer comes back after the doc changed under a focused +", async () => {
+    const { render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+    await tabToBlockButton(user);
+    await user.hover(document.body);
+    await rerender(revisedPlan);
+
+    await user.hover(await within(elements.article()).findByText("A new first paragraph."));
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toBeInTheDocument();
+    expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
+  });
+
+  test("must move the + with its block when the layout moves the block under the pointer", async () => {
+    const resizes = standInForResizes();
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    const text = within(elements.article()).getByText("Retries happen three times.");
+    await user.hover(text);
+    moveBlockOf(text, 200);
+
+    resizes.resize();
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "200px" });
+  });
+
+  test("must move a focused + with its block when the layout moves the block after the pointer has left", async () => {
+    const resizes = standInForResizes();
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    const text = within(elements.article()).getByText("Retries happen three times.");
+    await user.hover(text);
+    await tabToBlockButton(user);
+    await user.hover(document.body);
+    moveBlockOf(text, 200);
+
+    resizes.resize();
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "200px" });
+  });
+
+  test("must keep the block framed when the user writes a comment on the whole of it", async () => {
+    const { render } = setUpTest({
+      pendingPassage: {
+        document: "docs/plan.md",
+        endOffset: 84,
+        kind: "passage",
+        prefix: "Goals\n",
+        quote: "Retries happen three times.",
+        startOffset: 57,
+        suffix: "",
+      },
+    });
+
+    await render();
+
+    expect(await screen.findByTestId("block-target")).toBeInTheDocument();
+  });
+
+  test("must not frame a block when the user writes a comment on part of it", async () => {
+    const { render } = setUpTest({
+      pendingPassage: {
+        document: "docs/plan.md",
+        endOffset: 64,
+        kind: "passage",
+        prefix: "Goals\n",
+        quote: "Retries",
+        startOffset: 57,
+        suffix: " happen three times.",
+      },
+    });
+
+    await render();
+
+    expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
   });
 
   test("must highlight open and draft passages, and the selected thread's apart, but not resolved or outdated ones", async () => {
@@ -115,6 +353,16 @@ describe("DocumentView", () => {
     expect(elements.highlighted(pendingHighlightName)).toEqual(["cache results for 24h"]);
   });
 
+  test("must deepen the highlight when two threads' passages overlap", async () => {
+    const { render } = setUpTest({
+      threads: [buildThread({ anchor: cacheAnchor, id: 1 }), buildThread({ anchor: todayAnchor, id: 2 })],
+    });
+
+    await render();
+
+    expect(elements.highlighted(overlapHighlightName)).toEqual(["24h"]);
+  });
+
   test("must select a thread when the user clicks its marker", async () => {
     const { onSelectThread, render } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
     const user = userEvent.setup();
@@ -137,6 +385,243 @@ describe("DocumentView", () => {
     expect(onSelectThread).toHaveBeenCalledWith(1);
   });
 
+  test("must report the thread of a highlight when the pointer moves over it", async () => {
+    const { onHoverThread, render } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+
+    await user.hover(passage);
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+  });
+
+  test("must report no hovered thread when the pointer leaves the doc", async () => {
+    const { onHoverThread, render } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+
+    await user.unhover(passage);
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
+  test("must report no hovered thread when the pointer moves off a highlight after its thread is selected", async () => {
+    const { onHoverThread, render, rerender } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+    await rerender(plan, { selectedThreadId: 1 });
+    const plainText = within(elements.article()).getByText("Retries happen three times.");
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 0, offsetNode: plainText.firstChild }) });
+
+    await user.hover(plainText);
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
+  test("must report no hovered thread when the last highlighted thread goes away while the pointer is on it", async () => {
+    const { onHoverThread, render, rerender } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+
+    await rerender(plan, { threads: [] });
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
+  test("must report no hovered thread when the thread under the pointer goes away while another stays highlighted", async () => {
+    const retries = buildThread({ anchor: retriesAnchor, id: 2 });
+    const { onHoverThread, render, rerender } = setUpTest({
+      threads: [buildThread({ anchor: cacheAnchor, id: 1 }), retries],
+    });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+
+    await rerender(plan, { threads: [retries] });
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
+  test("must report no hovered thread when the thread under the pointer moves to another passage", async () => {
+    const { onHoverThread, render, rerender } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+
+    await rerender(plan, { threads: [buildThread({ anchor: retriesAnchor, id: 1 })] });
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
+  test("must report the thread under a still pointer when a highlight appears under it", async () => {
+    const { onHoverThread, render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+
+    await rerender(plan, { threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+  });
+
+  test("must report no hovered thread when the doc's layout moves the thread away from a still pointer", async () => {
+    const resizes = standInForResizes();
+    const { onHoverThread, render } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+    const heading = within(elements.article()).getByRole("heading", { level: 1, name: "Plan" });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 0, offsetNode: heading.firstChild }) });
+
+    resizes.resize();
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
+  test("must report no hovered thread when the doc scrolls the thread away from a still pointer", async () => {
+    const { onHoverThread, render } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+    const heading = within(elements.article()).getByRole("heading", { level: 1, name: "Plan" });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 0, offsetNode: heading.firstChild }) });
+
+    fireEvent.scroll(document);
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
+  test("must report no hovered thread when the doc goes away while the pointer is on a highlight", async () => {
+    const { onHoverThread, render, unmount } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    const passage = within(elements.article()).getByText("We cache results for", { exact: false });
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 10, offsetNode: passage.firstChild }) });
+    await user.hover(passage);
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(1));
+
+    unmount();
+
+    expect(onHoverThread).toHaveBeenLastCalledWith(null);
+  });
+
+  test("must not look for a highlight under the pointer when the doc has no highlighted threads", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    const caretPositionFromPoint = vi.fn();
+    Object.assign(document, { caretPositionFromPoint });
+    await render();
+
+    await user.hover(within(elements.article()).getByText("We cache results for", { exact: false }));
+    await new Promise(requestAnimationFrame);
+
+    expect(caretPositionFromPoint).not.toHaveBeenCalled();
+  });
+
+  test("must emphasise the passage of a thread when the user points at it in the comments", async () => {
+    const { render } = setUpTest({
+      hoveredThreadId: 1,
+      threads: [buildThread({ anchor: cacheAnchor, id: 1 }), buildThread({ anchor: retriesAnchor, id: 2 })],
+    });
+
+    await render();
+
+    expect(elements.highlighted(hoveredHighlightName)).toEqual(["cache results for 24h"]);
+    expect(elements.highlighted(threadsHighlightName)).toEqual(["Retries"]);
+  });
+
+  test("must report a thread as hovered when the pointer is over its marker", async () => {
+    const { onHoverThread, render } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+
+    await user.hover(screen.getByRole("button", { name: "Thread #1" }));
+
+    expect(onHoverThread).toHaveBeenLastCalledWith(1);
+  });
+
+  test("must report no hovered thread when the marker under the pointer goes away", async () => {
+    const retries = buildThread({ anchor: retriesAnchor, id: 2 });
+    const { onHoverThread, render, rerender } = setUpTest({
+      threads: [buildThread({ anchor: cacheAnchor, id: 1 }), retries],
+    });
+    const user = userEvent.setup();
+    await render();
+    await user.hover(screen.getByRole("button", { name: "Thread #1" }));
+
+    await rerender(plan, { threads: [retries] });
+
+    await waitFor(() => expect(onHoverThread).toHaveBeenLastCalledWith(null));
+  });
+
+  test("must report no hovered thread when the doc goes away while the pointer is on a marker", async () => {
+    const { onHoverThread, render, unmount } = setUpTest({ threads: [buildThread({ anchor: cacheAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    await user.hover(screen.getByRole("button", { name: "Thread #1" }));
+
+    unmount();
+
+    expect(onHoverThread).toHaveBeenLastCalledWith(null);
+  });
+
+  test("must paint each kind of highlight over the kinds before it when the doc has every kind", async () => {
+    const { render } = setUpTest({
+      hoveredThreadId: 3,
+      pendingPassage: {
+        document: "docs/plan.md",
+        endOffset: 29,
+        kind: "passage",
+        prefix: "Plan\nWe ",
+        quote: "cache results for 24h",
+        startOffset: 8,
+        suffix: "",
+      },
+      selectedThreadId: 4,
+      threads: [
+        buildThread({ anchor: cacheAnchor, id: 1 }),
+        buildThread({ anchor: todayAnchor, id: 2 }),
+        buildThread({ anchor: retriesAnchor, id: 3 }),
+        buildThread({ anchor: retriesAnchor, id: 4 }),
+      ],
+    });
+
+    await render();
+
+    expect(elements.priority(overlapHighlightName)).toBeGreaterThan(elements.priority(threadsHighlightName));
+    expect(elements.priority(hoveredHighlightName)).toBeGreaterThan(elements.priority(overlapHighlightName));
+    expect(elements.priority(selectedHighlightName)).toBeGreaterThan(elements.priority(hoveredHighlightName));
+    expect(elements.priority(pendingHighlightName)).toBeGreaterThan(elements.priority(selectedHighlightName));
+  });
+
   test("must show a linked doc in the page when the user follows a link to it", async () => {
     const { onNavigate, render } = setUpTest();
     const user = userEvent.setup();
@@ -145,6 +630,30 @@ describe("DocumentView", () => {
     await user.click(within(elements.article()).getByRole("link", { name: "spec" }));
 
     expect(onNavigate).toHaveBeenCalledWith("/document/docs/spec.md#goals");
+  });
+
+  test("must copy the page's address, holding the heading, when the user clicks a heading's link", async () => {
+    onTestFinished(() => history.replaceState(null, "", "/"));
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(within(elements.article()).getByRole("link", { name: "Link to Goals" }));
+
+    expect(location.hash).toBe("#goals");
+    expect(await navigator.clipboard.readText()).toBe(location.href);
+  });
+
+  test("must still put the heading in the address when the browser refuses the copy", async () => {
+    onTestFinished(() => history.replaceState(null, "", "/"));
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new DOMException("Denied", "NotAllowedError"));
+
+    await user.click(within(elements.article()).getByRole("link", { name: "Link to Goals" }));
+
+    expect(location.hash).toBe("#goals");
   });
 
   test("must stop offering Comment when the user selects text outside the doc", async () => {
@@ -240,6 +749,7 @@ describe("DocumentView", () => {
 interface SetUpOptions {
   container?: HTMLElement;
   hash?: string;
+  hoveredThreadId?: number | null;
   pendingPassage?: NewPassageAnchor | null;
   selectedThreadId?: number | null;
   threads?: Thread[];
@@ -248,38 +758,49 @@ interface SetUpOptions {
 function setUpTest({
   container,
   hash = "",
+  hoveredThreadId = null,
   pendingPassage = null,
   selectedThreadId = null,
   threads = [],
 }: SetUpOptions = {}) {
   const onComment = vi.fn();
+  const onHoverThread = vi.fn();
   const onNavigate = vi.fn();
   const onSelectThread = vi.fn();
-  const view = (shown: DocumentSource) => (
-    <DocumentView
-      document={shown}
-      hash={hash}
-      onComment={onComment}
-      onNavigate={onNavigate}
-      onSelectThread={onSelectThread}
-      pendingPassage={pendingPassage}
-      revealCount={0}
-      selectedThreadId={selectedThreadId}
-      threads={threads}
-    />
+  const view = (shown: DocumentSource, shownSelectedThreadId: number | null, shownThreads: Thread[]) => (
+    <HoveredThreadContext value={{ hoveredThreadId, onFocusThread: () => {}, onHoverThread }}>
+      <DocumentView
+        document={shown}
+        hash={hash}
+        onComment={onComment}
+        onNavigate={onNavigate}
+        onSelectThread={onSelectThread}
+        pendingPassage={pendingPassage}
+        revealCount={0}
+        selectedThreadId={shownSelectedThreadId}
+        threads={shownThreads}
+      />
+    </HoveredThreadContext>
   );
   let rerenderBase: (ui: ReturnType<typeof view>) => void = () => {};
+  let unmount: () => void = () => {};
   const render = async (shown = plan): Promise<void> => {
-    rerenderBase = renderBase(view(shown), { container }).rerender;
+    ({ rerender: rerenderBase, unmount } = renderBase(view(shown, selectedThreadId, threads), { container }));
     if (shown.source !== "") {
       await within(elements.article()).findByRole("heading", { level: 1, name: "Plan" });
     }
   };
-  const rerender = async (shown: DocumentSource): Promise<void> => {
-    rerenderBase(view(shown));
+  const rerender = async (
+    shown: DocumentSource,
+    {
+      selectedThreadId: rerenderedSelectedThreadId = selectedThreadId,
+      threads: rerenderedThreads = threads,
+    }: { selectedThreadId?: number | null; threads?: Thread[] } = {}
+  ): Promise<void> => {
+    rerenderBase(view(shown, rerenderedSelectedThreadId, rerenderedThreads));
     await within(elements.article()).findByRole("heading", { level: 1, name: "Plan" });
   };
-  return { onComment, onNavigate, onSelectThread, render, rerender };
+  return { onComment, onHoverThread, onNavigate, onSelectThread, render, rerender, unmount: () => unmount() };
 }
 
 /**
@@ -304,6 +825,51 @@ function setUpTestWithScrollContainer({ passageTop }: { passageTop: number }) {
   return { ...setUp, scrolledTo };
 }
 
+/**
+ * Moves keyboard focus from the start of the page to the + beside the hovered block, past each of the doc's links
+ */
+/**
+ * Stands in for ResizeObserver with one that reports a resize of everything observed when the test asks
+ */
+function standInForResizes(): { resize: () => void } {
+  const callbacks: (() => void)[] = [];
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      public constructor(callback: () => void) {
+        callbacks.push(callback);
+      }
+
+      public disconnect(): void {}
+
+      public observe(): void {}
+
+      public unobserve(): void {}
+    }
+  );
+  onTestFinished(() => {
+    vi.unstubAllGlobals();
+  });
+  return { resize: () => act(() => callbacks.forEach((callback) => callback())) };
+}
+
+/**
+ * Moves the block that holds the text to the given distance down the page, as the next measurement of it sees it
+ */
+function moveBlockOf(text: HTMLElement, top: number): void {
+  const block = text.closest("[data-md-block]");
+  if (block !== null) {
+    vi.spyOn(block, "getBoundingClientRect").mockReturnValue(new DOMRect(0, top, 600, 24));
+  }
+}
+
+async function tabToBlockButton(user: UserEvent): Promise<void> {
+  const linkCount = within(elements.article()).getAllByRole("link").length;
+  for (let tabCount = 0; tabCount <= linkCount; tabCount += 1) {
+    await user.tab();
+  }
+}
+
 function selectText(from: string, through: string): void {
   const article = elements.article();
   const start = within(article).getByText(from, { exact: false }).firstChild;
@@ -318,6 +884,8 @@ function selectText(from: string, through: string): void {
 const elements = {
   article: () => screen.getByRole("article", { name: "docs/plan.md" }),
   highlighted: (name: string): string[] => [...(CSS.highlights.get(name) ?? [])].map((range) => range.toString()),
+  // NaN when no highlight has the name, as no comparison with NaN passes
+  priority: (name: string): number => CSS.highlights.get(name)?.priority ?? Number.NaN,
   markers: (): string[] =>
     screen
       .getAllByRole("button")

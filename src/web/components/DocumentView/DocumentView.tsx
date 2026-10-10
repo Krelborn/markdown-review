@@ -1,6 +1,7 @@
 import { Alert, Prose, Stack } from "@krelborn/stylesui";
+import { clsx } from "clsx";
 import type { JSX } from "react";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
 import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
@@ -11,11 +12,9 @@ import type { NewComment } from "../../review/NewComment";
 import { DocumentControls } from "./DocumentControls";
 import styles from "./DocumentView.module.css";
 import { useDocumentNavigation } from "./useDocumentNavigation";
-import { useHoveredBlock } from "./useHoveredBlock";
+import { useDocumentOverlay } from "./useDocumentOverlay";
 import { useMermaidDiagrams } from "./useMermaidDiagrams";
 import { useRenderedDocument } from "./useRenderedDocument";
-import { useSelectionComment } from "./useSelectionComment";
-import { useThreadHighlights } from "./useThreadHighlights";
 
 export interface DocumentViewProps {
   /**
@@ -78,20 +77,18 @@ export function DocumentView({
   const viewRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLElement>(null);
   const { error, rendered } = useRenderedDocument(shown);
+  const [isBlockButtonFocused, setIsBlockButtonFocused] = useState(false);
   const highlightedThreads = useMemo(
     () => threads.filter((thread) => isHighlighted(thread, selectedThreadId)),
     [selectedThreadId, threads]
   );
-  const markers = useThreadHighlights(
-    viewRef,
-    contentRef,
-    rendered,
+  const overlay = useDocumentOverlay(viewRef, contentRef, rendered, {
+    documentPath: shown.path,
     highlightedThreads,
+    isBlockButtonFocused,
+    pendingPassage,
     selectedThreadId,
-    pendingPassage
-  );
-  const selectionComment = useSelectionComment(viewRef, contentRef, rendered, shown.path);
-  const hoveredBlock = useHoveredBlock(viewRef, contentRef);
+  });
   useDocumentNavigation(contentRef, rendered, {
     documentPath: shown.path,
     hash,
@@ -105,7 +102,10 @@ export function DocumentView({
   return (
     <Stack gap={3}>
       <RenderFailure error={error} />
-      <div className={styles.view} ref={viewRef}>
+      <div
+        className={clsx(styles.view, { [styles.pointingAtHighlight ?? ""]: overlay.isPointingAtHighlight })}
+        ref={viewRef}
+      >
         <Prose
           as="article"
           className={styles.content}
@@ -115,13 +115,16 @@ export function DocumentView({
         />
         <DocumentControls
           document={shown}
-          hoveredBlock={hoveredBlock}
-          markers={markers}
+          hoveredBlock={overlay.hoveredBlock}
+          isBlockButtonFocused={isBlockButtonFocused}
+          markers={overlay.markers}
+          onBlockButtonFocusChange={setIsBlockButtonFocused}
           onComment={onComment}
           onSelectThread={onSelectThread}
+          pendingBlock={overlay.pendingBlock}
           rendered={rendered}
           selectedThreadId={selectedThreadId}
-          selectionComment={selectionComment}
+          selectionComment={overlay.selectionComment}
         />
       </div>
     </Stack>

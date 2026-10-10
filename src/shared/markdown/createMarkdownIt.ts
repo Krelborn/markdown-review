@@ -1,9 +1,11 @@
+import { alert } from "@mdit/plugin-alert";
 import { tasklist } from "@mdit/plugin-tasklist";
 import markdownIt from "markdown-it";
 import type { MarkdownIt, RendererRule, StateCore } from "markdown-it";
 
 import { fenceLanguage } from "./fenceLanguage";
 import { findLeafBlocks } from "./findLeafBlocks";
+import { frontMatterRule } from "./frontMatterRule";
 import { tokenAt } from "./tokenAt";
 import { withoutFinalNewline } from "./withoutFinalNewline";
 
@@ -27,7 +29,7 @@ export interface MarkdownRenderingOptions {
  * @returns an instance whose rendered leaf block elements carry `data-md-block`, `data-md-start` and `data-md-end`
  */
 export function createMarkdownIt({ highlight }: MarkdownRenderingOptions = {}): MarkdownIt {
-  const markdown = new markdownIt({ html: true }).use(tasklist);
+  const markdown = new markdownIt({ html: true }).use(tasklist).use(alert, { titleRenderer: renderAlertTitle });
   const escapeHtml = markdown.utils.escapeHtml;
 
   const renderFence: RendererRule = (tokens, index, _options, _environment, renderer) => {
@@ -35,8 +37,9 @@ export function createMarkdownIt({ highlight }: MarkdownRenderingOptions = {}): 
     const code = withoutFinalNewline(token.content);
     const language = fenceLanguage(token.info);
     const languageClass = language === "" ? "" : ` class="language-${escapeHtml(language)}"`;
+    const languageHeader = language === "" || language === "mermaid" ? "" : ` data-language="${escapeHtml(language)}"`;
     const highlighted = highlight?.(code, language) ?? `<pre><code${languageClass}>${escapeHtml(code)}</code></pre>`;
-    return `<div${renderer.renderAttrs(token)}>${highlighted}</div>\n`;
+    return `<div${renderer.renderAttrs(token)}${languageHeader}>${highlighted}</div>\n`;
   };
 
   const renderCodeBlock: RendererRule = (tokens, index, _options, _environment, renderer) => {
@@ -44,11 +47,20 @@ export function createMarkdownIt({ highlight }: MarkdownRenderingOptions = {}): 
     return `<div${renderer.renderAttrs(token)}><pre><code>${escapeHtml(withoutFinalNewline(token.content))}</code></pre></div>\n`;
   };
 
+  // The browser replaces this code with a Properties panel; the server only needs the block
+  const renderFrontMatterBlock: RendererRule = (tokens, index, _options, _environment, renderer) => {
+    const token = tokenAt(tokens, index);
+    const yaml = escapeHtml(withoutFinalNewline(token.content));
+    return `<div${renderer.renderAttrs(token)} data-front-matter=""><pre><code>${yaml}</code></pre></div>\n`;
+  };
+
+  markdown.block.ruler.before("table", "front_matter", frontMatterRule);
   markdown.core.ruler.push("tag_leaf_blocks", tagLeafBlocks);
   markdown.renderer.rules.paragraph_open = renderParagraphOpen;
   markdown.renderer.rules.paragraph_close = renderParagraphClose;
   markdown.renderer.rules.fence = renderFence;
   markdown.renderer.rules.code_block = renderCodeBlock;
+  markdown.renderer.rules.front_matter = renderFrontMatterBlock;
   markdown.renderer.rules.html_block = renderHtmlBlock;
   return markdown;
 }
@@ -73,4 +85,18 @@ const renderParagraphClose: RendererRule = (tokens, index, options, _environment
 const renderHtmlBlock: RendererRule = (tokens, index, _options, _environment, renderer) => {
   const token = tokenAt(tokens, index);
   return `<div${renderer.renderAttrs(token)}>${token.content}</div>\n`;
+};
+
+// The plugin accepts only these names, and gives each alert's title token its name in lower case as its markup
+const alertTitles: Partial<Record<string, string>> = {
+  caution: "Caution",
+  important: "Important",
+  note: "Note",
+  tip: "Tip",
+  warning: "Warning",
+};
+
+const renderAlertTitle: RendererRule = (tokens, index) => {
+  const name = tokenAt(tokens, index).markup;
+  return `<p class="markdown-alert-title" data-md-ignore="">${alertTitles[name] ?? name}</p>\n`;
 };

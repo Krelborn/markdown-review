@@ -19,7 +19,7 @@ Markdown Review is a local tool. It is one CLI that starts a small server for ea
 
 - Node.js 22.22.2 or later in the 22 line, 24.15.0 or later in the 24 line, or 26 and later
 - macOS or Linux
-- A current version of Chrome, Firefox or Safari (at least Chrome 105, Firefox 140 or Safari 17.2)
+- A current version of Chrome, Firefox or Safari (at least Chrome 123, Firefox 140 or Safari 17.5)
 
 The tool works best inside a git repository, where the repository root is the scope of the review. Outside one, it uses the current directory.
 
@@ -89,7 +89,7 @@ The comments are grouped into Drafts, Open, Outdated and Resolved. When other do
 
 The bar beneath the comments shows whether the agent is listening. If it is not, your comments wait in its inbox until it next looks; the **Submit** menu says which.
 
-Links between markdown docs in the repository open in the app. Docs render with GitHub-style tables, task lists, syntax-highlighted code and Mermaid diagrams.
+Links between markdown docs in the repository open in the app. Docs render with GitHub-style tables, task lists, alerts, syntax-highlighted code and Mermaid diagrams. Frontmatter shows as a Properties panel at the top of the doc, and each heading has a link you can copy.
 
 ### Commands
 

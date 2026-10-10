@@ -1,6 +1,6 @@
 import type { Token } from "markdown-it";
 
-export type LeafBlockKind = "inline" | "tableRow" | "fence" | "codeBlock" | "htmlBlock";
+export type LeafBlockKind = "inline" | "tableRow" | "fence" | "codeBlock" | "htmlBlock" | "frontMatter";
 
 /**
  * A token that opens a leaf block, the unit comments anchor to

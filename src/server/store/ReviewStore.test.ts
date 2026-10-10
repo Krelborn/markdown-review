@@ -1,10 +1,11 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { createDocumentText } from "../../shared/markdown/createDocumentText";
 import type { NewThread } from "../../shared/review/newThreadSchema";
-import { buildThread } from "../../shared/review/testing/reviewBuilders";
+import { buildPassageAnchor, buildThread } from "../../shared/review/testing/reviewBuilders";
 import { createMemoryLogger } from "../logging/testing/createMemoryLogger";
 import { setUpTemporaryDirectory } from "../testing/setUpTemporaryDirectory";
 
@@ -15,6 +16,21 @@ import { StoreError } from "./StoreError";
 const getDirectory = setUpTemporaryDirectory();
 
 const plan = "# Plan\n\nWe cache results for 24h.\n\nRetries happen three times.\n";
+
+const planWithFrontMatter = [
+  "---",
+  "tags:",
+  "  - a",
+  "  - b",
+  "---",
+  "",
+  "# Plan",
+  "",
+  "We cache results for 24h.",
+  "",
+  "Retries happen three times.",
+  "",
+].join("\n");
 
 afterEach(() => {
   vi.useRealTimers();
@@ -194,6 +210,70 @@ describe("ReviewStore", () => {
 
     expect(inbox.threads[0]?.anchor).toMatchObject({ endLine: 7, startLine: 7 });
     expect((await readStoredDocumentFile()).sourceHash).toBe(hashSource(edited));
+  });
+
+  test("must re-anchor threads stored under older canonical-text rules when their doc has not changed", async () => {
+    const { root, store } = await setUpLoadedTest();
+    const anchoredUnderOldRules = buildPassageAnchor({
+      anchoredText: "three times",
+      endLine: 3,
+      endOffset: 13,
+      prefix: "",
+      quote: "three times",
+      startLine: 3,
+      startOffset: 2,
+      suffix: "",
+    });
+    await writeJson(path.join(root, ".markdown-review", "documents", "docs", "plan.md.json"), {
+      document: "docs/plan.md",
+      sourceHash: createHash("sha256").update(plan, "utf8").digest("hex"),
+      threads: [buildThread({ anchor: anchoredUnderOldRules, id: 1 })],
+      version: 1,
+    });
+
+    const snapshot = await store.readThreads("docs/plan.md");
+
+    expect(snapshot.threads[0]?.anchor).toMatchObject({
+      endLine: 5,
+      startLine: 5,
+      startOffset: createDocumentText(plan).text.indexOf("three times"),
+    });
+  });
+
+  test("must move a thread to its text and save the new hash when the doc has frontmatter and the thread was anchored under older rules", async () => {
+    const { readStoredDocumentFile, root, store, writeDocument } = await setUpLoadedTest();
+    await writeDocument("docs/plan.md", planWithFrontMatter);
+    // The old rules read the YAML as a paragraph and a list, which dropped the list's markers
+    const textUnderOldRules = "tags:\na\nb\nPlan\nWe cache results for 24h.\nRetries happen three times.";
+    const staleStartOffset = textUnderOldRules.indexOf("three times");
+    const anchoredUnderOldRules = buildPassageAnchor({
+      anchoredText: "three times",
+      endLine: 11,
+      endOffset: staleStartOffset + "three times".length,
+      prefix: "",
+      quote: "three times",
+      startLine: 11,
+      startOffset: staleStartOffset,
+      suffix: "",
+    });
+    await writeJson(path.join(root, ".markdown-review", "documents", "docs", "plan.md.json"), {
+      document: "docs/plan.md",
+      sourceHash: createHash("sha256").update(planWithFrontMatter, "utf8").digest("hex"),
+      threads: [buildThread({ anchor: anchoredUnderOldRules, id: 1 })],
+      version: 1,
+    });
+
+    const snapshot = await store.readThreads("docs/plan.md");
+
+    const textWithFrontMatter = "tags:\n  - a\n  - b\nPlan\nWe cache results for 24h.\nRetries happen three times.";
+    const startOffset = textWithFrontMatter.indexOf("three times");
+    expect(snapshot.threads[0]?.anchor).toMatchObject({
+      endLine: 11,
+      endOffset: startOffset + "three times".length,
+      startLine: 11,
+      startOffset,
+    });
+    expect((await readStoredDocumentFile()).sourceHash).toBe(hashSource(planWithFrontMatter));
   });
 
   test("must mark passage threads outdated when the doc is deleted and restore them when it returns", async () => {

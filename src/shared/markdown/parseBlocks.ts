@@ -37,15 +37,8 @@ function toSourceTextBlock({ endLine, startLine }: MarkdownBlock, sourceLines: r
 function toMarkdownBlock(tokens: readonly Token[], leafBlock: LeafBlock): MarkdownBlock {
   const { endLine, kind, startLine, token, tokenIndex } = leafBlock;
   switch (kind) {
-    case "inline": {
-      const children = tokenAt(tokens, tokenIndex + 1).children ?? [];
-      const { lineStartOffsets, text } = inlineText(children);
-      const lineOffsets = [0, ...lineStartOffsets].map((offset, index) => ({ line: startLine + index, offset }));
-      const isSetextHeading = token.markup === "=" || token.markup === "-";
-      const textLineCount = endLine - startLine + (isSetextHeading ? 0 : 1);
-      const exactLines = lineOffsets.length === textLineCount;
-      return { endLine, exactLines, lineOffsets, startLine, text, wholeBlockOnly: hasStructuralHtml(children) };
-    }
+    case "inline":
+      return toInlineBlock(tokens, leafBlock);
     case "tableRow": {
       const text = tableRowCells(tokens, tokenIndex).join("\t");
       const lineOffsets = [{ line: startLine, offset: 0 }];
@@ -57,6 +50,11 @@ function toMarkdownBlock(tokens: readonly Token[], leafBlock: LeafBlock): Markdo
       const lineOffsets = codeLineOffsets(text, startLine + 1, endLine);
       return { endLine, exactLines: true, lineOffsets, startLine, text, wholeBlockOnly };
     }
+    case "frontMatter": {
+      const text = withoutFinalNewline(token.content);
+      const lineOffsets = codeLineOffsets(text, startLine + 1, endLine);
+      return { endLine, exactLines: true, lineOffsets, startLine, text, wholeBlockOnly: true };
+    }
     case "codeBlock":
     case "htmlBlock": {
       const text = withoutFinalNewline(token.content);
@@ -65,6 +63,16 @@ function toMarkdownBlock(tokens: readonly Token[], leafBlock: LeafBlock): Markdo
       return { endLine, exactLines: true, lineOffsets, startLine, text, wholeBlockOnly };
     }
   }
+}
+
+function toInlineBlock(tokens: readonly Token[], { endLine, startLine, token, tokenIndex }: LeafBlock): MarkdownBlock {
+  const children = tokenAt(tokens, tokenIndex + 1).children ?? [];
+  const { lineStartOffsets, text } = inlineText(children);
+  const lineOffsets = [0, ...lineStartOffsets].map((offset, index) => ({ line: startLine + index, offset }));
+  const isSetextHeading = token.markup === "=" || token.markup === "-";
+  const textLineCount = endLine - startLine + (isSetextHeading ? 0 : 1);
+  const exactLines = lineOffsets.length === textLineCount;
+  return { endLine, exactLines, lineOffsets, startLine, text, wholeBlockOnly: hasStructuralHtml(children) };
 }
 
 function tableRowCells(tokens: readonly Token[], rowTokenIndex: number): string[] {

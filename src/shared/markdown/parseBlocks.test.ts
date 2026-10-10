@@ -49,6 +49,16 @@ describe("parseBlocks", () => {
       expected: [oneLineBlock(1, "a"), oneLineBlock(3, "b")],
     },
     {
+      condition: "a GitHub alert holds a paragraph",
+      source: "> [!NOTE]\n> Cache for **24h**.\n",
+      expected: [oneLineBlock(2, "Cache for 24h.")],
+    },
+    {
+      condition: "an alert's marker has nothing after it",
+      source: "> [!NOTE]\n",
+      expected: [oneLineBlock(1, "[!NOTE]")],
+    },
+    {
       condition: "a table has a header row and a body row",
       source: "| a | b |\n|---|---|\n| 1 | `2` |\n",
       expected: [oneLineBlock(1, "a\tb"), oneLineBlock(3, "1\t2")],
@@ -187,6 +197,77 @@ describe("parseBlocks", () => {
           wholeBlockOnly: true,
         },
       ],
+    },
+    {
+      condition: "the doc starts with frontmatter",
+      source: "---\ntitle: Plan\ntags: [a, b]\n---\n\n# Plan\n",
+      expected: [
+        {
+          endLine: 4,
+          exactLines: true,
+          lineOffsets: [
+            { line: 2, offset: 0 },
+            { line: 3, offset: 12 },
+          ],
+          startLine: 1,
+          text: "title: Plan\ntags: [a, b]",
+          wholeBlockOnly: true,
+        },
+        oneLineBlock(6, "Plan"),
+      ],
+    },
+    {
+      condition: "the frontmatter has Windows line endings",
+      source: "---\r\ntitle: Plan\r\n---\r\n\r\n# Plan\r\n",
+      expected: [
+        {
+          endLine: 3,
+          exactLines: true,
+          lineOffsets: [{ line: 2, offset: 0 }],
+          startLine: 1,
+          text: "title: Plan",
+          wholeBlockOnly: true,
+        },
+        oneLineBlock(5, "Plan"),
+      ],
+    },
+    {
+      condition: "the frontmatter is empty, so it has no visible text",
+      source: "---\n---\n# Plan\n",
+      expected: [
+        {
+          endLine: 2,
+          exactLines: true,
+          lineOffsets: [
+            { line: 1, offset: 0 },
+            { line: 2, offset: 4 },
+          ],
+          startLine: 1,
+          text: "---\n---",
+          wholeBlockOnly: true,
+        },
+        oneLineBlock(3, "Plan"),
+      ],
+    },
+    {
+      condition: "the doc starts with a horizontal rule and has another one later",
+      source: "---\n\n# Plan\n\n---\n",
+      expected: [oneLineBlock(3, "Plan")],
+    },
+    {
+      condition: "the doc's first --- is never closed",
+      source: "---\ntitle: Plan\n",
+      expected: [oneLineBlock(2, "title: Plan")],
+    },
+    {
+      condition: "the doc's first --- is not on its first line",
+      source: "\n---\ntitle: Plan\n---\n",
+      expected: [{ ...oneLineBlock(3, "title: Plan"), endLine: 4 }],
+    },
+    {
+      condition: "a blockquote at the start of the doc holds --- lines",
+      source: "> ---\n> title: Plan\n> ---\n",
+      expected: [{ ...oneLineBlock(2, "title: Plan"), endLine: 3 }],
     },
     {
       condition: "the source has Windows line endings",

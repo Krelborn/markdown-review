@@ -11,16 +11,343 @@
   min-block-size: 50vh;
 }
 
-.content ::highlight(markdown-review-threads) {
-  background-color: var(--sui-color-warning-subtle);
+/* markdown-it renders some blocks with no element of their own, so a wrapper carries their attributes and needs the
+   gap Prose gives the elements it styles */
+.content div[data-md-block]:not(:first-child) {
+  margin-block-start: var(--sui-prose-flow);
 }
 
-.content ::highlight(markdown-review-selected) {
+/* Shiki writes its theme's background into the code block's style attribute */
+.content div[data-md-block] > pre {
+  background-color: var(--sui-color-surface) !important;
+  border: var(--sui-border-width) solid var(--sui-color-border);
+  border-radius: var(--sui-radius-lg);
+  margin: 0;
+}
+
+/* The header is generated content, so it is in neither the selection nor the canonical text that comments anchor to */
+.content div[data-language]:has(> pre)::before {
+  background-color: color-mix(in srgb, var(--sui-color-surface), var(--sui-color-text) 5%);
+  border: var(--sui-border-width) solid var(--sui-color-border);
+  border-block-end: none;
+  border-start-end-radius: var(--sui-radius-lg);
+  border-start-start-radius: var(--sui-radius-lg);
+  color: var(--sui-color-text-muted);
+  content: attr(data-language);
+  display: block;
+  font-family: var(--sui-font-mono);
+  font-size: var(--sui-font-size-xs);
+  padding: var(--sui-space-1) var(--sui-space-4);
+}
+
+.content div[data-language]:has(> pre) > pre {
+  border-start-end-radius: 0;
+  border-start-start-radius: 0;
+}
+
+.content div[data-md-block] > svg {
+  display: block;
+  margin-inline: auto;
+}
+
+/* Task-list checkboxes are disabled because they only show state, so they are drawn here rather than left greyed out */
+.content input[type="checkbox"] {
+  appearance: none;
+  background-color: var(--sui-color-background);
+  block-size: 1em;
+  border: var(--sui-border-width) solid var(--sui-color-input-border);
+  border-radius: var(--sui-radius-sm);
+  cursor: default;
+  display: inline-grid;
+  inline-size: 1em;
+  margin-block: 0;
+  margin-inline: 0 0.25em;
+  opacity: 1;
+  place-content: center;
+  vertical-align: -0.125em;
+}
+
+.content input[type="checkbox"]:checked {
+  background-color: var(--sui-color-primary);
+  border-color: var(--sui-color-primary);
+}
+
+.content input[type="checkbox"]:checked::before {
+  background-color: var(--sui-color-on-primary);
+  block-size: 0.75em;
+  content: "";
+  inline-size: 0.75em;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.5l3.2 3L13 4.5'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.content [class~="markdown-alert"] {
+  background-color: var(--alert-subtle);
+  border-inline-start: 3px solid var(--alert-color);
+  border-radius: var(--sui-radius-md);
+  padding: var(--sui-space-3) var(--sui-space-4);
+}
+
+.content [class~="markdown-alert"]:not(:first-child) {
+  margin-block-start: var(--sui-prose-flow);
+}
+
+.content [class~="markdown-alert-title"] {
+  align-items: center;
+  color: var(--alert-text);
+  display: flex;
+  font-weight: var(--sui-font-weight-bold);
+  gap: var(--sui-space-2);
+  user-select: none;
+}
+
+.content [class~="markdown-alert-title"]::before {
+  background-color: currentColor;
+  block-size: 1em;
+  content: "";
+  inline-size: 1em;
+  mask: var(--alert-icon) center / contain no-repeat;
+}
+
+.content [class~="markdown-alert-title"] + * {
+  margin-block-start: var(--sui-space-1);
+}
+
+.content [class~="markdown-alert-note"] {
+  --alert-color: var(--sui-color-info);
+  --alert-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='M8 7.5v3.5M8 5h.01'/%3E%3C/svg%3E");
+  --alert-subtle: var(--sui-color-info-subtle);
+  --alert-text: var(--sui-color-info-text);
+}
+
+.content [class~="markdown-alert-tip"] {
+  --alert-color: var(--sui-color-success);
+  --alert-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12h4M6.5 14h3M8 2a4 4 0 0 0-2.5 7.1c.4.3.5.8.5 1.3V11h4v-.6c0-.5.1-1 .5-1.3A4 4 0 0 0 8 2z'/%3E%3C/svg%3E");
+  --alert-subtle: var(--sui-color-success-subtle);
+  --alert-text: var(--sui-color-success-text);
+}
+
+.content [class~="markdown-alert-important"] {
+  --alert-color: var(--sui-color-primary);
+  --alert-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z'/%3E%3Cpath d='M8 5.5v2.5M8 9.5h.01'/%3E%3C/svg%3E");
+  --alert-subtle: var(--sui-color-primary-subtle);
+  --alert-text: var(--sui-color-primary);
+}
+
+.content [class~="markdown-alert-warning"] {
+  --alert-color: var(--sui-color-warning);
+  --alert-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.5 14 13H2z'/%3E%3Cpath d='M8 6.5v3M8 11.5h.01'/%3E%3C/svg%3E");
+  --alert-subtle: var(--sui-color-warning-subtle);
+  --alert-text: var(--sui-color-warning-text);
+}
+
+.content [class~="markdown-alert-caution"] {
+  --alert-color: var(--sui-color-danger);
+  --alert-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 2h5L14 5.5v5L10.5 14h-5L2 10.5v-5z'/%3E%3Cpath d='M8 5v3.5M8 11h.01'/%3E%3C/svg%3E");
+  --alert-subtle: var(--sui-color-danger-subtle);
+  --alert-text: var(--sui-color-danger-text);
+}
+
+.content [data-heading-link] {
+  color: var(--sui-color-text-muted);
+  margin-inline-start: var(--sui-space-2);
+  opacity: 0;
+  text-decoration-line: none;
+  user-select: none;
+}
+
+.content :is(h1, h2, h3, h4, h5, h6):hover > [data-heading-link],
+.content [data-heading-link]:focus-visible,
+.content [data-heading-link][data-copied] {
+  opacity: 1;
+}
+
+.content [data-heading-link][data-copied]::after {
+  color: var(--sui-color-success-text);
+  content: " ✓";
+}
+
+.content [data-properties] {
+  background-color: var(--sui-color-surface);
+  border: var(--sui-border-width) solid var(--sui-color-border);
+  border-radius: var(--sui-radius-lg);
+  font-size: var(--sui-font-size-sm);
+}
+
+.content [data-properties] > summary {
+  align-items: center;
+  color: var(--sui-color-text-muted);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--sui-font-size-xs);
+  font-weight: var(--sui-font-weight-bold);
+  gap: var(--sui-space-2);
+  letter-spacing: 0.06em;
+  list-style: none;
+  padding: var(--sui-space-2) var(--sui-space-3);
+  text-transform: uppercase;
+}
+
+/* Safari draws its own disclosure triangle unless this marker is hidden */
+.content [data-properties] > summary::-webkit-details-marker {
+  display: none;
+}
+
+.content [data-properties] > summary::before {
+  block-size: 0.4rem;
+  border-block-end: 1.5px solid currentColor;
+  border-inline-end: 1.5px solid currentColor;
+  content: "";
+  inline-size: 0.4rem;
+  rotate: -45deg;
+}
+
+.content [data-properties][open] > summary {
+  border-block-end: var(--sui-border-width) solid var(--sui-color-border);
+}
+
+.content [data-properties][open] > summary::before {
+  rotate: 45deg;
+}
+
+.content [data-properties] dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  margin: 0;
+  padding-block: var(--sui-space-2);
+}
+
+.content [data-properties] dt,
+.content [data-properties] dd {
+  margin: 0;
+  padding: var(--sui-space-1) var(--sui-space-3);
+}
+
+.content [data-properties] dt {
+  align-items: center;
+  color: var(--sui-color-text-muted);
+  display: flex;
+  gap: var(--sui-space-2);
+}
+
+.content [data-properties] dt::before {
+  background-color: currentColor;
+  block-size: 14px;
+  content: "";
+  flex: none;
+  inline-size: 14px;
+  mask: var(--property-icon) center / contain no-repeat;
+}
+
+.content [data-properties] dd {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sui-space-1);
+}
+
+.content [data-properties] dd > pre {
+  background-color: var(--sui-color-background);
+  inline-size: 100%;
+  margin: 0;
+  padding: var(--sui-space-2);
+}
+
+.content [data-properties] [data-empty] {
+  color: var(--sui-color-text-muted);
+}
+
+.content [data-properties] > [data-empty] {
+  margin: 0;
+  padding: var(--sui-space-2) var(--sui-space-3);
+}
+
+.content [data-chip] {
+  background-color: var(--sui-color-secondary-subtle);
+  border: var(--sui-border-width) solid var(--sui-color-border);
+  border-radius: var(--sui-radius-full);
+  font-size: 0.8125rem;
+  padding-inline: var(--sui-space-2);
+}
+
+.content [data-chip][data-tag] {
   background-color: var(--sui-color-primary-subtle);
+  border-color: transparent;
+  color: var(--sui-color-primary);
+}
+
+.content dt[data-type="text"],
+.content dt[data-type="empty"] {
+  --property-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4h10M3 8h10M3 12h6'/%3E%3C/svg%3E");
+}
+
+.content dt[data-type="number"] {
+  --property-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 2.5 4.5 13.5M11.5 2.5 10 13.5M2.5 6h11M2 10.5h11'/%3E%3C/svg%3E");
+}
+
+.content dt[data-type="checkbox"] {
+  --property-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='2.5' width='11' height='11' rx='2'/%3E%3Cpath d='M5 8.5l2 2 4-4.5'/%3E%3C/svg%3E");
+}
+
+.content dt[data-type="date"] {
+  --property-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='3.5' width='11' height='10' rx='1.5'/%3E%3Cpath d='M2.5 6.5h11M5.5 2v3M10.5 2v3'/%3E%3C/svg%3E");
+}
+
+.content dt[data-type="link"] {
+  --property-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 9a3 3 0 0 0 4.2 0l2-2a3 3 0 0 0-4.2-4.2l-.8.8M9 7a3 3 0 0 0-4.2 0l-2 2a3 3 0 0 0 4.2 4.2l.8-.8'/%3E%3C/svg%3E");
+}
+
+.content dt[data-type="list"] {
+  --property-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 4h7M6 8h7M6 12h7M3 4h.01M3 8h.01M3 12h.01'/%3E%3C/svg%3E");
+}
+
+.content dt[data-type="tags"] {
+  --property-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 2.5h5l6 6-5 5-6-6z'/%3E%3Ccircle cx='5.5' cy='5.5' r='1'/%3E%3C/svg%3E");
+}
+
+.content dt[data-type="nested"] {
+  --property-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 3v5a2 2 0 0 0 2 2h8M10 7l3 3-3 3'/%3E%3C/svg%3E");
+}
+
+.content ::highlight(markdown-review-threads) {
+  background-color: color-mix(in srgb, var(--sui-color-warning) 30%, transparent);
+  text-decoration-color: var(--sui-color-warning-text);
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.content ::highlight(markdown-review-overlap) {
+  background-color: color-mix(in srgb, var(--sui-color-warning) 30%, transparent);
+}
+
+.content ::highlight(markdown-review-hovered) {
+  background-color: color-mix(in srgb, var(--sui-color-warning) 55%, transparent);
+  text-decoration-color: var(--sui-color-warning-text);
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+/* Opaque, so that it covers the threads' amber beneath it rather than blending into it */
+.content ::highlight(markdown-review-selected) {
+  background-color: color-mix(in srgb, var(--sui-color-primary) 25%, var(--sui-color-background));
+  text-decoration-color: var(--sui-color-primary);
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 .content ::highlight(markdown-review-pending) {
-  background-color: var(--sui-color-primary-subtle);
+  background-color: color-mix(in srgb, var(--sui-color-primary) 25%, var(--sui-color-background));
+  text-decoration-color: var(--sui-color-primary);
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 .blockButton,
@@ -34,6 +361,35 @@
   inset-inline-start: 0;
 }
 
+.hoveredMarker {
+  outline: 2px solid var(--sui-color-primary);
+  outline-offset: 2px;
+}
+
+.pointingAtHighlight .content {
+  cursor: pointer;
+}
+
 .selectionButton {
   z-index: 1;
+}
+
+.blockTarget {
+  background-color: color-mix(in srgb, var(--sui-color-primary) 7%, transparent);
+  border: 2px solid var(--sui-color-primary);
+  border-radius: var(--sui-radius-lg);
+  pointer-events: none;
+  position: absolute;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .blockTarget {
+    animation: fadeIn 120ms ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
 }

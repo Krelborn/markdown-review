@@ -24,7 +24,7 @@ describe("offsetAtPoint", () => {
     const { container, documentText, pointAt } = await mountDocument(source);
     const caret = document.createRange();
     caret.setStart(pointAt("24h").node, pointAt("24h").offset);
-    Object.assign(document, { caretRangeFromPoint: vi.fn(() => caret) });
+    Object.assign(document, { caretPositionFromPoint: undefined, caretRangeFromPoint: vi.fn(() => caret) });
 
     expect(offsetAtPoint(container, documentText, 120, 40)).toBe(documentText.text.indexOf("24h"));
   });

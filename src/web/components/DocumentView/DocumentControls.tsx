@@ -5,8 +5,11 @@ import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
 import { blockPassage } from "../../anchoring/blockPassage";
 import type { NewComment } from "../../review/NewComment";
 
+import type { BlockBox } from "./BlockBox";
+import { BlockCommentButton } from "./BlockCommentButton";
+import { BlockTarget } from "./BlockTarget";
 import styles from "./DocumentView.module.css";
-import type { HoveredBlock } from "./useHoveredBlock";
+import { ThreadMarkers } from "./ThreadMarkers";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
 import type { ThreadMarker } from "./useThreadHighlights";
@@ -17,10 +20,30 @@ export interface DocumentControlsProps {
    */
   document: DocumentSource;
 
-  hoveredBlock: HoveredBlock | null;
+  /**
+   * The block the + sits beside, or null
+   */
+  hoveredBlock: BlockBox | null;
+
+  /**
+   * Whether the + has the keyboard focus
+   */
+  isBlockButtonFocused: boolean;
+
   markers: ThreadMarker[];
+
+  /**
+   * Called when the + gains or loses the keyboard focus
+   */
+  onBlockButtonFocusChange: (isFocused: boolean) => void;
+
   onComment: (newComment: NewComment) => void;
   onSelectThread: (threadId: number) => void;
+
+  /**
+   * The block a whole-block comment is being written on, or null
+   */
+  pendingBlock: BlockBox | null;
 
   /**
    * The doc on the page, or null until it has rendered
@@ -32,59 +55,46 @@ export interface DocumentControlsProps {
 }
 
 /**
- * The buttons laid over the rendered doc: + beside the block under the pointer, a numbered marker beside each thread's
- * passage, and Comment beside the selected text
+ * The controls laid over the rendered doc: + beside the block under the pointer, a frame around the block a comment is
+ * for, a numbered marker beside each thread's passage, and Comment beside the selected text
  */
 export function DocumentControls({
   document: shown,
   hoveredBlock,
+  isBlockButtonFocused,
   markers,
+  onBlockButtonFocusChange,
   onComment,
   onSelectThread,
+  pendingBlock,
   rendered,
   selectedThreadId,
   selectionComment,
 }: DocumentControlsProps): JSX.Element {
+  // A comment is sent with the hash of the rendering it was made on, which lags the source while a newer one renders
   const commentOnBlock = (blockIndex: number): void => {
     const anchor = rendered === null ? null : blockPassage(rendered.documentText, shown.path, blockIndex);
-    if (anchor !== null) {
-      onComment({ anchor, renderedHash: shown.hash });
+    if (rendered !== null && anchor !== null) {
+      onComment({ anchor, renderedHash: rendered.hash });
     }
   };
-  const commentOnSelection = ({ anchor }: SelectionComment): void => {
-    onComment({ anchor, renderedHash: shown.hash });
+  const commentOnSelection = ({ anchor, renderedHash }: SelectionComment): void => {
+    onComment({ anchor, renderedHash });
     document.getSelection()?.removeAllRanges();
   };
   return (
     <>
+      {pendingBlock !== null && <BlockTarget box={pendingBlock} />}
       {hoveredBlock !== null && (
-        <Button
-          className={styles.blockButton}
-          onClick={() => commentOnBlock(hoveredBlock.index)}
-          size="sm"
-          style={{ top: hoveredBlock.top }}
-          variant="ghost"
-          aria-label="Comment on this block"
-          data-md-ignore=""
-        >
-          +
-        </Button>
+        <BlockCommentButton
+          block={hoveredBlock}
+          isFocused={isBlockButtonFocused}
+          isFramed={pendingBlock?.index === hoveredBlock.index}
+          onComment={() => commentOnBlock(hoveredBlock.index)}
+          onFocusChange={onBlockButtonFocusChange}
+        />
       )}
-      {markers.map(({ column, threadId, top }) => (
-        <Button
-          className={styles.marker}
-          key={threadId}
-          onClick={() => onSelectThread(threadId)}
-          size="sm"
-          style={{ insetInlineEnd: `${column * 2}rem`, top }}
-          variant={threadId === selectedThreadId ? "primary" : "secondary"}
-          aria-label={`Thread #${threadId}`}
-          aria-pressed={threadId === selectedThreadId}
-          data-md-ignore=""
-        >
-          {threadId}
-        </Button>
-      ))}
+      <ThreadMarkers markers={markers} onSelectThread={onSelectThread} selectedThreadId={selectedThreadId} />
       {selectionComment !== null && (
         <Button
           className={styles.selectionButton}

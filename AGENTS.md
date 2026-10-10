@@ -27,7 +27,7 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 
 ## Anchoring
 
-Comments anchor to offsets in a doc's canonical text, which `parseBlocks` computes from markdown-it tokens and the browser reads back from the rendered page with `layOutBlockText`. The two must agree exactly: run the `web` project's conformance test after any change to `createMarkdownIt`, the markdown plugins, Shiki or DOMPurify, and add a case to `src/web/rendering/testing/conformanceCorpus.md` for any new kind of content.
+Comments anchor to offsets in a doc's canonical text, which `parseBlocks` computes from markdown-it tokens and the browser reads back from the rendered page with `layOutBlockText`. The two must agree exactly: run the `web` project's conformance test after any change to `createMarkdownIt`, the markdown plugins, Shiki or DOMPurify, and add a case to `src/web/rendering/testing/conformanceCorpus.md` for any new kind of content. A change that gives the same source different canonical text, such as a new markdown plugin, must also raise `anchoringVersion` in `src/shared/markdown/anchoringVersion.ts`, so threads stored under the old text are re-anchored.
 
 Install dependencies with `pnpm add` and no hand-written version, then run `pnpm format`, which sorts `package.json`. `@krelborn/stylesui` comes from GitHub Packages, and `.npmrc` reads a token with `read:packages` from `GITHUB_TOKEN`, so run pnpm as `GITHUB_TOKEN=$(gh auth token) pnpm install`.
 

@@ -8,6 +8,12 @@ import { renderDocument } from "../../rendering/renderDocument";
 
 export interface RenderedDocument {
   documentText: DocumentText;
+
+  /**
+   * The hash of the source this is a rendering of, which a comment made on it is sent with
+   */
+  hash: string;
+
   html: string;
 }
 
@@ -23,14 +29,14 @@ export interface RenderingState {
 /**
  * Renders a doc's source again whenever it changes
  */
-export function useRenderedDocument({ path, source }: DocumentSource): RenderingState {
+export function useRenderedDocument({ hash, path, source }: DocumentSource): RenderingState {
   const [state, setState] = useState<RenderingState>({ error: null, rendered: null });
   useEffect(() => {
     let isCurrent = true;
     renderDocument(source, path).then(
       (html) => {
         if (isCurrent) {
-          setState({ error: null, rendered: { documentText: createDocumentText(source), html } });
+          setState({ error: null, rendered: { documentText: createDocumentText(source), hash, html } });
         }
       },
       (failure: unknown) => {
@@ -42,6 +48,6 @@ export function useRenderedDocument({ path, source }: DocumentSource): Rendering
     return () => {
       isCurrent = false;
     };
-  }, [path, source]);
+  }, [hash, path, source]);
   return state;
 }

@@ -1,3 +1,8 @@
+---
+title: Conformance corpus
+tags: [one, two]
+---
+
 # Conformance corpus
 
 A paragraph with *emphasis*, **strong**, ~~strike~~, `code`, a [link](other.md) and an image ![alt text](image.png).
@@ -13,6 +18,22 @@ Setext heading
 > on its second line.
 >
 > A second paragraph in the quote.
+
+> [!NOTE]
+> A note with **strong** text.
+
+> [!TIP]
+> A tip.
+
+> [!IMPORTANT]
+> Something important
+> over two lines.
+
+> [!WARNING]
+> A warning.
+
+> [!CAUTION]
+> A caution.
 
 - tight item one
 - tight item *two*

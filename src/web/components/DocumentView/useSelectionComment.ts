@@ -15,6 +15,11 @@ export interface SelectionComment {
   left: number;
 
   /**
+   * The hash of the rendering the text was selected in, which the comment is sent with
+   */
+  renderedHash: string;
+
+  /**
    * How far the view's right edge lies beyond where the selection ends; negative when the selection ends past it
    */
   roomToRight: number;
@@ -54,6 +59,7 @@ export function useSelectionComment(
           : {
               anchor,
               left: end.right - viewBox.left,
+              renderedHash: rendered.hash,
               roomToRight: viewBox.right - end.right,
               top: end.bottom - viewBox.top,
             }
