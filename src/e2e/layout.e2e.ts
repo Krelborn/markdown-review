@@ -404,6 +404,57 @@ for (const { size, width } of [
   });
 }
 
+test("must put a thread's marker just right of the wide table its passage is in when the window is large", async ({
+  page,
+  review,
+}) => {
+  await page.setViewportSize(largeWindow);
+  await review.writeDocument("docs/plan.md", wideBlocksDoc);
+  await review.open("docs/plan.md");
+
+  await writeDraftComment(page, "The network drops", "now and then.", "How often?");
+
+  const marker = await boxOf(page.getByRole("main").getByRole("button", { exact: true, name: "Thread #1" }));
+  const table = await boxOf(page.getByRole("article", { name: "docs/plan.md" }).getByRole("table").first());
+  const column = await boxOf(page.getByRole("main"));
+  expect(marker.x).toBeGreaterThanOrEqual(table.x + table.width);
+  expect(marker.x + marker.width).toBeLessThanOrEqual(column.x + column.width);
+});
+
+test("must keep the marker of a thread in the prose beside the prose when the doc also has a wide table", async ({
+  page,
+  review,
+}) => {
+  await page.setViewportSize(largeWindow);
+  await review.writeDocument("docs/plan.md", wideBlocksDoc);
+  await review.open("docs/plan.md");
+
+  await writeDraftComment(page, "Prose runs on", "to the end.", "Shorter?");
+
+  const marker = await boxOf(page.getByRole("main").getByRole("button", { exact: true, name: "Thread #1" }));
+  const prose = await boxOf(page.getByRole("article", { name: "docs/plan.md" }));
+  const markerLane = 40;
+  expect(marker.x).toBeGreaterThanOrEqual(prose.x + prose.width);
+  expect(marker.x + marker.width).toBeLessThanOrEqual(prose.x + prose.width + markerLane);
+});
+
+test("must put a thread's marker just right of what a table shows when the table scrolls", async ({ page, review }) => {
+  const cells = Array.from({ length: 12 }, (_, index) => `Configuration${index + 1}`);
+  const row = (rowCells: string[]): string => `| ${rowCells.join(" | ")} |`;
+  await review.writeDocument("docs/plan.md", [plan, row(cells), row(cells.map(() => "-")), row(cells)].join("\n"));
+  await review.open("docs/plan.md");
+  const table = page.getByRole("article", { name: "docs/plan.md" }).getByRole("table");
+  expect(await table.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+
+  await writeDraftComment(page, "Configuration1", "Configuration1", "Rename?");
+
+  const marker = await boxOf(page.getByRole("main").getByRole("button", { exact: true, name: "Thread #1" }));
+  const shown = await boxOf(table);
+  const column = await boxOf(page.getByRole("main"));
+  expect(marker.x).toBeGreaterThanOrEqual(shown.x + shown.width);
+  expect(marker.x + marker.width).toBeLessThanOrEqual(column.x + column.width);
+});
+
 test("must line the + up with a heading's line and keep it clear of the heading's frame", async ({ page, review }) => {
   await review.open("docs/plan.md");
   const heading = page.getByRole("article", { name: "docs/plan.md" }).getByRole("heading", { level: 1, name: "Plan" });
