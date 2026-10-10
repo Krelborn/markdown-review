@@ -92,6 +92,12 @@
   margin-inline: auto;
 }
 
+/* renderMermaidDiagrams gives the block its drawing's natural width as --diagram-width. A drawing narrower than the
+   prose stays centred in it, and a wider one grows up to the room beside it. */
+.content div[data-mermaid-definition] {
+  inline-size: clamp(100%, var(--diagram-width, 100%), 100% + var(--wide-room));
+}
+
 /* Task-list checkboxes are disabled because they only show state, so they are drawn here rather than left greyed out */
 .content input[type="checkbox"] {
   appearance: none;

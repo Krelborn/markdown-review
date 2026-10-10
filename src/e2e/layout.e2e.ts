@@ -26,7 +26,8 @@ const largeWindow = { height: 1080, width: 1920 };
 const wideRoomShare = 28 / 72;
 
 /**
- * A doc whose first table and second code block need more room than the prose has, and whose other blocks fit it
+ * A doc whose first table, second code block and first diagram need more room than the prose has, and whose other
+ * blocks fit it
  */
 const wideBlocksDoc = [
   "# Plan",
@@ -47,6 +48,17 @@ const wideBlocksDoc = [
   "",
   "```ts",
   `const retryDelays = [${Array.from({ length: 30 }, (_, index) => (index + 1) * 100).join(", ")}];`,
+  "```",
+  "",
+  "```mermaid",
+  "flowchart LR",
+  "  A[Agent writes the plan] --> B[Agent opens it for review] --> C[User reviews it in the browser]",
+  "  C --> D[User submits comments] --> E[Agent edits the plan] --> F[Agent replies and resolves]",
+  "```",
+  "",
+  "```mermaid",
+  "flowchart TD",
+  "  A --> B",
   "```",
   "",
 ].join("\n");
@@ -406,7 +418,9 @@ for (const { size, width } of [
     await page.setViewportSize(size);
     await review.writeDocument("docs/plan.md", wideBlocksDoc);
     await review.open("docs/plan.md");
-    await expect(page.getByRole("article", { name: "docs/plan.md" }).getByRole("table").first()).toBeVisible();
+    await expect(
+      page.getByRole("article", { name: "docs/plan.md" }).locator("[data-mermaid-definition] > svg")
+    ).toHaveCount(2);
 
     expect(await page.getByRole("main").evaluate((main) => main.scrollWidth <= main.clientWidth)).toBe(true);
   });
@@ -420,8 +434,8 @@ test("must keep a short code block as wide as the prose and scroll a long one si
   await review.writeDocument("docs/plan.md", wideBlocksDoc);
   await review.open("docs/plan.md");
   const article = page.getByRole("article", { name: "docs/plan.md" });
-  const shortCode = article.locator("pre").first();
-  const longCode = article.locator("pre").last();
+  const shortCode = article.locator("pre", { hasText: "const ttl" });
+  const longCode = article.locator("pre", { hasText: "retryDelays" });
 
   const prose = await boxOf(article);
   const short = await boxOf(shortCode);
@@ -442,12 +456,33 @@ test("must let the keyboard reach a code block that is too wide for its room, so
   await page.setViewportSize(largeWindow);
   await review.writeDocument("docs/plan.md", wideBlocksDoc);
   await review.open("docs/plan.md");
-  const code = page.getByRole("article", { name: "docs/plan.md" }).locator("pre");
-  await code.first().focus();
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+  await article.locator("pre", { hasText: "const ttl" }).focus();
 
   await page.keyboard.press("Tab");
 
-  await expect(code.last()).toBeFocused();
+  await expect(article.locator("pre", { hasText: "retryDelays" })).toBeFocused();
+});
+
+test("must draw a wide diagram past the prose and keep a narrow one centred in it when the window is large", async ({
+  page,
+  review,
+}) => {
+  await page.setViewportSize(largeWindow);
+  await review.writeDocument("docs/plan.md", wideBlocksDoc);
+  await review.open("docs/plan.md");
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+  const diagrams = article.locator("[data-mermaid-definition] > svg");
+  await expect(diagrams).toHaveCount(2);
+
+  const prose = await boxOf(article);
+  const wide = await boxOf(diagrams.first());
+  const narrow = await boxOf(diagrams.last());
+
+  expect(wide.x).toBeCloseTo(prose.x, 0);
+  expect(wide.x + wide.width - (prose.x + prose.width)).toBeCloseTo(prose.width * wideRoomShare, 0);
+  expect(narrow.width).toBeLessThan(prose.width / 2);
+  expect(narrow.x + narrow.width / 2).toBeCloseTo(prose.x + prose.width / 2, 0);
 });
 
 test("must put a thread's marker just right of the wide table its passage is in when the window is large", async ({

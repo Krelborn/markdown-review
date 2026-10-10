@@ -1,5 +1,11 @@
 const definitionAttribute = "data-mermaid-definition";
 
+/**
+ * Mermaid writes a drawing's natural width as its max-width, which the block takes as this, so the doc's CSS can let a
+ * wide drawing's block grow towards it
+ */
+const diagramWidthProperty = "--diagram-width";
+
 let renderCount = 0;
 
 /**
@@ -60,7 +66,9 @@ async function drawDiagrams(container: Element): Promise<void> {
     const { svg } = await mermaid.render(nextRenderId(), definition);
     const diagram = document.createElement("template");
     diagram.innerHTML = svg;
-    drawing.parentElement?.setAttribute(definitionAttribute, definition);
+    const block = drawing.parentElement;
+    block?.setAttribute(definitionAttribute, definition);
+    block?.style.setProperty(diagramWidthProperty, diagram.content.querySelector("svg")?.style.maxWidth ?? "");
     drawing.replaceWith(diagram.content);
   }
 }
