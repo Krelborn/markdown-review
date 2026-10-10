@@ -33,9 +33,9 @@ const wideBlocksDoc = [
   "",
   `Prose ${"runs on ".repeat(40)}to the end.`,
   "",
-  "| Topic | Choice | Why |",
-  "| --- | --- | --- |",
-  `| Retries | Three times | ${"The network drops a request now and then. ".repeat(4)}|`,
+  "| Topic | Choice | Why | Owner |",
+  "| --- | --- | --- | --- |",
+  `| Retries | Three times | ${"The network drops a request now and then. ".repeat(4)}| Platform team |`,
   "",
   "| Key | Value |",
   "| --- | --- |",
@@ -436,6 +436,26 @@ test("must keep the marker of a thread in the prose beside the prose when the do
   const markerLane = 40;
   expect(marker.x).toBeGreaterThanOrEqual(prose.x + prose.width);
   expect(marker.x + marker.width).toBeLessThanOrEqual(prose.x + prose.width + markerLane);
+});
+
+test("must show Comment past the prose beside a selection that ends in a wide table when the window is large", async ({
+  page,
+  review,
+}) => {
+  await page.setViewportSize(largeWindow);
+  await review.writeDocument("docs/plan.md", wideBlocksDoc);
+  await review.open("docs/plan.md");
+
+  await selectText(page, "Platform", "team");
+
+  const selectionEnd = await page.evaluate(() => getSelection()?.getRangeAt(0).getBoundingClientRect().right ?? 0);
+  const button = await boxOf(page.getByRole("button", { exact: true, name: "Comment" }));
+  const prose = await boxOf(page.getByRole("article", { name: "docs/plan.md" }));
+  const column = await boxOf(page.getByRole("main"));
+  expect(selectionEnd).toBeGreaterThan(prose.x + prose.width);
+  expect(button.x).toBeGreaterThan(prose.x + prose.width);
+  expect(selectionEnd - button.x).toBeLessThan(button.width);
+  expect(button.x + button.width).toBeLessThanOrEqual(column.x + column.width);
 });
 
 test("must put a thread's marker just right of what a table shows when the table scrolls", async ({ page, review }) => {

@@ -115,8 +115,8 @@ export function DocumentControls({
           onClick={() => commentOnSelection(selectionComment)}
           onMouseDown={(event) => event.preventDefault()}
           size="sm"
-          // Moves left by however much of the button would stick out past the view, as a translate's percentage is of
-          // the button's own width
+          // Moves left by however much of the button would stick out past the room it may use, as a translate's
+          // percentage is of the button's own width
           style={{
             left: selectionComment.left,
             top: selectionComment.top,

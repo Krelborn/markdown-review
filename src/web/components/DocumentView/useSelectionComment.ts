@@ -20,7 +20,8 @@ export interface SelectionComment {
   renderedHash: string;
 
   /**
-   * How far the view's right edge lies beyond where the selection ends; negative when the selection ends past it
+   * How far the room for Comment reaches beyond where the selection ends: to the view's right edge, and on into the
+   * room beside it that wide blocks reach into; negative when the selection ends past it
    */
   roomToRight: number;
 
@@ -60,7 +61,7 @@ export function useSelectionComment(
               anchor,
               left: end.right - viewBox.left,
               renderedHash: rendered.hash,
-              roomToRight: viewBox.right - end.right,
+              roomToRight: viewBox.right + wideRoomOf(view) - end.right,
               top: end.bottom - viewBox.top,
             }
       );
@@ -77,4 +78,12 @@ export function useSelectionComment(
     };
   }, [contentRef, documentPath, rendered, viewRef]);
   return selectionComment;
+}
+
+/**
+ * @returns the room beside the view that wide blocks reach into, which the view's CSS works out as `--wide-room`, or 0
+ *   where no CSS applies
+ */
+function wideRoomOf(view: Element): number {
+  return Number.parseFloat(getComputedStyle(view).getPropertyValue("--wide-room")) || 0;
 }
