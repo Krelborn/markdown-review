@@ -113,11 +113,11 @@ test("must keep a half-written reply when the user goes to another doc and back"
   await page.keyboard.type("Half written");
 
   await page.getByRole("link", { name: "spec" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "docs/spec.md" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "spec.md" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
   await page.goBack();
 
-  await expect(page.getByRole("heading", { level: 1, name: "docs/plan.md" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "plan.md" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
 });
 

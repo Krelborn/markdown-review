@@ -34,8 +34,8 @@ describe("App", () => {
 
     await render();
 
-    expect(screen.getByRole("heading", { level: 1, name: "Docs" })).toBeInTheDocument();
-    expect(await screen.findByRole("link", { name: "docs/plan.md 1 open, 0 drafts" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "All docs" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "plan.md docs 1 open, 0 drafts" })).toBeInTheDocument();
   });
 
   test("must show the doc and its threads when the page opens at the doc's address", async () => {
@@ -61,7 +61,7 @@ describe("App", () => {
 
     fake.emit({ type: "navigate", url: "http://127.0.0.1:4321/document/docs/spec.md" });
 
-    expect(await screen.findByRole("heading", { level: 1, name: "docs/spec.md" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "spec.md" })).toBeInTheDocument();
     expect(window.location.pathname).toBe("/document/docs/spec.md");
   });
 
@@ -70,7 +70,7 @@ describe("App", () => {
 
     await render();
 
-    expect(await screen.findByRole("heading", { level: 1, name: "docs/Design Notes café.md" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Design Notes café.md" })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { level: 1, name: "Notes" })).toBeInTheDocument();
   });
 
@@ -78,11 +78,11 @@ describe("App", () => {
     const { fake, render } = setUpTest();
     await render();
     fake.emit({ type: "navigate", url: "http://127.0.0.1:4321/document/docs/spec.md" });
-    await screen.findByRole("heading", { level: 1, name: "docs/spec.md" });
+    await screen.findByRole("heading", { level: 1, name: "spec.md" });
 
     history.back();
 
-    expect(await screen.findByRole("heading", { level: 1, name: "docs/plan.md" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "plan.md" })).toBeInTheDocument();
   });
 
   test("must show the doc the agent opens from its top when the user had scrolled down the last one", async () => {
@@ -92,7 +92,7 @@ describe("App", () => {
 
     fake.emit({ type: "navigate", url: "http://127.0.0.1:4321/document/docs/spec.md" });
 
-    expect(await screen.findByRole("heading", { level: 1, name: "docs/spec.md" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "spec.md" })).toBeInTheDocument();
     expect(elements.documentColumn().scrollTop).toBe(0);
   });
 
@@ -147,9 +147,9 @@ describe("App", () => {
     await startReply(user, "Half written");
 
     fake.emit({ type: "navigate", url: "http://127.0.0.1:4321/document/docs/spec.md" });
-    await screen.findByRole("heading", { level: 1, name: "docs/spec.md" });
+    await screen.findByRole("heading", { level: 1, name: "spec.md" });
     history.back();
-    await screen.findByRole("heading", { level: 1, name: "docs/plan.md" });
+    await screen.findByRole("heading", { level: 1, name: "plan.md" });
 
     expect(await screen.findByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
   });
@@ -161,7 +161,7 @@ describe("App", () => {
     await startReply(user, "Half written");
 
     fake.emit({ type: "navigate", url: "http://127.0.0.1:4321/document/docs/spec.md" });
-    await screen.findByRole("heading", { level: 1, name: "docs/spec.md" });
+    await screen.findByRole("heading", { level: 1, name: "spec.md" });
 
     const thread = within(screen.getByRole("article", { name: "Thread #1" }));
     expect(thread.getByRole("textbox", { name: "Reply" })).toHaveValue("Half written");
@@ -177,7 +177,7 @@ describe("App", () => {
     await user.keyboard("Three is too many");
 
     fake.emit({ type: "navigate", url: "http://127.0.0.1:4321/document/docs/spec.md" });
-    await screen.findByRole("heading", { level: 1, name: "docs/spec.md" });
+    await screen.findByRole("heading", { level: 1, name: "spec.md" });
 
     const composer = within(screen.getByRole("region", { name: "New comment" }));
     expect(composer.getByText("docs/plan.md")).toBeInTheDocument();
@@ -304,7 +304,7 @@ describe("App", () => {
     await user.click(screen.getByRole("tab", { name: "All docs 2" }));
     await user.click(screen.getByRole("button", { name: "#2 Line 3" }));
 
-    expect(await screen.findByRole("heading", { level: 1, name: "docs/spec.md" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "spec.md" })).toBeInTheDocument();
   });
 
   test("must open the comments when the user starts a comment in the doc", async () => {

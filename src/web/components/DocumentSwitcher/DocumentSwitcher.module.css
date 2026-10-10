@@ -1,0 +1,47 @@
+/* The negative margin cancels the padding's, so the hover fill grows around the name without moving it */
+.button {
+  align-items: center;
+  background: none;
+  border: none;
+  border-radius: var(--sui-radius-sm);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: var(--sui-space-1);
+  margin-inline-start: calc(-1 * var(--sui-space-2));
+  max-inline-size: calc(100% + var(--sui-space-2));
+  padding: var(--sui-space-1) var(--sui-space-2);
+}
+
+.button:hover,
+.button[aria-expanded="true"] {
+  background-color: var(--sui-color-secondary-subtle);
+}
+
+.button:focus-visible {
+  outline: var(--sui-focus-ring-width) solid var(--sui-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Clipped across only, because a clipped box also cuts off the underline where it hangs below the text */
+.fileName {
+  min-inline-size: 0;
+  overflow-x: clip;
+  text-decoration-color: var(--sui-color-text-muted);
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: 2px;
+  text-overflow: ellipsis;
+  text-underline-offset: 4px;
+  white-space: nowrap;
+}
+
+.button:hover .fileName,
+.button[aria-expanded="true"] .fileName {
+  text-decoration-color: currentColor;
+}
+
+.caret {
+  color: var(--sui-color-text-muted);
+}

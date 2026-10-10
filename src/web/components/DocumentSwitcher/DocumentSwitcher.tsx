@@ -1,13 +1,26 @@
-import { Alert, Button, ChevronDownIcon, Popover, usePopover } from "@krelborn/stylesui";
+import { Alert, ChevronDownIcon, Heading, Popover, usePopover } from "@krelborn/stylesui";
 import type { JSX } from "react";
 import { useState } from "react";
 
 import type { DocumentList } from "../../../shared/api/apiResponseSchemas";
 import { describeFailure } from "../../api/describeFailure";
 import { useReviewApi } from "../../api/useReviewApi";
+import { splitDocumentPath } from "../../navigation/splitDocumentPath";
 import { DocumentLinks } from "../DocumentLinks/DocumentLinks";
 
-export interface DocumentsMenuProps {
+import styles from "./DocumentSwitcher.module.css";
+
+export interface DocumentSwitcherProps {
+  /**
+   * Class names for the heading
+   */
+  className?: string;
+
+  /**
+   * The doc on screen
+   */
+  documentPath: string;
+
   /**
    * Shows another page of the app
    */
@@ -15,9 +28,10 @@ export interface DocumentsMenuProps {
 }
 
 /**
- * Lists the docs with comments and the docs opened recently, so the user can move between them
+ * The page's heading: the doc's file name, which opens a menu of the docs with comments and the docs opened recently,
+ * so the user can move between them
  */
-export function DocumentsMenu({ onNavigate }: DocumentsMenuProps): JSX.Element {
+export function DocumentSwitcher({ className, documentPath, onNavigate }: DocumentSwitcherProps): JSX.Element {
   const api = useReviewApi();
   const [list, setList] = useState<DocumentList | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,13 +44,17 @@ export function DocumentsMenu({ onNavigate }: DocumentsMenuProps): JSX.Element {
   });
   return (
     <>
-      <Button {...popover.getTriggerProps()} size="sm" variant="secondary">
-        Docs <ChevronDownIcon />
-      </Button>
+      <Heading className={className} level={1} size="md">
+        <button {...popover.getTriggerProps()} className={styles.button} title={documentPath} type="button">
+          <span className={styles.fileName}>{splitDocumentPath(documentPath).fileName}</span>
+          <ChevronDownIcon className={styles.caret} />
+        </button>
+      </Heading>
       <Popover {...popover.getOverlayProps()}>
         {error !== null && <Alert tone="danger">{error}</Alert>}
         {list !== null && (
           <DocumentLinks
+            currentDocument={documentPath}
             list={list}
             onNavigate={(pagePath) => {
               popover.close();

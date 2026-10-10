@@ -63,7 +63,7 @@ export const test = base.extend<{ review: ReviewFixture }>({
       open: async (document) => {
         const { stdout } = await startCli(root, ["open", document]).result;
         await page.goto(stdout.slice(stdout.indexOf("http"), stdout.indexOf("\n")));
-        await expect(page.getByRole("heading", { level: 1, name: document })).toBeVisible();
+        await expect(page.getByRole("heading", { level: 1, name: path.posix.basename(document) })).toBeVisible();
         await expect(page.getByRole("article", { name: document })).not.toBeEmpty();
       },
       root,

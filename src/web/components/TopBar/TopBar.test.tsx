@@ -16,35 +16,68 @@ const draftThread = buildThread({
 });
 
 describe("TopBar", () => {
-  test("must show the doc's path when a doc is on screen", () => {
+  test("must title the page with the doc's file name when a doc is on screen", () => {
     const { render } = setUpTest();
 
     render();
 
-    expect(screen.getByRole("heading", { level: 1, name: "docs/plan.md" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "plan.md" })).toBeInTheDocument();
   });
 
-  test("must offer the doc's whole path on hover when the path is too long to show in full", () => {
+  test("must offer the doc's whole path on hover when a doc is on screen", () => {
     const { render } = setUpTest();
 
     render();
 
-    expect(screen.getByRole("heading", { level: 1, name: "docs/plan.md" })).toHaveAttribute("title", "docs/plan.md");
+    expect(elements.documentButton()).toHaveAttribute("title", "docs/plan.md");
   });
 
-  test("must list docs with comments, then other recent docs, when the user opens the docs menu", async () => {
-    const { render } = setUpTest({ recent: ["docs/spec.md", "docs/plan.md"] });
+  test("must title the page All docs when the docs list is on screen", () => {
+    const { render } = setUpTest({ documentPath: null });
+
+    render();
+
+    expect(screen.getByRole("heading", { level: 1, name: "All docs" })).toBeInTheDocument();
+  });
+
+  test("must show the docs list when the user clicks the app's icon", async () => {
+    const { onNavigate, render } = setUpTest();
     const user = userEvent.setup();
     render();
 
-    await user.click(screen.getByRole("button", { name: "Docs" }));
+    await user.click(screen.getByRole("link", { name: "Markdown Review: all docs" }));
+
+    expect(onNavigate).toHaveBeenCalledWith("/");
+  });
+
+  test("must list docs with comments, then other recent docs, when the user opens the docs menu", async () => {
+    const { render } = setUpTest({ recent: ["README.md", "docs/spec.md", "docs/plan.md"] });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(elements.documentButton());
 
     const docs = within(screen.getByRole("navigation", { name: "Docs" }));
-    expect(await docs.findByRole("link", { name: "docs/plan.md 0 open, 1 draft" })).toHaveAttribute(
+    expect(await docs.findByRole("link", { name: "plan.md docs 0 open, 1 draft" })).toHaveAttribute(
       "href",
       "/document/docs/plan.md"
     );
-    expect(docs.getByRole("link", { name: "docs/spec.md" })).toHaveAttribute("href", "/document/docs/spec.md");
+    expect(docs.getByRole("link", { name: "README.md" })).toHaveAttribute("href", "/document/README.md");
+    expect(docs.getByRole("link", { name: "spec.md docs" })).toHaveAttribute("href", "/document/docs/spec.md");
+  });
+
+  test("must mark the doc on screen when the user opens the docs menu", async () => {
+    const { render } = setUpTest({ recent: ["docs/spec.md"] });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(elements.documentButton());
+
+    expect(await screen.findByRole("link", { name: "plan.md docs 0 open, 1 draft" })).toHaveAttribute(
+      "aria-current",
+      "page"
+    );
+    expect(screen.getByRole("link", { name: "spec.md docs" })).not.toHaveAttribute("aria-current");
   });
 
   test("must show the chosen doc in the page when the user picks it from the docs menu", async () => {
@@ -52,22 +85,29 @@ describe("TopBar", () => {
     const user = userEvent.setup();
     render();
 
-    await user.click(screen.getByRole("button", { name: "Docs" }));
-    await user.click(await screen.findByRole("link", { name: "docs/spec.md" }));
+    await user.click(elements.documentButton());
+    await user.click(await screen.findByRole("link", { name: "spec.md docs" }));
 
     expect(onNavigate).toHaveBeenCalledWith("/document/docs/spec.md");
   });
 });
 
-function setUpTest({ recent = [] }: { recent?: string[] } = {}) {
+function setUpTest({
+  documentPath = "docs/plan.md",
+  recent = [],
+}: { documentPath?: string | null; recent?: string[] } = {}) {
   const fake = createFakeReviewApi({ recent, threads: [draftThread] });
   const onNavigate = vi.fn();
   const render = (): void => {
     renderBase(
       <ReviewApiContext value={fake.api}>
-        <TopBar documentPath="docs/plan.md" onNavigate={onNavigate} />
+        <TopBar documentPath={documentPath} onNavigate={onNavigate} />
       </ReviewApiContext>
     );
   };
   return { onNavigate, render };
 }
+
+const elements = {
+  documentButton: () => screen.getByRole("button", { name: "plan.md" }),
+};

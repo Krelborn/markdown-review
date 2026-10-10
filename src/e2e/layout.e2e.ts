@@ -28,7 +28,7 @@ test("must keep the header and Submit in view, and the window still, when the us
   await scrollDocumentToEnd(page);
 
   await expect(page.getByText("Paragraph 80.", { exact: true })).toBeInViewport();
-  await expect(page.getByRole("heading", { level: 1, name: "docs/plan.md" })).toBeInViewport();
+  await expect(page.getByRole("heading", { level: 1, name: "plan.md" })).toBeInViewport();
   await expect(page.getByRole("status")).toBeInViewport();
   await expect(page.getByRole("button", { exact: true, name: submitButtonName(0) })).toBeInViewport();
   expect(
@@ -45,7 +45,7 @@ test("must show a linked doc at the heading its link names when the heading is f
 
   await page.getByRole("link", { name: "spec" }).click();
 
-  await expect(page.getByRole("heading", { level: 1, name: "docs/spec.md" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "spec.md" })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "Goals" })).toBeInViewport();
 });
 
@@ -376,7 +376,7 @@ async function openPlanWithDrafts(page: Page, review: ReviewFixture): Promise<vo
 
 async function goToSpec(page: Page): Promise<void> {
   await page.getByRole("link", { name: "spec" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "docs/spec.md" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "spec.md" })).toBeVisible();
 }
 
 async function startReviewComment(page: Page): Promise<void> {

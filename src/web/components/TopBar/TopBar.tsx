@@ -2,7 +2,8 @@ import { Heading, Link } from "@krelborn/stylesui";
 import type { JSX } from "react";
 
 import { isPlainLeftClick } from "../../navigation/isPlainLeftClick";
-import { DocumentsMenu } from "../DocumentsMenu/DocumentsMenu";
+import { AppIcon } from "../AppIcon/AppIcon";
+import { DocumentSwitcher } from "../DocumentSwitcher/DocumentSwitcher";
 
 import styles from "./TopBar.module.css";
 
@@ -19,13 +20,14 @@ export interface TopBarProps {
 }
 
 /**
- * The bar across the top of the page: where the user is, and the menu of docs to go to
+ * The bar across the top of the page: the app's icon, which goes to the docs list, and where the user is, which opens
+ * the menu of docs to go to
  */
 export function TopBar({ documentPath, onNavigate }: TopBarProps): JSX.Element {
   return (
     <header className={styles.topBar}>
       <Link
-        className={styles.appLink}
+        className={styles.home}
         href="/"
         onClick={(event) => {
           if (isPlainLeftClick(event)) {
@@ -33,25 +35,18 @@ export function TopBar({ documentPath, onNavigate }: TopBarProps): JSX.Element {
             onNavigate("/");
           }
         }}
+        title="Markdown Review: all docs"
         tone="inherit"
-        underline="hover"
       >
-        Markdown Review
+        <AppIcon />
       </Link>
-      <Heading className={styles.path} level={1} size="md" title={documentPath ?? undefined}>
-        <span className={styles.pathText}>{documentPath === null ? "Docs" : <PathText path={documentPath} />}</span>
-      </Heading>
-      <DocumentsMenu onNavigate={onNavigate} />
+      {documentPath === null ? (
+        <Heading className={styles.title} level={1} size="md">
+          All docs
+        </Heading>
+      ) : (
+        <DocumentSwitcher className={styles.title} documentPath={documentPath} onNavigate={onNavigate} />
+      )}
     </header>
-  );
-}
-
-function PathText({ path }: { path: string }): JSX.Element {
-  const fileStart = path.lastIndexOf("/") + 1;
-  return (
-    <>
-      <span className={styles.folders}>{path.slice(0, fileStart)}</span>
-      {path.slice(fileStart)}
-    </>
   );
 }
