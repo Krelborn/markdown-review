@@ -1,4 +1,5 @@
-import { AddIcon, Button } from "@krelborn/stylesui";
+import { AddIcon, IconButton } from "@krelborn/stylesui";
+import { clsx } from "clsx";
 import type { JSX } from "react";
 import { useEffect, useState } from "react";
 
@@ -19,6 +20,11 @@ export interface BlockCommentButtonProps {
    */
   isFocused: boolean;
 
+  /**
+   * Whether the pointer is in the gutter, where it picks the block
+   */
+  isPointerInGutter: boolean;
+
   onComment: () => void;
 
   /**
@@ -28,12 +34,14 @@ export interface BlockCommentButtonProps {
 }
 
 /**
- * The + beside the block under the pointer, which frames the block while the user points at it or focuses it
+ * The + beside the first line of the block the pointer picks, which frames the block while the user points at it, at
+ * the gutter beside it, or focuses it
  */
 export function BlockCommentButton({
   block,
   isFocused,
   isFramed,
+  isPointerInGutter,
   onComment,
   onFocusChange,
 }: BlockCommentButtonProps): JSX.Element {
@@ -42,22 +50,23 @@ export function BlockCommentButton({
   useEffect(() => () => onFocusChange(false), [onFocusChange]);
   return (
     <>
-      {(isFocused || isPointedAt) && !isFramed && <BlockTarget box={block} />}
-      <Button
-        className={styles.blockButton}
+      {(isFocused || isPointedAt || isPointerInGutter) && !isFramed && <BlockTarget box={block} />}
+      <IconButton
+        className={clsx(styles.blockButton, { [styles.pickingBlockButton ?? ""]: isPointerInGutter })}
+        label="Comment on this block"
         onBlur={() => onFocusChange(false)}
         onClick={onComment}
         onFocus={() => onFocusChange(true)}
         onPointerEnter={() => setIsPointedAt(true)}
         onPointerLeave={() => setIsPointedAt(false)}
+        placement="start"
         size="sm"
-        style={{ top: block.top }}
+        style={{ top: block.firstLineMiddle }}
         variant="ghost"
-        aria-label="Comment on this block"
         data-md-ignore=""
       >
         <AddIcon />
-      </Button>
+      </IconButton>
     </>
   );
 }

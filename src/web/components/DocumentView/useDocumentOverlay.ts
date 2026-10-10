@@ -6,6 +6,7 @@ import type { Thread } from "../../../shared/review/threadSchema";
 import { HoveredThreadContext } from "../../review/HoveredThreadContext";
 
 import type { BlockBox } from "./BlockBox";
+import type { HoveredBlock } from "./useHoveredBlock";
 import { useHoveredBlock } from "./useHoveredBlock";
 import { useHoveredThread } from "./useHoveredThread";
 import { usePendingBlock } from "./usePendingBlock";
@@ -41,10 +42,17 @@ export interface DocumentOverlayOptions {
 
 export interface DocumentOverlay {
   /**
-   * The block the + sits beside: the block under the pointer, or the + kept on its block while it has the focus; or
+   * Finds the block level with a distance down the page, as the gutter picks it
+   *
+   * @returns the block's index, or null when no block takes up any height
+   */
+  blockIndexLevelWith: (clientY: number) => number | null;
+
+  /**
+   * The block the + sits beside: the block the pointer picks, or the + kept on its block while it has the focus; or
    * null
    */
-  hoveredBlock: BlockBox | null;
+  hoveredBlock: HoveredBlock | null;
 
   /**
    * Whether the pointer is over a highlighted passage, which a click selects
@@ -80,7 +88,7 @@ export function useDocumentOverlay(
   });
   const isPointingAtHighlight = useHoveredThread(contentRef, rendered, highlightedThreads, onHoverThread);
   const selectionComment = useSelectionComment(viewRef, contentRef, rendered, documentPath);
-  const hoveredBlock = useHoveredBlock(viewRef, contentRef, rendered, isBlockButtonFocused);
+  const { blockIndexLevelWith, hoveredBlock } = useHoveredBlock(viewRef, contentRef, rendered, isBlockButtonFocused);
   const pendingBlock = usePendingBlock(viewRef, contentRef, rendered, pendingPassage);
-  return { hoveredBlock, isPointingAtHighlight, markers, pendingBlock, selectionComment };
+  return { blockIndexLevelWith, hoveredBlock, isPointingAtHighlight, markers, pendingBlock, selectionComment };
 }

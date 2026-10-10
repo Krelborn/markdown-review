@@ -457,7 +457,7 @@ Below 48rem the sidebar becomes a drawer over the right of the document view. Th
 ### Writing comments
 
 - **Passage:** select text, including across blocks; a Comment button appears next to the selection; clicking it opens a draft in the sidebar with focus in it.
-- **Block:** hovering a block shows a "+" in the left gutter; the whole block becomes the quote. Used for code blocks, tables, diagrams and HTML blocks.
+- **Block:** hovering a block, or the left gutter beside it, shows a "+" in the gutter beside the block's first line; pressing it, or clicking anywhere in the gutter beside the block, makes the whole block the quote. Used for code blocks, tables, diagrams and HTML blocks.
 - **Doc** and **review:** the **+ Comment** menu at the top of the sidebar offers **On this doc** and **On the whole review**. On the docs list, where only the review can take a comment, it is a **+ Review comment** button.
 - **The composer** opens at the top of the sidebar, scrolled into view below the header, with focus in it. While it is open, its passage stays highlighted in the doc.
 - **One editor at a time.** A new comment, a reply and a draft being edited all use the same editor, with Cancel and Save on the right.
@@ -470,7 +470,7 @@ Below 48rem the sidebar becomes a drawer over the right of the document view. Th
 - Highlights use the CSS Custom Highlight API over DOM ranges built from anchor offsets through the walk in section 7, so the rendered HTML is never modified after insertion.
 - Clicking highlighted text maps the click point to a doc offset and selects the thread whose range contains it. Numbered markers in the gutter are buttons that do the same.
 - The click mapping uses `document.caretPositionFromPoint`, falling back to `document.caretRangeFromPoint` where it is missing (Safari before 26.2).
-- Threads are highlighted with a tint and an underline, deeper where two overlap; the hovered, selected and pending passages paint over them in that order. Pointing at a highlight or its card emphasises the other. While the pointer or focus is on the gutter +, or a whole-block comment is being written, its block is framed. See the [document rendering spec](2026-10-09-document-rendering-design.md).
+- Threads are highlighted with a tint and an underline, deeper where two overlap; the hovered, selected and pending passages paint over them in that order. Pointing at a highlight or its card emphasises the other. While the pointer is in the left gutter or on the +, or the + has focus, or a whole-block comment is being written, its block is framed. See the [document rendering spec](2026-10-09-document-rendering-design.md).
 
 ### Supported browsers
 
