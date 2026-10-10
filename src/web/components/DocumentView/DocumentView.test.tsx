@@ -353,6 +353,24 @@ describe("DocumentView", () => {
     );
   });
 
+  test("must move the + to the block level with the pointer when the pointer moves right of the doc onto a marker", async () => {
+    const { render } = setUpTest({ threads: [buildThread({ anchor: retriesAnchor, id: 1 })] });
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await user.pointer({
+      coords: { clientX: 100, clientY: 150 },
+      target: within(elements.article()).getByText("Retries happen three times."),
+    });
+
+    await user.pointer({
+      coords: { clientX: 660, clientY: 60 },
+      target: screen.getByRole("button", { name: "Thread #1" }),
+    });
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "66px" });
+  });
+
   test("must keep the block framed when the user writes a comment on the whole of it", async () => {
     const { render } = setUpTest({
       pendingPassage: {

@@ -48,8 +48,8 @@ interface MeasuredBlocks {
 /**
  * Follows the block the + sits beside, so the view can offer a comment on the whole block: the block the pointer
  * picks, or while the + has the focus the last one it picked; it is measured again whenever the content's layout
- * changes. The pointer picks the block it is over, and in the gutter, or over the doc between blocks, the block level
- * with it.
+ * changes. The pointer picks the block it is over, and beside the doc, in the gutter or on the markers' side, or over
+ * the doc between blocks, the block level with it.
  *
  * @param isHeld whether the + has the focus, which keeps it on its block after the pointer leaves the view
  */
@@ -87,8 +87,10 @@ export function useHoveredBlock(
       return;
     }
     const point = (event: MouseEvent): void => {
-      const isInGutter = event.clientX < content.getBoundingClientRect().left;
-      const index = pickedBlockIndex(event, content, isInGutter, blockIndexLevelWith);
+      const contentBox = content.getBoundingClientRect();
+      const isInGutter = event.clientX < contentBox.left;
+      const isBesideContent = isInGutter || event.clientX > contentBox.right;
+      const index = pickedBlockIndex(event, content, isBesideContent, blockIndexLevelWith);
       setIsPointerInGutter(isInGutter);
       if (index !== null) {
         setIsPointerInView(true);
@@ -125,18 +127,19 @@ export function useHoveredBlock(
 }
 
 /**
- * @returns the index of the block the pointer picks, or null when it is elsewhere in the view, such as over a marker
+ * @returns the index of the block the pointer picks, or null when it is over a control laid over the doc, such as
+ *   Comment beside a selection
  */
 function pickedBlockIndex(
   event: MouseEvent,
   content: Element,
-  isInGutter: boolean,
+  isBesideContent: boolean,
   blockIndexLevelWith: (clientY: number) => number | null
 ): number | null {
   const target = event.target instanceof Node && content.contains(event.target) ? event.target : null;
-  if (!isInGutter && target === null) {
+  if (!isBesideContent && target === null) {
     return null;
   }
-  const block = isInGutter || target === null ? null : blockElementAt(content, target);
+  const block = isBesideContent || target === null ? null : blockElementAt(content, target);
   return block === null ? blockIndexLevelWith(event.clientY) : Number(block.getAttribute("data-md-block"));
 }
