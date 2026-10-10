@@ -29,7 +29,7 @@ export function ThreadMarkers({ markers, onSelectThread, selectedThreadId }: Thr
   }, [markers, report, reported]);
   return (
     <>
-      {markers.map(({ column, threadId, top }) => (
+      {markers.map(({ column, outset, threadId, top }) => (
         <Button
           className={clsx(styles.marker, { [styles.hoveredMarker ?? ""]: threadId === hoveredThreadId })}
           key={threadId}
@@ -37,7 +37,7 @@ export function ThreadMarkers({ markers, onSelectThread, selectedThreadId }: Thr
           onPointerEnter={() => report(threadId)}
           onPointerLeave={() => report(null)}
           size="sm"
-          style={{ insetInlineEnd: `${column * 2}rem`, top }}
+          style={{ insetInlineEnd: `calc(${column * 2}rem - ${outset}px)`, top }}
           variant={threadId === selectedThreadId ? "primary" : "secondary"}
           aria-label={`Thread #${threadId}`}
           aria-pressed={threadId === selectedThreadId}

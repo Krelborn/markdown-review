@@ -39,6 +39,28 @@ describe("renderMermaidDiagrams", () => {
     expect(page.querySelector('[data-md-block="0"] > pre')?.textContent).toBe("graph TD\n  A-->B");
   });
 
+  test("must give a diagram's block the drawing's natural width when it draws the diagram", async () => {
+    const page = await renderPage(diagramSource);
+    mermaid.parse.mockResolvedValue({ diagramType: "flowchart-v2" });
+    mermaid.render.mockResolvedValue({ svg: '<svg style="max-width: 1320px;"><text>A</text></svg>' });
+
+    await renderMermaidDiagrams(page);
+
+    expect(diagramWidthOf(page)).toBe("1320px");
+  });
+
+  test("must take the natural width away from a diagram's block when its new drawing has none", async () => {
+    const page = await renderPage(diagramSource);
+    mermaid.parse.mockResolvedValue({ diagramType: "flowchart-v2" });
+    mermaid.render.mockResolvedValue({ svg: '<svg style="max-width: 1320px;"><text>A</text></svg>' });
+    await renderMermaidDiagrams(page);
+    mermaid.render.mockResolvedValue({ svg: "<svg><text>A</text></svg>" });
+
+    await renderMermaidDiagrams(page);
+
+    expect(diagramWidthOf(page)).toBe("");
+  });
+
   test("must draw a drawn diagram again from its definition when the diagrams are drawn again", async () => {
     const page = await renderPage(diagramSource);
     mermaid.parse.mockResolvedValue({ diagramType: "flowchart-v2" });
@@ -108,6 +130,10 @@ function deferDrawing(): { promise: Promise<{ svg: string }>; resolve: (svg: str
     resolve = (svg) => resolvePromise({ svg });
   });
   return { promise, resolve };
+}
+
+function diagramWidthOf(page: HTMLElement): string | undefined {
+  return page.querySelector<HTMLElement>('[data-md-block="0"]')?.style.getPropertyValue("--diagram-width");
 }
 
 async function renderPage(source: string): Promise<HTMLElement> {

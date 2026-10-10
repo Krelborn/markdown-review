@@ -25,6 +25,11 @@ export interface ThreadMarker {
    */
   column: number;
 
+  /**
+   * How far the table or block that the thread's passage starts in reaches past the prose's right edge, or 0
+   */
+  outset: number;
+
   threadId: number;
 
   /**
@@ -76,7 +81,7 @@ export function useThreadHighlights(
   { hoveredThreadId, pendingPassage, selectedThreadId, threads }: ThreadHighlightOptions
 ): ThreadMarker[] {
   const [markers, setMarkers] = useState<ThreadMarker[]>([]);
-  const layoutRevision = useLayoutRevision(contentRef);
+  const layoutRevision = useLayoutRevision(viewRef, contentRef);
   useLayoutEffect(() => {
     const view = viewRef.current;
     const content = contentRef.current;
@@ -101,7 +106,7 @@ export function useThreadHighlights(
       { name: selectedHighlightName, ranges: rangesIn(selectedHighlightName) },
       { name: pendingHighlightName, ranges: pendingRange === null ? [] : [pendingRange] },
     ]);
-    setMarkers(placeMarkers(ranges, view.getBoundingClientRect().top));
+    setMarkers(placeMarkers(ranges, view.getBoundingClientRect().top, content.getBoundingClientRect().right));
     return () => {
       for (const name of names) {
         CSS.highlights.delete(name);
@@ -145,9 +150,10 @@ function paintHighlights(layers: readonly HighlightLayer[]): string[] {
   });
 }
 
-function placeMarkers(ranges: readonly ThreadRange[], viewTop: number): ThreadMarker[] {
+function placeMarkers(ranges: readonly ThreadRange[], viewTop: number, proseRight: number): ThreadMarker[] {
   const placed = ranges
     .map(({ range, thread }) => ({
+      outset: outsetOf(range, proseRight),
       threadId: thread.id,
       top: (range.getClientRects()[0] ?? range.getBoundingClientRect()).top - viewTop,
     }))
@@ -158,4 +164,14 @@ function placeMarkers(ranges: readonly ThreadRange[], viewTop: number): ThreadMa
     column = previous !== undefined && Math.abs(marker.top - previous.top) < 4 ? column + 1 : 0;
     return { ...marker, column };
   });
+}
+
+/**
+ * The table comes before the block, because a row of a table that scrolls is wider than what the table shows
+ */
+function outsetOf(range: Range, proseRight: number): number {
+  const { startContainer } = range;
+  const start = startContainer instanceof Element ? startContainer : startContainer.parentElement;
+  const block = start?.closest("table") ?? start?.closest("[data-md-block]") ?? null;
+  return block === null ? 0 : Math.max(0, block.getBoundingClientRect().right - proseRight);
 }

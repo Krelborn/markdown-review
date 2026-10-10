@@ -23,6 +23,7 @@ interface Point {
  * @returns whether the pointer is over a highlight
  */
 export function useHoveredThread(
+  viewRef: RefObject<HTMLElement | null>,
   contentRef: RefObject<HTMLElement | null>,
   rendered: RenderedDocument | null,
   highlightedThreads: readonly Thread[],
@@ -40,7 +41,7 @@ export function useHoveredThread(
   const { report } = useThreadReporter(onPointedThread);
   // Where the pointer last moved over the content, or null once it has left
   const lastPointRef = useRef<Point | null>(null);
-  const layoutRevision = useLayoutRevision(contentRef);
+  const layoutRevision = useLayoutRevision(viewRef, contentRef);
   useEffect(() => {
     const content = contentRef.current;
     if (content === null || rendered === null) {

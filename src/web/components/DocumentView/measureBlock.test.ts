@@ -25,7 +25,7 @@ describe("measureBlock", () => {
       const { row, view } = setUpTest({ rowLeft });
 
       expect(measureBlock(view, row)).toEqual({
-        firstLineMiddle: 102,
+        firstLineMiddle: expect.closeTo(102.8),
         height: 30,
         index: 1,
         left: 40,
@@ -58,9 +58,10 @@ describe("measureBlock", () => {
   test("must put the middle of the first line half a line below the block's top when its text starts more than a line down", () => {
     const { paragraph, view } = setUpTest({ rowLeft: 140 });
     paragraph.append("const delays = [200, 400];");
+    vi.spyOn(paragraph, "getBoundingClientRect").mockReturnValue(new DOMRect(140, 80, 600, 100));
     vi.spyOn(Range.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(140, 120, 10, 20));
 
-    expect(measureBlock(view, paragraph).firstLineMiddle).toBe(42);
+    expect(measureBlock(view, paragraph).firstLineMiddle).toBeCloseTo(42.8);
   });
 
   test("must put the middle of the first line halfway down a block shorter than a line when the block has no text", () => {

@@ -1,20 +1,44 @@
-/* The prose keeps a reading width, and the gutter with its + and the markers sit in the padding either side of it */
+/* Registered, so that it computes to a length once, in the view, where ch is the prose's, whichever element uses it */
+@property --wide-room {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+/* A size container, so that the view can tell how much room the doc column has beside the prose */
+.frame {
+  container-type: inline-size;
+}
+
+/* The prose keeps a reading width, and the gutter with its + and the markers sit in the padding either side of it.
+   Tables, code and diagrams that need more room reach into the margin to its right. */
 .view {
   --block-button-size: 1.75rem;
   --gutter-size: 3rem;
+  --max-view-size: calc(72ch + var(--gutter-size) + 2.5rem);
 
   /* The middle of the +, where the gutter's track and bar run */
   --gutter-lane: calc(var(--gutter-size) - var(--sui-space-3) - var(--block-button-size) / 2);
 
+  /* How far a wide block may reach past the prose: the view's margin, but no further than 28ch */
+  --wide-room: clamp(0px, (100cqi - var(--max-view-size)) / 2, 28ch);
+
   inline-size: 100%;
   margin-inline: auto;
-  max-inline-size: calc(72ch + var(--gutter-size) + 2.5rem);
+  max-inline-size: var(--max-view-size);
   padding-inline: var(--gutter-size) 2.5rem;
   position: relative;
 }
 
+/* Lines as long as the prose's need more space between them than Prose's 1.5 gives. measureBlock assumes this height. */
 .content {
+  line-height: 1.6;
   min-block-size: 50vh;
+}
+
+/* Prose already makes a table as wide as its content and scrolls it when that is too wide */
+.content table {
+  max-inline-size: calc(100% + var(--wide-room));
 }
 
 /* markdown-it renders some blocks with no element of their own, so a wrapper carries their attributes and needs the
@@ -29,6 +53,28 @@
   border: var(--sui-border-width) solid var(--sui-color-border);
   border-radius: var(--sui-radius-lg);
   margin: 0;
+}
+
+/* A code block is as wide as its longest line, from the prose's width up to the room beside it, so that its language
+   header spans the code */
+.content div[data-md-block]:has(> pre) {
+  inline-size: max-content;
+  max-inline-size: calc(100% + var(--wide-room));
+  min-inline-size: 100%;
+}
+
+/* Code keeps its lines whole, as wrapping would break its indentation and any diagram drawn in text, and keeps Prose's
+   line height, as its lines are short and a diagram's need to touch */
+.content div[data-md-block] > pre {
+  line-height: var(--sui-line-height-normal);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* Ringed as Prose rings a focused table */
+.content div[data-md-block] > pre:focus-visible {
+  outline: var(--sui-focus-ring-width) solid var(--sui-color-focus-ring);
+  outline-offset: 2px;
 }
 
 /* The header is generated content, so it is in neither the selection nor the canonical text that comments anchor to */
@@ -54,6 +100,12 @@
 .content div[data-md-block] > svg {
   display: block;
   margin-inline: auto;
+}
+
+/* renderMermaidDiagrams gives the block its drawing's natural width as --diagram-width. A drawing narrower than the
+   prose stays centred in it, and a wider one grows up to the room beside it. */
+.content div[data-mermaid-definition] {
+  inline-size: clamp(100%, var(--diagram-width, 100%), 100% + var(--wide-room));
 }
 
 /* Task-list checkboxes are disabled because they only show state, so they are drawn here rather than left greyed out */
@@ -87,7 +139,10 @@
     center / contain no-repeat;
 }
 
+/* Wide blocks keep inside the alert's box */
 .content [class~="markdown-alert"] {
+  --wide-room: 0px;
+
   background-color: var(--alert-subtle);
   border-inline-start: 3px solid var(--alert-color);
   border-radius: var(--sui-radius-md);
@@ -357,8 +412,7 @@
 }
 
 .blockButton,
-.marker,
-.selectionButton {
+.marker {
   position: absolute;
   user-select: none;
 }
@@ -418,8 +472,21 @@
   cursor: pointer;
 }
 
-.selectionButton {
+/* Comment's lane spans the view and the room beside it, and Comment stays inside it by squeezing the space before it
+   rather than by a translate, as WebKit counts an element's box before its translate towards the doc column's width */
+.selectionLane {
+  display: flex;
+  inline-size: calc(100% + var(--wide-room));
+  inset-inline-start: 0;
+  pointer-events: none;
+  position: absolute;
+  user-select: none;
   z-index: 1;
+}
+
+.selectionButton {
+  flex: none;
+  pointer-events: auto;
 }
 
 .blockTarget {

@@ -117,10 +117,10 @@ describe("renderDocument", () => {
     }
   );
 
-  test("must put each table in the tab order when the doc has tables", async () => {
-    const page = await renderPage("| A | B |\n| - | - |\n| 1 | 2 |\n\n| C |\n| - |\n| 3 |\n");
+  test("must put each table and code block in the tab order when the doc has tables and code", async () => {
+    const page = await renderPage("| A | B |\n| - | - |\n| 1 | 2 |\n\n```ts\nconst a = 1;\n```\n\n    indented code\n");
 
-    expect([...page.querySelectorAll("table")].map((table) => table.tabIndex)).toEqual([0, 0]);
+    expect([...page.querySelectorAll<HTMLElement>("table, pre")].map((block) => block.tabIndex)).toEqual([0, 0, 0]);
   });
 
   test("must name a heading by its text alone when it has a link", async () => {

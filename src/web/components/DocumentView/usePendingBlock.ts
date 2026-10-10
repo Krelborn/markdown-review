@@ -22,7 +22,7 @@ export function usePendingBlock(
   pendingPassage: NewPassageAnchor | null
 ): BlockBox | null {
   const [pendingBlock, setPendingBlock] = useState<BlockBox | null>(null);
-  const layoutRevision = useLayoutRevision(contentRef);
+  const layoutRevision = useLayoutRevision(viewRef, contentRef);
   useLayoutEffect(() => {
     const view = viewRef.current;
     const index =

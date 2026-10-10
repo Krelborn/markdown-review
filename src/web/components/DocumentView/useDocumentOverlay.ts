@@ -86,7 +86,7 @@ export function useDocumentOverlay(
     selectedThreadId,
     threads: highlightedThreads,
   });
-  const isPointingAtHighlight = useHoveredThread(contentRef, rendered, highlightedThreads, onHoverThread);
+  const isPointingAtHighlight = useHoveredThread(viewRef, contentRef, rendered, highlightedThreads, onHoverThread);
   const selectionComment = useSelectionComment(viewRef, contentRef, rendered, documentPath);
   const { blockIndexLevelWith, hoveredBlock } = useHoveredBlock(viewRef, contentRef, rendered, isBlockButtonFocused);
   const pendingBlock = usePendingBlock(viewRef, contentRef, rendered, pendingPassage);
