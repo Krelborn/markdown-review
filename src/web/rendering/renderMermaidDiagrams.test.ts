@@ -63,6 +63,23 @@ describe("renderMermaidDiagrams", () => {
     expect(mermaid.render.mock.calls[1]?.[0]).not.toBe(mermaid.render.mock.calls[0]?.[0]);
   });
 
+  test("must leave the later drawing's diagram when a drawing starts before the one before it ends", async () => {
+    const page = await renderPage(diagramSource);
+    mermaid.parse.mockResolvedValue({ diagramType: "flowchart-v2" });
+    const lightDrawing = deferDrawing();
+    const darkDrawing = deferDrawing();
+    mermaid.render.mockReturnValueOnce(lightDrawing.promise).mockReturnValueOnce(darkDrawing.promise);
+    const drawings = [renderMermaidDiagrams(page), renderMermaidDiagrams(page)];
+
+    lightDrawing.resolve('<svg aria-label="Request flow"><text>A</text></svg>');
+    darkDrawing.resolve('<svg aria-label="Request flow in dark mode"><text>A</text></svg>');
+    await Promise.all(drawings);
+
+    expect(page.querySelector('[data-md-block="0"] > svg')?.getAttribute("aria-label")).toBe(
+      "Request flow in dark mode"
+    );
+  });
+
   test.each([
     { condition: "has a Mermaid fence", expected: true, source: diagramSource },
     { condition: "has no Mermaid fence", expected: false, source: "```ts\nconst a = 1;\n```\n" },
@@ -81,6 +98,17 @@ describe("renderMermaidDiagrams", () => {
     expect(hasMermaidDiagrams(page)).toBe(true);
   });
 });
+
+/**
+ * A drawing by Mermaid that finishes when the test resolves it with its SVG
+ */
+function deferDrawing(): { promise: Promise<{ svg: string }>; resolve: (svg: string) => void } {
+  let resolve: (svg: string) => void = () => {};
+  const promise = new Promise<{ svg: string }>((resolvePromise) => {
+    resolve = (svg) => resolvePromise({ svg });
+  });
+  return { promise, resolve };
+}
 
 async function renderPage(source: string): Promise<HTMLElement> {
   const page = document.createElement("div");

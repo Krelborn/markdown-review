@@ -2,6 +2,11 @@ const definitionAttribute = "data-mermaid-definition";
 
 let renderCount = 0;
 
+/**
+ * The drawing that runs or ran last, which the next one waits for
+ */
+let lastDrawing: Promise<void> = Promise.resolve();
+
 interface Diagram {
   definition: string;
 
@@ -25,10 +30,19 @@ export function hasMermaidDiagrams(container: Element): boolean {
  * Draws a rendered doc's Mermaid diagrams in the colours of the current light or dark mode, in place of their source
  * or their last drawing, loading Mermaid only when the doc has a diagram
  *
+ * Drawings run one at a time, each finding the diagrams when it starts, so a drawing that starts before the last one
+ * ends replaces what that one drew rather than a node it has already replaced, and the latest mode's colours win
+ *
  * @param container the rendered doc
  * @returns once every diagram is drawn; a diagram Mermaid cannot read keeps showing what it showed
  */
-export async function renderMermaidDiagrams(container: Element): Promise<void> {
+export function renderMermaidDiagrams(container: Element): Promise<void> {
+  const drawing = lastDrawing.then(() => drawDiagrams(container));
+  lastDrawing = drawing.catch(() => undefined);
+  return drawing;
+}
+
+async function drawDiagrams(container: Element): Promise<void> {
   const diagrams = findDiagrams(container);
   if (diagrams.length === 0) {
     return;
