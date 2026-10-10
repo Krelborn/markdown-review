@@ -217,6 +217,7 @@ The checkboxes stay `disabled`, since they show state and can't be changed. They
 
 - **Gap.** Diagrams get the gap from section 4, and are centred.
 - **Light and dark.** `renderMermaidDiagrams` keeps each diagram's definition on its block wrapper. `useMermaidDiagrams` redraws every diagram when `prefers-color-scheme` changes.
+- **Overlapping redraws.** Drawings run one at a time, and each finds the diagrams when it starts, so after quick switches the last mode's colours win.
 - The block wrapper and its attributes stay as they are, so anchoring is unchanged.
 
 ## 15. Upstream: tables in StylesUI Prose

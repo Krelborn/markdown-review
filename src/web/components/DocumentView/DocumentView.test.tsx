@@ -1,4 +1,11 @@
-import { render as renderBase, screen, waitFor, waitForElementToBeRemoved, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render as renderBase,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+  within,
+} from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, onTestFinished, test, vi } from "vitest";
@@ -97,6 +104,24 @@ describe("DocumentView", () => {
 
     expect(onComment).toHaveBeenCalledWith(
       expect.objectContaining({ anchor: expect.objectContaining({ quote: "Retries happen three times." }) })
+    );
+  });
+
+  test("must label a block comment with the hash of the rendering it was made on when a newer source is still rendering", async () => {
+    const { onComment, render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.hover(within(elements.article()).getByText("Retries happen three times."));
+    const rendering = rerender(revisedPlan);
+
+    fireEvent.click(screen.getByRole("button", { name: "Comment on this block" }));
+    await rendering;
+
+    expect(onComment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        anchor: expect.objectContaining({ quote: "Retries happen three times." }),
+        renderedHash: "hash of the plan",
+      })
     );
   });
 

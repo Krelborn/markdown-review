@@ -68,14 +68,17 @@ export function DocumentControls({
   if (shownButtonBlock !== null && shownButtonBlock !== buttonBlock?.block) {
     setButtonBlock({ block: shownButtonBlock, rendered });
   }
+  // A comment is sent with the hash of the rendering it was made on, which lags the source while a newer one renders
   const commentOnBlock = (blockIndex: number): void => {
     const anchor = rendered === null ? null : blockPassage(rendered.documentText, shown.path, blockIndex);
-    if (anchor !== null) {
-      onComment({ anchor, renderedHash: shown.hash });
+    if (rendered !== null && anchor !== null) {
+      onComment({ anchor, renderedHash: rendered.hash });
     }
   };
   const commentOnSelection = ({ anchor }: SelectionComment): void => {
-    onComment({ anchor, renderedHash: shown.hash });
+    if (rendered !== null) {
+      onComment({ anchor, renderedHash: rendered.hash });
+    }
     document.getSelection()?.removeAllRanges();
   };
   return (

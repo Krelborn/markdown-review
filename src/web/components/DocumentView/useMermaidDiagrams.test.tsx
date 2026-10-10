@@ -91,7 +91,7 @@ describe("useMermaidDiagrams", () => {
 });
 
 function buildRenderedDocument(): RenderedDocument {
-  return { documentText: createDocumentText("# Plan\n"), html: "" };
+  return { documentText: createDocumentText("# Plan\n"), hash: "hash of the plan", html: "" };
 }
 
 function setUpTest({
