@@ -192,15 +192,14 @@ The `coding-standards` plugin's TypeScript, React, comments and Vitest standards
 
 A new window size, `largeWindow = { height: 1080, width: 1920 }`, and a doc with prose, a table with long cells, a code block with a 150-character line, a short code block, a wide Mermaid diagram and a narrow one.
 
-- "must start a wide table at the prose's left edge and reach no more than 28ch past its right edge when the window is large"
-- "must keep a table that fits the prose as wide as its content when the window is large"
+- "must start each table at the prose's left edge, and let only a wide one reach 28ch past it, when the window is large": the table that fits stays as wide as its content.
 - "must keep a short code block as wide as the prose and scroll a long one sideways without wrapping when the window is large": a long line's text is on one line, and the block's `scrollWidth` exceeds its `clientWidth`.
 - "must draw a wide diagram past the prose and keep a narrow one centred in it when the window is large"
 - "must never scroll the doc column sideways" at the wide, narrow and large window sizes.
 - "must put a thread's marker just right of the wide table its passage is in": the marker's left edge is at or past the table's right edge, and inside the doc column.
 - "must keep a marker for a thread in the prose beside the prose when the doc also has a wide table"
 - "must show Comment beside a selection that ends past the prose in a wide table"
-- "must let the keyboard scroll a long code block": tab to it, press the right arrow, and its `scrollLeft` grows.
+- "must let the keyboard reach a code block that is too wide for its room, so it can scroll it": Tab from the code block before it focuses it. The test stops at focus, because Playwright's WebKit does not scroll a focused table or code block with the arrow keys, while Chromium does.
 
 The existing tests still pass, notably:
 
