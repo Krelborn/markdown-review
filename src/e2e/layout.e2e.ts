@@ -483,6 +483,34 @@ test("must space the prose's lines at 1.6 and code's at 1.5", async ({ page, rev
   expect(await lineHeightOf(article.locator("pre", { hasText: "const ttl" }))).toBe("21px");
 });
 
+test("must wrap a pre that is not a code block and space it as the text around it when it is wider than the prose", async ({
+  page,
+  review,
+}) => {
+  const longText = `${"Wraps at the edge of its box. ".repeat(10)}End.`;
+  const article = await openWideBlocksDoc(page, review, {
+    source: [
+      "---",
+      "owner:",
+      `  notes: ${longText}`,
+      "---",
+      "",
+      `Run <pre>${longText}</pre> now.`,
+      "",
+      `## Steps <pre>${longText}</pre>`,
+      "",
+    ].join("\n"),
+  });
+  const pres = article.locator("pre");
+  await expect(pres).toHaveCount(3);
+
+  for (const pre of await pres.all()) {
+    expect(await linesIn(pre)).toBeGreaterThan(1);
+    expect(await pre.evaluate((shown) => shown.scrollWidth <= shown.clientWidth)).toBe(true);
+    expect(await lineHeightRatio(pre)).toBeCloseTo(await lineHeightRatio(pre.locator("xpath=..")));
+  }
+});
+
 test("must put a thread's marker just right of the wide table its passage is in when the window is large", async ({
   page,
   review,
@@ -658,6 +686,16 @@ function linesIn(element: Locator): Promise<number> {
     const range = document.createRange();
     range.selectNodeContents(shown);
     return new Set([...range.getClientRects()].map((box) => Math.round(box.top))).size;
+  });
+}
+
+/**
+ * @returns the element's line height as a multiple of its font size
+ */
+function lineHeightRatio(element: Locator): Promise<number> {
+  return element.evaluate((shown) => {
+    const style = getComputedStyle(shown);
+    return parseFloat(style.lineHeight) / parseFloat(style.fontSize);
   });
 }
 

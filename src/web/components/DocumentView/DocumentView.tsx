@@ -109,6 +109,7 @@ export function DocumentView({
         <Prose
           as="article"
           className={styles.content}
+          codeOverflow="scroll"
           dangerouslySetInnerHTML={{ __html: rendered?.html ?? "" }}
           ref={contentRef}
           aria-label={shown.path}
