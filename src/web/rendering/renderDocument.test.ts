@@ -117,6 +117,12 @@ describe("renderDocument", () => {
     }
   );
 
+  test("must put each table in the tab order when the doc has tables", async () => {
+    const page = await renderPage("| A | B |\n| - | - |\n| 1 | 2 |\n\n| C |\n| - |\n| 3 |\n");
+
+    expect([...page.querySelectorAll("table")].map((table) => table.tabIndex)).toEqual([0, 0]);
+  });
+
   test("must name a heading by its text alone when it has a link", async () => {
     const page = await renderPage("# Retry `Policy`\n");
 

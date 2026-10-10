@@ -103,7 +103,7 @@ describe("ThreadSidebar", () => {
     render();
 
     expect(screen.getByText("Comments").textContent).toBe("Comments");
-    expect(screen.getByRole("button", { name: "+ Comment" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New comment" })).toBeInTheDocument();
   });
 
   test("must go back to This doc when the user chose All docs and the other doc's threads went", async () => {
@@ -147,7 +147,7 @@ describe("ThreadSidebar", () => {
     const user = userEvent.setup();
     render();
 
-    await user.click(screen.getByRole("button", { name: "+ Comment" }));
+    await user.click(screen.getByRole("button", { name: "New comment" }));
     await user.click(screen.getByRole("button", { name: "On the whole review" }));
     await user.keyboard("The spec and plan disagree.");
     await user.click(screen.getByRole("button", { name: "Save" }));
@@ -163,7 +163,7 @@ describe("ThreadSidebar", () => {
     const user = userEvent.setup();
     render();
 
-    await user.click(screen.getByRole("button", { name: "+ Comment" }));
+    await user.click(screen.getByRole("button", { name: "New comment" }));
     await user.click(screen.getByRole("button", { name: "On this doc" }));
 
     const composer = within(screen.getByRole("region", { name: "New comment" }));
@@ -176,7 +176,7 @@ describe("ThreadSidebar", () => {
     const user = userEvent.setup();
     render();
 
-    await user.click(screen.getByRole("button", { name: "+ Review comment" }));
+    await user.click(screen.getByRole("button", { name: "Review comment" }));
 
     expect(screen.getByRole("textbox", { name: "Comment on the whole review" })).toHaveFocus();
   });
@@ -185,7 +185,7 @@ describe("ThreadSidebar", () => {
     const { fake, render } = setUpTest({ threads: [] });
     const user = userEvent.setup();
     render();
-    await user.click(screen.getByRole("button", { name: "+ Comment" }));
+    await user.click(screen.getByRole("button", { name: "New comment" }));
     await user.click(screen.getByRole("button", { name: "On the whole review" }));
     await user.keyboard("Never mind");
 
@@ -441,7 +441,7 @@ describe("ThreadSidebar", () => {
     const user = userEvent.setup();
     render();
 
-    await user.click(screen.getByRole("button", { name: "+ Comment" }));
+    await user.click(screen.getByRole("button", { name: "New comment" }));
     await user.click(screen.getByRole("button", { name: "On the whole review" }));
 
     expect(within(screen.getByRole("region", { name: "New comment" })).getByText("to save")).toBeInTheDocument();

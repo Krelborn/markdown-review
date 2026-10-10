@@ -40,8 +40,8 @@ importers:
         specifier: ^8.0.7
         version: 8.0.7
       '@krelborn/stylesui':
-        specifier: ^0.2.1
-        version: 0.2.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: ^0.2.2
+        version: 0.2.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@playwright/test':
         specifier: ^1.64.0
         version: 1.64.0
@@ -367,8 +367,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@krelborn/stylesui@0.2.1':
-    resolution: {integrity: sha512-1iFTJbu3d7XLgfDcL/3IAJ4mXZ139dQ31I3y++K2guUS0iCucc5v8TKqwqzH+qZ8qqgh2+ycvbN4UQZXktGung==, tarball: https://npm.pkg.github.com/download/@krelborn/stylesui/0.2.1/dbccb4b2db6ef5741a9c8e034bbeb5dc02e05139}
+  '@krelborn/stylesui@0.2.2':
+    resolution: {integrity: sha512-fENvOlU70SO97ESpvseMagzDNg3cEQK5UT9r0S4AXKIY/MOtt4G20x+c/pIfy5i9UnCAn+KbGiGObJohvfAF0g==, tarball: https://npm.pkg.github.com/download/@krelborn/stylesui/0.2.2/45659df84b4f03e3416965cc0bf97226681b7ff7}
     peerDependencies:
       react: ^19.2.0
       react-dom: ^19.2.0
@@ -2379,7 +2379,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@krelborn/stylesui@0.2.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@krelborn/stylesui@0.2.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@fontsource-variable/fredoka': 5.3.0
       '@fontsource-variable/nunito': 5.3.0

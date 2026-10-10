@@ -6,9 +6,12 @@
     "jsx-a11y": {
       "polymorphicPropName": "as",
       "components": {
+        "AddIcon": "svg",
         "Alert": "div",
         "Button": "button",
         "Checkbox": "input",
+        "ChevronDownIcon": "svg",
+        "CloseIcon": "svg",
         "Divider": "hr",
         "Link": "a",
         "Select": "select",

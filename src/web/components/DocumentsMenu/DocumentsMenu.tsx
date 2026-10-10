@@ -1,11 +1,10 @@
-import { Alert, Button, Popover, usePopover } from "@krelborn/stylesui";
+import { Alert, Button, ChevronDownIcon, Popover, usePopover } from "@krelborn/stylesui";
 import type { JSX } from "react";
 import { useState } from "react";
 
 import type { DocumentList } from "../../../shared/api/apiResponseSchemas";
 import { describeFailure } from "../../api/describeFailure";
 import { useReviewApi } from "../../api/useReviewApi";
-import { ChevronDownIcon } from "../ChevronDownIcon/ChevronDownIcon";
 import { DocumentLinks } from "../DocumentLinks/DocumentLinks";
 
 export interface DocumentsMenuProps {
