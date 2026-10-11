@@ -2,6 +2,8 @@ import { Button, Cluster, Popover, Stack, Text, usePopover } from "@krelborn/sty
 import type { JSX, ToggleEvent } from "react";
 import { useRef, useState } from "react";
 
+import styles from "./ThreadCard.module.css";
+
 export interface DiscardDraftButtonProps {
   /**
    * Whether the draft is a reply on a thread, rather than a new comment
@@ -53,6 +55,7 @@ export function DiscardDraftButton({ isReply, isSaving, onDiscard }: DiscardDraf
       </Button>
       <Popover
         {...overlayProps}
+        className={styles.confirmation}
         onToggle={(event) => {
           overlayProps.onToggle(event);
           moveFocus(event);

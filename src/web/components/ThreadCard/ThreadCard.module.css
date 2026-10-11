@@ -75,3 +75,10 @@
 .leading {
   margin-inline-end: auto;
 }
+
+/* StylesUI centres a popover on its button; this one opens from Discard's start edge, so it stays inside the comments */
+.confirmation[data-placement] {
+  justify-self: normal;
+  margin-inline: 0;
+  position-area: block-start span-inline-end;
+}

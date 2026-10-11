@@ -1,7 +1,7 @@
 import { rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { test as base, expect } from "@playwright/test";
 
 import { createGitRepository } from "../../integration/testing/createGitRepository";
@@ -173,4 +173,16 @@ function collectErrors(page: Page): string[] {
   });
   page.on("pageerror", (error) => errors.push(error.message));
   return errors;
+}
+
+/**
+ * @returns where the element is on the page
+ * @throws Error when the element is not on the page
+ */
+export async function boxOf(element: Locator): Promise<{ height: number; width: number; x: number; y: number }> {
+  const box = await element.boundingBox();
+  if (box === null) {
+    throw new Error("The element is not on the page");
+  }
+  return box;
 }

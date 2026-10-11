@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-import { highlightedText, selectText, submitDrafts, test, writeDraftComment } from "./testing/reviewTest";
+import { boxOf, highlightedText, selectText, submitDrafts, test, writeDraftComment } from "./testing/reviewTest";
 
 test("must ask about the first comment's text, then save it and start the next, when the user starts another comment", async ({
   page,
@@ -212,6 +212,20 @@ test("must keep the draft and return focus to Discard when the user presses Esca
   await expect(confirmation).toBeHidden();
   await expect(thread.getByRole("button", { name: "Discard" })).toBeFocused();
   await expect(thread.getByText("Why 24h?")).toBeVisible();
+});
+
+test("must open the confirmation inside the comments, from Discard's start edge", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const discard = page.getByRole("article", { name: "Thread #1" }).getByRole("button", { name: "Discard" });
+  const button = await boxOf(discard);
+
+  await discard.click();
+
+  const confirmation = await boxOf(page.getByRole("dialog", { name: "Discard this comment?" }));
+  const comments = await boxOf(page.getByRole("complementary", { name: "Comments" }));
+  expect(confirmation.x).toBeCloseTo(button.x, 0);
+  expect(confirmation.x + confirmation.width).toBeLessThanOrEqual(comments.x + comments.width);
 });
 
 test("must open the confirmation again when the user presses Discard after closing it with Escape", async ({
