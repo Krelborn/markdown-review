@@ -184,6 +184,18 @@ test("must discard a draft from its card without opening the editor when the use
   await expect(thread).toHaveCount(0);
 });
 
+test("must move focus to the next card's location when the user discards a draft comment", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  await writeDraftComment(page, "Retries", "times.", "Why three?");
+
+  await page.getByRole("article", { name: "Thread #1" }).getByRole("button", { name: "Discard" }).click();
+  await page.getByRole("dialog", { name: "Discard this comment?" }).getByRole("button", { name: "Discard" }).click();
+
+  await expect(page.getByRole("article", { name: "Thread #1" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "#2 Line 5" })).toBeFocused();
+});
+
 test("must keep the draft and return focus to Discard when the user presses Escape in the confirmation", async ({
   page,
   review,

@@ -297,6 +297,68 @@ describe("ThreadSidebar", () => {
     expect(screen.getByRole("textbox", { name: "Reply" })).toHaveValue("Hourly");
   });
 
+  test("must move focus to the next card's location when the user discards a draft comment", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+
+    await discardDraftOnThread(user, 1, "Discard this comment?");
+
+    expect(screen.getByRole("button", { name: "#5 Whole review" })).toHaveFocus();
+  });
+
+  test("must move focus to the previous card's location when the user discards the last card's draft", async () => {
+    const drafts = [
+      buildThread({
+        anchor: buildPassageAnchor(),
+        draft: { at: testTime, body: "Why?" },
+        id: 1,
+        messages: [],
+        status: "draft",
+      }),
+      buildThread({
+        anchor: buildPassageAnchor({ startOffset: 40 }),
+        draft: { at: testTime, body: "And this?" },
+        id: 2,
+        messages: [],
+        status: "draft",
+      }),
+    ];
+    const { render } = setUpTest({ threads: drafts });
+    const user = userEvent.setup();
+    render();
+
+    await discardDraftOnThread(user, 2, "Discard this comment?");
+
+    expect(screen.getByRole("button", { name: "#1 Line 3" })).toHaveFocus();
+  });
+
+  test("must move focus to + Comment when the user discards the draft of the only card in view", async () => {
+    const { render } = setUpTest({ threads: threads.filter(({ id }) => id === 1 || id === 4) });
+    const user = userEvent.setup();
+    render();
+
+    await discardDraftOnThread(user, 1, "Discard this comment?");
+
+    expect(screen.getByRole("button", { name: "New comment" })).toHaveFocus();
+  });
+
+  test("must move focus to Reply when the user discards a draft reply", async () => {
+    const withDraftReply = buildThread({
+      anchor: buildPassageAnchor(),
+      draft: { at: testTime, body: "Hourly" },
+      id: 2,
+    });
+    const { fake, render, showThreads } = setUpTest({ threads: [withDraftReply] });
+    const user = userEvent.setup();
+    render();
+
+    await discardDraftOnThread(user, 2, "Discard this reply?");
+    showThreads(fake.snapshot.threads);
+
+    expect(within(elements.thread(2)).getByRole("button", { name: "Reply" })).toHaveFocus();
+  });
+
   test("must move focus to Save again when the user starts yet another comment while asked", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
@@ -484,6 +546,15 @@ function setUpTest({
     rerenderBase(view(listed));
   };
   return { fake, onChanged, onSelectThread, render, showThreads };
+}
+
+async function discardDraftOnThread(
+  user: ReturnType<typeof userEvent.setup>,
+  threadId: number,
+  confirmation: string
+): Promise<void> {
+  await user.click(within(elements.thread(threadId)).getByRole("button", { name: "Discard" }));
+  await user.click(within(screen.getByRole("dialog", { name: confirmation })).getByRole("button", { name: "Discard" }));
 }
 
 async function startReplyOnThread(

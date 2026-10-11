@@ -12,6 +12,7 @@ import { useThreadReporter } from "../../review/useThreadReporter";
 import { Quote } from "../Quote/Quote";
 
 import { Message } from "./Message";
+import { moveFocusPastCard } from "./moveFocusPastCard";
 import { ThreadActions } from "./ThreadActions";
 import styles from "./ThreadCard.module.css";
 
@@ -89,7 +90,11 @@ export function ThreadCard({
             ))}
           </Stack>
         )}
-        <ThreadActions onChanged={onChanged} thread={thread} />
+        <ThreadActions
+          onChanged={onChanged}
+          onCommentDiscarded={() => moveFocusPastCard(cardRef.current)}
+          thread={thread}
+        />
       </Stack>
     </Card>
   );
@@ -97,7 +102,7 @@ export function ThreadCard({
 
 function ThreadLocation({ onSelect, thread: { anchor, id } }: { onSelect: () => void; thread: Thread }): JSX.Element {
   return (
-    <button className={styles.location} onClick={onSelect} type="button">
+    <button className={styles.location} onClick={onSelect} type="button" data-thread-location="">
       <span className={styles.id}>#{id}</span> {describeLocation(anchor)}
     </button>
   );

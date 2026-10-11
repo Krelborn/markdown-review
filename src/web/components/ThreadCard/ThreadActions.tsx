@@ -1,6 +1,6 @@
 import { Alert, Button, Cluster, Divider, Stack, Text } from "@krelborn/stylesui";
 import type { JSX } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Thread } from "../../../shared/review/threadSchema";
 import { describeFailure } from "../../api/describeFailure";
@@ -18,17 +18,31 @@ export interface ThreadActionsProps {
    */
   onChanged: () => void;
 
+  /**
+   * Called once the user's draft comment is deleted, while its card is still on the page
+   */
+  onCommentDiscarded: () => void;
+
   thread: Thread;
 }
 
 /**
  * The user's part in a thread: their draft, or its editor while they write, and what they can do next
  */
-export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.Element {
+export function ThreadActions({ onChanged, onCommentDiscarded, thread }: ThreadActionsProps): JSX.Element {
   const api = useReviewApi();
   const editor = useCommentEditorContext();
   const [error, setError] = useState<string | null>(null);
+  const replyRef = useRef<HTMLButtonElement>(null);
+  const focusesReplyRef = useRef(false);
   const { draft, id, status } = thread;
+  // Reply takes the place of a discarded draft reply's Edit only once the threads show the draft gone
+  useEffect(() => {
+    if (focusesReplyRef.current && draft === undefined) {
+      focusesReplyRef.current = false;
+      replyRef.current?.focus();
+    }
+  }, [draft]);
   const run = async (action: () => Promise<void>): Promise<void> => {
     try {
       await action();
@@ -43,8 +57,16 @@ export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.El
       {error}
     </Alert>
   );
-  const discard = (): Promise<void> => run(() => api.deleteDraft(id));
   const isReply = status !== "draft";
+  const discard = (): Promise<void> =>
+    run(async () => {
+      await api.deleteDraft(id);
+      if (isReply) {
+        focusesReplyRef.current = true;
+      } else {
+        onCommentDiscarded();
+      }
+    });
   if (editor.editingThreadId === id) {
     return (
       <>
@@ -74,7 +96,12 @@ export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.El
             Resolve
           </Button>
         )}
-        <Button onClick={() => editor.request({ kind: "thread", threadId: id })} size="sm" variant="secondary">
+        <Button
+          onClick={() => editor.request({ kind: "thread", threadId: id })}
+          ref={replyRef}
+          size="sm"
+          variant="secondary"
+        >
           {draft === undefined ? "Reply" : "Edit"}
         </Button>
       </Cluster>
