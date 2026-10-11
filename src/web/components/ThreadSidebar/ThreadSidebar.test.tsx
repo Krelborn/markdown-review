@@ -387,6 +387,22 @@ describe("ThreadSidebar", () => {
     expect(screen.getByRole("textbox", { name: "Reply" })).toHaveFocus();
   });
 
+  test("must leave the caret where it was when the user keeps editing", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render();
+    await user.click(within(elements.thread(1)).getByRole("button", { name: "Edit" }));
+    await user.keyboard(" Or 1h?{ArrowLeft>3/}");
+    await user.click(within(elements.thread(2)).getByRole("button", { name: "Reply" }));
+
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+
+    expect(screen.getByRole("textbox", { name: "Draft comment" })).toHaveProperty(
+      "selectionStart",
+      "Why 24h? Or 1h?".length - 3
+    );
+  });
+
   test("must offer to discard only the changes when the user has edited a saved draft", async () => {
     const { fake, render } = setUpTest();
     const user = userEvent.setup();

@@ -1,6 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
+import type { ReviewFixture } from "./testing/reviewTest";
 import { boxOf, highlightedText, selectText, submitDrafts, test, writeDraftComment } from "./testing/reviewTest";
 
 test("must ask about the first comment's text, then save it and start the next, when the user starts another comment", async ({
@@ -97,6 +98,7 @@ test("must put the + beside a list item when the user points beside the item's t
 test("must emphasise a comment's passage while the user points at its card", async ({ page, review }) => {
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  await movePointerClear(page);
 
   await page.getByRole("article", { name: "Thread #1" }).hover();
 
@@ -130,6 +132,7 @@ test("must underline a comment's location in the text's colour while the user po
 test("must leave a comment's location as it is while the user points at its card", async ({ page, review }) => {
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  await movePointerClear(page);
 
   await page.getByRole("article", { name: "Thread #1" }).getByText("Why 24h?").hover();
 
@@ -244,6 +247,72 @@ test("must open the confirmation again when the user presses Discard after closi
 
   await expect(confirmation).toBeVisible();
 });
+
+test("must give the editor the read-only text's font size and line height when the user edits a draft", async ({
+  page,
+  review,
+}) => {
+  const thread = await writeDraftToEdit(page, review, "Why 24h?");
+  const readOnly = await fontOf(thread.getByText("Why 24h?"));
+
+  await thread.getByRole("button", { name: "Edit" }).click();
+
+  expect(await fontOf(thread.getByRole("textbox", { name: "Draft comment" }))).toEqual(readOnly);
+});
+
+test("must show all of a five-line draft without scrolling when the user edits it", async ({ page, review }) => {
+  const thread = await writeDraftToEdit(page, review, "One\nTwo\nThree\nFour\nFive");
+
+  await thread.getByRole("button", { name: "Edit" }).click();
+
+  expect(await overflowOf(thread.getByRole("textbox", { name: "Draft comment" }))).toBe(0);
+});
+
+test("must scroll the editor when the draft is taller than half the window", async ({ page, review }) => {
+  const thread = await writeDraftToEdit(page, review, Array.from({ length: 40 }, (_, i) => `Line ${i + 1}`).join("\n"));
+
+  await thread.getByRole("button", { name: "Edit" }).click();
+
+  const textbox = thread.getByRole("textbox", { name: "Draft comment" });
+  expect((await boxOf(textbox)).height).toBeLessThanOrEqual((page.viewportSize()?.height ?? 0) / 2);
+  expect(await overflowOf(textbox)).toBeGreaterThan(0);
+});
+
+/**
+ * Moves the pointer off the comments. Saving a comment leaves the pointer where its card can appear, and a card that
+ * appears under a still pointer gets no pointerenter until the pointer leaves it.
+ */
+function movePointerClear(page: Page): Promise<void> {
+  return page.mouse.move(0, 0);
+}
+
+/**
+ * Opens the plan and saves a draft comment on its first passage
+ *
+ * @returns the draft's card
+ */
+async function writeDraftToEdit(page: Page, review: ReviewFixture, body: string): Promise<Locator> {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", body);
+  return page.getByRole("article", { name: "Thread #1" });
+}
+
+/**
+ * @returns the element's computed font size and line height
+ */
+function fontOf(element: Locator): Promise<{ fontSize: string; lineHeight: string }> {
+  return element.evaluate((node) => {
+    const { fontSize, lineHeight } = getComputedStyle(node);
+    return { fontSize, lineHeight };
+  });
+}
+
+/**
+ * @returns how far, in pixels, the element's content runs past its visible height
+ */
+function overflowOf(element: Locator): Promise<number> {
+  return element.evaluate((node) => node.scrollHeight - node.clientHeight);
+}
 
 /**
  * @returns the point in the gutter, near its left edge and clear of the +, that is level with the middle of the element

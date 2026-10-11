@@ -9,3 +9,10 @@
 .leading {
   margin-inline-end: auto;
 }
+
+/* Grows with the text, so the whole draft stays in view while the user edits it */
+.text {
+  field-sizing: content;
+  max-block-size: 50vh;
+  min-block-size: calc(3lh + 2 * var(--sui-text-control-padding-y) + 2 * var(--sui-text-control-border-width));
+}

@@ -142,6 +142,16 @@ describe("ThreadCard", () => {
     expect(fake.snapshot.threads[0]?.draft?.body).toBe("Why 24h? And why cache?");
   });
 
+  test("must put the caret at the end when the editor opens on a draft", async () => {
+    const { render } = setUpTest({ thread: draftComment });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(elements.button("Edit"));
+
+    expect(elements.textbox("Draft comment")).toHaveProperty("selectionStart", "Why 24h?".length);
+  });
+
   test("must not let the user save a draft when its text is unchanged", async () => {
     const { render } = setUpTest({ thread: draftComment });
     const user = userEvent.setup();

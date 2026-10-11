@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { describeFailure } from "../../api/describeFailure";
 import { useCommentEditorContext } from "../../review/useCommentEditorContext";
 
+import styles from "./CommentForm.module.css";
 import { CommentFormButtons } from "./CommentFormButtons";
 import { UnsavedQuestion } from "./UnsavedQuestion";
 import { useEditorKeys } from "./useEditorKeys";
@@ -30,9 +31,18 @@ export function CommentForm({ label, leading }: CommentFormProps): JSX.Element {
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isSubmittingRef = useRef(false);
+  const hasPlacedCaretRef = useRef(false);
   const { escape, focusRevision, question } = editor;
   useEffect(() => {
-    textareaRef.current?.focus();
+    const textarea = textareaRef.current;
+    if (textarea === null) {
+      return;
+    }
+    textarea.focus();
+    if (!hasPlacedCaretRef.current) {
+      hasPlacedCaretRef.current = true;
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
   }, [focusRevision]);
   useEditorKeys(formRef, escape);
   const submit = async (event: FormEvent): Promise<void> => {
@@ -53,10 +63,12 @@ export function CommentForm({ label, leading }: CommentFormProps): JSX.Element {
     <Stack as="form" gap={2} onSubmit={(event: FormEvent) => void submit(event)} ref={formRef}>
       {question !== null && <UnsavedQuestion isDraft={editor.savedBody !== null} question={question} />}
       <Textarea
+        className={styles.text}
         onChange={(event) => editor.changeBody(event.target.value)}
         readOnly={editor.isSaving}
         ref={textareaRef}
         rows={3}
+        size="sm"
         value={editor.body}
         aria-label={label}
       />
