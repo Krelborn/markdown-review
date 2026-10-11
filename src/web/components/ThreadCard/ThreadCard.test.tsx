@@ -98,7 +98,7 @@ describe("ThreadCard", () => {
   test.each<{ buttons: string[]; condition: string; thread: Thread }>([
     { buttons: ["Edit"], condition: "a new comment is a draft", thread: draftComment },
     { buttons: ["Resolve", "Reply"], condition: "an open thread has no draft reply", thread: conversation },
-    { buttons: ["Resolve", "Edit"], condition: "an open thread has a draft reply", thread: draftReply },
+    { buttons: ["Edit"], condition: "an open thread has a draft reply", thread: draftReply },
     {
       buttons: ["Reply"],
       condition: "a resolved thread has no draft reply",

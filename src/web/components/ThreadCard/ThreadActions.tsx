@@ -55,7 +55,7 @@ export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.El
           label={editorLabelOf(thread)}
           leading={
             draft === undefined ? undefined : (
-              <Button onClick={discard} size="sm" variant="outline">
+              <Button onClick={discard} size="sm" variant="secondary">
                 Discard
               </Button>
             )
@@ -69,8 +69,8 @@ export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.El
     <Stack gap={2}>
       {draft !== undefined && <SavedDraft body={draft.body} isReply={status !== "draft"} />}
       <Cluster gap={2} justify="end">
-        {status === "open" && (
-          <Button onClick={() => void run(() => api.resolveThread(id))} size="sm" variant="outline">
+        {status === "open" && draft === undefined && (
+          <Button onClick={() => void run(() => api.resolveThread(id))} size="sm" variant="secondary">
             Resolve
           </Button>
         )}

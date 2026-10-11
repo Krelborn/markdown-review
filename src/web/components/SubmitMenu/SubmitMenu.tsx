@@ -120,7 +120,7 @@ export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }
             </Alert>
           )}
           <Cluster gap={2} justify="end">
-            <Button onClick={popover.close} size="sm" variant="outline">
+            <Button onClick={popover.close} size="sm" variant="secondary">
               Cancel
             </Button>
             <Button busy={isSubmitting} disabled={!canSubmit} onClick={() => void submit()} size="sm">

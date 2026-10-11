@@ -30,7 +30,7 @@ export function CommentFormButtons({ leading }: CommentFormButtonsProps): JSX.El
     }
   }, [isAsking, questionRevision]);
   const start = isAsking ? (
-    <Button onClick={editor.discardChanges} size="sm" variant="outline">
+    <Button onClick={editor.discardChanges} size="sm" variant="secondary">
       {editor.savedBody === null ? "Discard" : "Discard changes"}
     </Button>
   ) : (
@@ -39,7 +39,7 @@ export function CommentFormButtons({ leading }: CommentFormButtonsProps): JSX.El
   return (
     <div className={styles.buttons}>
       {start !== undefined && <div className={styles.leading}>{start}</div>}
-      <Button onClick={isAsking ? editor.keepEditing : editor.close} ref={keepEditingRef} size="sm" variant="outline">
+      <Button onClick={isAsking ? editor.keepEditing : editor.close} ref={keepEditingRef} size="sm" variant="secondary">
         {isAsking ? "Keep editing" : "Cancel"}
       </Button>
       <Button busy={editor.isSaving} disabled={!editor.canSave} ref={saveRef} size="sm" type="submit">
