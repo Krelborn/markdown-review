@@ -215,6 +215,25 @@ test("must keep the draft and return focus to Discard when the user presses Esca
   await expect(thread.getByText("Why 24h?")).toBeVisible();
 });
 
+test("must keep the editor open and return focus to Discard when the user presses Escape in its confirmation", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const thread = page.getByRole("article", { name: "Thread #1" });
+  const confirmation = page.getByRole("dialog", { name: "Discard this comment?" });
+  await thread.getByRole("button", { name: "Edit" }).click();
+  await thread.getByRole("button", { name: "Discard" }).click();
+  await expect(confirmation.getByRole("button", { name: "Cancel" })).toBeFocused();
+
+  await page.keyboard.press("Escape");
+
+  await expect(confirmation).toBeHidden();
+  await expect(thread.getByRole("textbox", { name: "Draft comment" })).toHaveValue("Why 24h?");
+  await expect(thread.getByRole("button", { name: "Discard" })).toBeFocused();
+});
+
 test("must open the confirmation inside the comments, from Discard's start edge", async ({ page, review }) => {
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
