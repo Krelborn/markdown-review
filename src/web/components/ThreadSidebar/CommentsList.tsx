@@ -1,6 +1,6 @@
 import { Stack, Text } from "@krelborn/stylesui";
 import type { JSX } from "react";
-import { useEffect, useEffectEvent } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 
 import type { Thread } from "../../../shared/review/threadSchema";
 import { groupThreads } from "../../review/groupThreads";
@@ -29,6 +29,11 @@ export interface CommentsListProps {
   selectedThreadId: number | null;
 
   /**
+   * Counts the user's selections, selecting the selected thread again included
+   */
+  selectionCount: number;
+
+  /**
    * Whether to head each doc's threads with its path
    */
   showsDocuments: boolean;
@@ -47,23 +52,28 @@ export function CommentsList({
   onChanged,
   onSelectThread,
   selectedThreadId,
+  selectionCount,
   showsDocuments,
   threads,
 }: CommentsListProps): JSX.Element {
   const editor = useCommentEditorContext();
   const seen = useSeenMessages();
-  const markSelectedSeen = useEffectEvent((threadId: number) => {
-    const selected = threads.find(({ id }) => id === threadId);
+  const markSelectedSeen = useEffectEvent(() => {
+    const selected = threads.find(({ id }) => id === selectedThreadId);
     if (selected !== undefined) {
       seen.markSeen(selected);
     }
   });
-  // Selecting a thread by its highlight or marker in the doc shows it as surely as its card's location does
+  // Selecting a thread by its highlight or marker in the doc shows it as surely as its card's location does. Only a
+  // selection counts: a reply that arrives while its thread stays selected is still new, and so is one waiting when
+  // the list mounts again, as it does when the other docs' threads come or go
+  const markedSelectionCountRef = useRef(selectionCount);
   useEffect(() => {
-    if (selectedThreadId !== null) {
-      markSelectedSeen(selectedThreadId);
+    if (selectionCount !== markedSelectionCountRef.current) {
+      markedSelectionCountRef.current = selectionCount;
+      markSelectedSeen();
     }
-  }, [selectedThreadId]);
+  }, [selectionCount]);
   const groups = groupThreads(threads);
   const listProps = {
     hasNewAgentMessage: seen.hasNewAgentMessage,

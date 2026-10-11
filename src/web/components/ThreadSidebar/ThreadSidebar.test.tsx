@@ -291,6 +291,49 @@ describe("ThreadSidebar", () => {
     expect(within(elements.thread(2)).queryByText("New reply")).not.toBeInTheDocument();
   });
 
+  test("must keep marking the agent's reply as new when it arrives on the selected thread", () => {
+    const { render, select, showThreads } = setUpTest({
+      threads: [buildThread({ anchor: buildPassageAnchor(), id: 2 })],
+    });
+    render();
+    select(2);
+
+    showThreads([replied]);
+
+    expect(within(elements.thread(2)).getByText("New reply")).toBeInTheDocument();
+  });
+
+  test("must stop marking the agent's reply as new when the user selects the selected thread in the doc again", () => {
+    const { render, select, showThreads } = setUpTest({
+      threads: [buildThread({ anchor: buildPassageAnchor(), id: 2 })],
+    });
+    render();
+    select(2);
+    showThreads([replied]);
+    const wasNew = within(elements.thread(2)).queryByText("New reply") !== null;
+
+    select(2);
+
+    expect(wasNew).toBe(true);
+    expect(within(elements.thread(2)).queryByText("New reply")).not.toBeInTheDocument();
+  });
+
+  test("must keep marking the agent's reply on the selected thread as new when the other docs' threads go", () => {
+    const otherDocument = buildThread({ anchor: buildPassageAnchor({ document: "docs/spec.md" }), id: 6 });
+    const { render, select, showThreads } = setUpTest({
+      threads: [buildThread({ anchor: buildPassageAnchor(), id: 2 }), otherDocument],
+    });
+    render();
+    select(2);
+    showThreads([replied, otherDocument]);
+    const wasNew = within(elements.thread(2)).queryByText("New reply") !== null;
+
+    showThreads([replied]);
+
+    expect(wasNew).toBe(true);
+    expect(within(elements.thread(2)).getByText("New reply")).toBeInTheDocument();
+  });
+
   test.each<{ action: string; button: string; thread: Thread }>([
     { action: "replies", button: "Reply", thread: replied },
     { action: "resolves the thread", button: "Resolve", thread: replied },
@@ -645,6 +688,7 @@ function setUpTest({
   const onSelectThread = vi.fn();
   let listed = shown;
   let selectedThreadId: number | null = null;
+  let selectionCount = 0;
   const view = () => (
     <ReviewApiContext value={fake.api}>
       <CommentEditorHarness onChanged={onChanged} threads={listed}>
@@ -656,6 +700,7 @@ function setUpTest({
             onChanged={onChanged}
             onSelectThread={onSelectThread}
             selectedThreadId={selectedThreadId}
+            selectionCount={selectionCount}
             threads={listed}
           />
         )}
@@ -672,6 +717,7 @@ function setUpTest({
   };
   const select = (threadId: number | null): void => {
     selectedThreadId = threadId;
+    selectionCount += 1;
     rerenderBase(view());
   };
   return { fake, onChanged, onSelectThread, render, select, showThreads };

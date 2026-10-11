@@ -169,7 +169,7 @@ The Resolved group, folded, after the agent has answered:
 
 ### New replies
 
-- A thread's messages are marked seen when it is selected, however that happens, and when the user presses Reply, Edit, Resolve or Discard on its card.
+- A thread's messages are marked seen when it is selected, however that happens and even if it is already selected, and when the user presses Reply, Edit, Resolve or Discard on its card. A reply that arrives while its thread stays selected is still new: the selection may be long past, and the badge is how the user learns of the answer.
 - The Resolved group opens by itself whenever the number of its threads with a new reply rises, including when the page loads. Folding it keeps it folded until that number rises again.
 - While folded, its heading carries an `info` badge, such as "3 new replies", after its count. The badge goes when no thread in the group has a new reply.
 - A resolved thread shows Resolved, and New reply when it has one, but not Outdated.
@@ -189,12 +189,13 @@ The empty-panel hint is hidden while the composer is open.
 | `ThreadCard/ThreadCard.tsx` | No Outdated badge on a resolved thread; moves focus past itself when its draft comment is discarded |
 | `CommentForm/CommentForm.tsx`, `CommentForm.module.css` | `Textarea size="sm"`, `field-sizing: content` with its minimum and maximum heights, and the caret to the end on first focus |
 | `CommentForm/CommentFormButtons.tsx` | Cancel, Discard and Keep editing `secondary` |
-| `ThreadSidebar/CommentsList.tsx` | Marks the selected thread seen whenever `selectedThreadId` changes; gives the Resolved group its new-reply count; hides the hint while the composer is open |
+| `review/useThreadSelection.ts` | Counts the user's selections, so selecting the selected thread again is seen too |
+| `ThreadSidebar/CommentsList.tsx` | Marks the selected thread seen on each selection; gives the Resolved group its new-reply count; hides the hint while the composer is open |
 | `ThreadSidebar/ThreadGroup.tsx`, `ThreadGroup.module.css` | Opens when its new-reply count rises; the badge in its heading |
 | `SubmitMenu/SubmitMenu.tsx` | Cancel `secondary` |
 | `review/formatMessageTime.ts` | The hour's form from the locale's hour cycle |
 
-`CommentsList` already holds `useSeenMessages`. Selecting by the doc already sets `selectedThreadId`, so an effect on it covers selecting by the highlight and the marker. The location link keeps marking seen in its own handler, so clicking it again on a selected thread still clears a reply that arrived since.
+`CommentsList` already holds `useSeenMessages`. Selecting by the doc sets `selectedThreadId`, but selecting the same thread again leaves it unchanged, so the selection also counts selections, as it counts reveals. An effect on the thread and the count covers selecting by the highlight and the marker. The location link keeps marking seen in its own handler.
 
 ## 8. Conventions
 

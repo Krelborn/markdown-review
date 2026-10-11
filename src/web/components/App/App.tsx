@@ -120,6 +120,7 @@ export function App(): JSX.Element {
                 onChanged={threads.refresh}
                 onSelectThread={showThreadInDocument}
                 selectedThreadId={selection.selectedThreadId}
+                selectionCount={selection.selectionCount}
                 threads={allThreads}
               />
             </div>
