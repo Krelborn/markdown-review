@@ -34,7 +34,7 @@ test("must keep the highlight on the commented text when the agent edits the doc
 
   await expect(page.getByRole("button", { name: "#1 Line 5" })).toBeVisible();
   await expect(page.getByText("An introduction the agent added.")).toBeVisible();
-  expect(await highlightedText(page)).toEqual(["cache results for 24h"]);
+  await expect.poll(() => highlightedText(page)).toEqual(["cache results for 24h"]);
 });
 
 test("must move the thread to Resolved and show the agent's note when the agent resolves it", async ({

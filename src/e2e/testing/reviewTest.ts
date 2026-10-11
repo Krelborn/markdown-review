@@ -128,6 +128,8 @@ export async function writeDraftComment(page: Page, from: string, through: strin
   await page.keyboard.type(body);
   await page.getByRole("region", { name: "New comment" }).getByRole("button", { exact: true, name: "Save" }).click();
   await expect(page.getByRole("region", { name: "Drafts" })).toBeVisible();
+  // The draft's card can appear under the pointer, which WebKit then counts as pointing at it
+  await page.mouse.move(0, 0);
 }
 
 /**

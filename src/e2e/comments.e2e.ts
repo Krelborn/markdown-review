@@ -98,7 +98,6 @@ test("must put the + beside a list item when the user points beside the item's t
 test("must emphasise a comment's passage while the user points at its card", async ({ page, review }) => {
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
-  await movePointerClear(page);
 
   await page.getByRole("article", { name: "Thread #1" }).hover();
 
@@ -132,7 +131,6 @@ test("must underline a comment's location in the text's colour while the user po
 test("must leave a comment's location as it is while the user points at its card", async ({ page, review }) => {
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
-  await movePointerClear(page);
 
   await page.getByRole("article", { name: "Thread #1" }).getByText("Why 24h?").hover();
 
@@ -308,14 +306,6 @@ async function avatarOffset(thread: Locator, initial: string, name: string, inde
   const avatar = await boxOf(thread.getByText(initial, { exact: true }).nth(index));
   const nameLine = await boxOf(thread.getByText(name, { exact: true }).nth(index).locator(".."));
   return avatar.y + avatar.height / 2 - (nameLine.y + nameLine.height / 2);
-}
-
-/**
- * Moves the pointer off the comments. Saving a comment leaves the pointer where its card can appear, and a card that
- * appears under a still pointer gets no pointerenter until the pointer leaves it.
- */
-function movePointerClear(page: Page): Promise<void> {
-  return page.mouse.move(0, 0);
 }
 
 /**
