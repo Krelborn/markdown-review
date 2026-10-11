@@ -1,7 +1,8 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-import { highlightedText, selectText, submitDrafts, test, writeDraftComment } from "./testing/reviewTest";
+import type { ReviewFixture } from "./testing/reviewTest";
+import { boxOf, highlightedText, selectText, submitDrafts, test, writeDraftComment } from "./testing/reviewTest";
 
 test("must ask about the first comment's text, then save it and start the next, when the user starts another comment", async ({
   page,
@@ -164,10 +165,212 @@ test("must close a draft reply's editor when the user discards the draft", async
   await thread.getByRole("button", { name: "Edit" }).click();
 
   await thread.getByRole("button", { name: "Discard" }).click();
+  await page.getByRole("dialog", { name: "Discard this reply?" }).getByRole("button", { name: "Discard" }).click();
 
   await expect(thread.getByRole("textbox")).toHaveCount(0);
   await expect(thread.getByRole("button", { name: "Reply" })).toBeVisible();
 });
+
+test("must discard a draft from its card without opening the editor when the user confirms", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const thread = page.getByRole("article", { name: "Thread #1" });
+
+  await thread.getByRole("button", { name: "Discard" }).click();
+  await page.getByRole("dialog", { name: "Discard this comment?" }).getByRole("button", { name: "Discard" }).click();
+
+  await expect(thread).toHaveCount(0);
+});
+
+test("must move focus to the next card's location when the user discards a draft comment", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  await writeDraftComment(page, "Retries", "times.", "Why three?");
+
+  await page.getByRole("article", { name: "Thread #1" }).getByRole("button", { name: "Discard" }).click();
+  await page.getByRole("dialog", { name: "Discard this comment?" }).getByRole("button", { name: "Discard" }).click();
+
+  await expect(page.getByRole("article", { name: "Thread #1" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "#2 Line 5" })).toBeFocused();
+});
+
+test("must keep the draft and return focus to Discard when the user presses Escape in the confirmation", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const thread = page.getByRole("article", { name: "Thread #1" });
+  const confirmation = page.getByRole("dialog", { name: "Discard this comment?" });
+  await thread.getByRole("button", { name: "Discard" }).click();
+  await expect(confirmation.getByRole("button", { name: "Cancel" })).toBeFocused();
+
+  await page.keyboard.press("Escape");
+
+  await expect(confirmation).toBeHidden();
+  await expect(thread.getByRole("button", { name: "Discard" })).toBeFocused();
+  await expect(thread.getByText("Why 24h?")).toBeVisible();
+});
+
+test("must keep the editor open and return focus to Discard when the user presses Escape in its confirmation", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const thread = page.getByRole("article", { name: "Thread #1" });
+  const confirmation = page.getByRole("dialog", { name: "Discard this comment?" });
+  await thread.getByRole("button", { name: "Edit" }).click();
+  await thread.getByRole("button", { name: "Discard" }).click();
+  await expect(confirmation.getByRole("button", { name: "Cancel" })).toBeFocused();
+
+  await page.keyboard.press("Escape");
+
+  await expect(confirmation).toBeHidden();
+  await expect(thread.getByRole("textbox", { name: "Draft comment" })).toHaveValue("Why 24h?");
+  await expect(thread.getByRole("button", { name: "Discard" })).toBeFocused();
+});
+
+test("must leave focus off Discard when the user closes the confirmation by clicking outside it", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const discard = page.getByRole("article", { name: "Thread #1" }).getByRole("button", { name: "Discard" });
+  const confirmation = page.getByRole("dialog", { name: "Discard this comment?" });
+  await discard.click();
+  await expect(confirmation.getByRole("button", { name: "Cancel" })).toBeFocused();
+
+  await page.getByRole("article", { name: "docs/plan.md" }).getByText("Retries happen three times.").click();
+
+  await expect(confirmation).toBeHidden();
+  await expect(discard).not.toBeFocused();
+});
+
+test("must open the confirmation inside the comments, from Discard's start edge", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const discard = page.getByRole("article", { name: "Thread #1" }).getByRole("button", { name: "Discard" });
+  const button = await boxOf(discard);
+
+  await discard.click();
+
+  const confirmation = await boxOf(page.getByRole("dialog", { name: "Discard this comment?" }));
+  const comments = await boxOf(page.getByRole("complementary", { name: "Comments" }));
+  expect(confirmation.x).toBeCloseTo(button.x, 0);
+  expect(confirmation.x + confirmation.width).toBeLessThanOrEqual(comments.x + comments.width);
+});
+
+test("must open the confirmation again when the user presses Discard after closing it with Escape", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const discard = page.getByRole("article", { name: "Thread #1" }).getByRole("button", { name: "Discard" });
+  const confirmation = page.getByRole("dialog", { name: "Discard this comment?" });
+  await discard.click();
+  await page.keyboard.press("Escape");
+  await expect(confirmation).toBeHidden();
+
+  await discard.click();
+
+  await expect(confirmation).toBeVisible();
+});
+
+test("must give the editor the read-only text's font size and line height when the user edits a draft", async ({
+  page,
+  review,
+}) => {
+  const thread = await writeDraftToEdit(page, review, "Why 24h?");
+  const readOnly = await fontOf(thread.getByText("Why 24h?"));
+
+  await thread.getByRole("button", { name: "Edit" }).click();
+
+  expect(await fontOf(thread.getByRole("textbox", { name: "Draft comment" }))).toEqual(readOnly);
+});
+
+test("must show all of a five-line draft without scrolling when the user edits it", async ({ page, review }) => {
+  const thread = await writeDraftToEdit(page, review, "One\nTwo\nThree\nFour\nFive");
+
+  await thread.getByRole("button", { name: "Edit" }).click();
+
+  expect(await overflowOf(thread.getByRole("textbox", { name: "Draft comment" }))).toBe(0);
+});
+
+test("must scroll the editor when the draft is taller than half the window", async ({ page, review }) => {
+  const thread = await writeDraftToEdit(page, review, Array.from({ length: 40 }, (_, i) => `Line ${i + 1}`).join("\n"));
+
+  await thread.getByRole("button", { name: "Edit" }).click();
+
+  const textbox = thread.getByRole("textbox", { name: "Draft comment" });
+  expect((await boxOf(textbox)).height).toBeLessThanOrEqual((page.viewportSize()?.height ?? 0) / 2);
+  expect(await overflowOf(textbox)).toBeGreaterThan(0);
+});
+
+test("must centre each avatar on its name line when a thread has messages and a draft reply", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  await submitDrafts(page, 1, "Request changes");
+  await review.run(["reply", "1", "The upstream data changes daily."]);
+  const thread = page.getByRole("article", { name: "Thread #1" });
+  await thread.getByRole("button", { name: "Reply" }).click();
+  await page.keyboard.type("Hourly, then.");
+
+  await thread.getByRole("button", { name: "Save" }).click();
+
+  await expect(thread.getByText("Hourly, then.")).toBeVisible();
+  expect(await avatarOffset(thread, "Y", "You", 0)).toBeCloseTo(0, 0);
+  expect(await avatarOffset(thread, "A", "Agent", 0)).toBeCloseTo(0, 0);
+  expect(await avatarOffset(thread, "Y", "You", 1)).toBeCloseTo(0, 0);
+});
+
+/**
+ * @returns how far, in pixels, the centre of a message's avatar sits below the centre of its name line
+ * @param initial the initial the avatar shows
+ * @param name the name beside it
+ * @param index which of the messages with that name, from the first
+ */
+async function avatarOffset(thread: Locator, initial: string, name: string, index: number): Promise<number> {
+  const avatar = await boxOf(thread.getByText(initial, { exact: true }).nth(index));
+  const nameLine = await boxOf(thread.getByText(name, { exact: true }).nth(index).locator(".."));
+  return avatar.y + avatar.height / 2 - (nameLine.y + nameLine.height / 2);
+}
+
+/**
+ * Opens the plan and saves a draft comment on its first passage
+ *
+ * @returns the draft's card
+ */
+async function writeDraftToEdit(page: Page, review: ReviewFixture, body: string): Promise<Locator> {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", body);
+  return page.getByRole("article", { name: "Thread #1" });
+}
+
+/**
+ * @returns the element's computed font size and line height
+ */
+function fontOf(element: Locator): Promise<{ fontSize: string; lineHeight: string }> {
+  return element.evaluate((node) => {
+    const { fontSize, lineHeight } = getComputedStyle(node);
+    return { fontSize, lineHeight };
+  });
+}
+
+/**
+ * @returns how far, in pixels, the element's content runs past its visible height
+ */
+function overflowOf(element: Locator): Promise<number> {
+  return element.evaluate((node) => node.scrollHeight - node.clientHeight);
+}
 
 /**
  * @returns the point in the gutter, near its left edge and clear of the +, that is level with the middle of the element

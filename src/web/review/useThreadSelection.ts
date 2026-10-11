@@ -17,6 +17,11 @@ export interface ThreadSelection {
   selectedThreadId: number | null;
 
   /**
+   * Counts the user's selections, selecting the selected thread again included
+   */
+  selectionCount: number;
+
+  /**
    * Selects a thread without asking to see it, as when the user clicks its passage in the doc
    */
   selectThread: (threadId: number) => void;
@@ -31,12 +36,17 @@ export interface ThreadSelection {
 export function useThreadSelection(documentPath: string | null, navigate: (pagePath: string) => void): ThreadSelection {
   const [selectedThreadId, setSelectedThreadId] = useState<number | null>(null);
   const [revealCount, setRevealCount] = useState(0);
+  const [selectionCount, setSelectionCount] = useState(0);
+  const selectThread = (threadId: number): void => {
+    setSelectedThreadId(threadId);
+    setSelectionCount((count) => count + 1);
+  };
   const revealThread = (thread: Thread): void => {
-    setSelectedThreadId(thread.id);
+    selectThread(thread.id);
     setRevealCount((count) => count + 1);
     if (thread.anchor.kind !== "review" && thread.anchor.document !== documentPath) {
       navigate(documentPagePath(thread.anchor.document));
     }
   };
-  return { revealCount, revealThread, selectedThreadId, selectThread: setSelectedThreadId };
+  return { revealCount, revealThread, selectedThreadId, selectionCount, selectThread };
 }

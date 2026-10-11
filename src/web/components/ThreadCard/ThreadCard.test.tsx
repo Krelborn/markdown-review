@@ -76,6 +76,29 @@ describe("ThreadCard", () => {
     expect(screen.getByText("Originally: cache results for 24h")).toBeInTheDocument();
   });
 
+  test.each<{ condition: string; isShown: boolean; status: Thread["status"] }>([
+    { condition: "an open thread's passage has gone", isShown: true, status: "open" },
+    { condition: "a resolved thread's passage has gone", isShown: false, status: "resolved" },
+  ])("must show Outdated only on open threads when $condition", ({ isShown, status }) => {
+    const { render } = setUpTest({
+      thread: { ...conversation, anchor: buildPassageAnchor({ outdated: true }), status },
+    });
+
+    render();
+
+    expect(screen.queryByText("Outdated") !== null).toBe(isShown);
+  });
+
+  test("must say that sending reopens the thread when the user replies to a resolved thread", async () => {
+    const { render } = setUpTest({ thread: { ...conversation, status: "resolved" } });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(elements.button("Reply"));
+
+    expect(screen.getByText("Sending reopens this thread.")).toBeInTheDocument();
+  });
+
   test("must show a draft as text, with Edit and no text box, until the user edits it", () => {
     const { render } = setUpTest({ thread: draftComment });
 
@@ -96,16 +119,16 @@ describe("ThreadCard", () => {
   });
 
   test.each<{ buttons: string[]; condition: string; thread: Thread }>([
-    { buttons: ["Edit"], condition: "a new comment is a draft", thread: draftComment },
+    { buttons: ["Discard", "Edit"], condition: "a new comment is a draft", thread: draftComment },
     { buttons: ["Resolve", "Reply"], condition: "an open thread has no draft reply", thread: conversation },
-    { buttons: ["Resolve", "Edit"], condition: "an open thread has a draft reply", thread: draftReply },
+    { buttons: ["Discard", "Edit"], condition: "an open thread has a draft reply", thread: draftReply },
     {
       buttons: ["Reply"],
       condition: "a resolved thread has no draft reply",
       thread: { ...conversation, status: "resolved" },
     },
     {
-      buttons: ["Edit"],
+      buttons: ["Discard", "Edit"],
       condition: "a resolved thread has a draft reply",
       thread: { ...draftReply, status: "resolved" },
     },
@@ -142,6 +165,16 @@ describe("ThreadCard", () => {
     expect(fake.snapshot.threads[0]?.draft?.body).toBe("Why 24h? And why cache?");
   });
 
+  test("must put the caret at the end when the editor opens on a draft", async () => {
+    const { render } = setUpTest({ thread: draftComment });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(elements.button("Edit"));
+
+    expect(elements.textbox("Draft comment")).toHaveProperty("selectionStart", "Why 24h?".length);
+  });
+
   test("must not let the user save a draft when its text is unchanged", async () => {
     const { render } = setUpTest({ thread: draftComment });
     const user = userEvent.setup();
@@ -166,15 +199,68 @@ describe("ThreadCard", () => {
     expect(fake.snapshot.threads[0]?.draft?.body).toBe("Why 24h?");
   });
 
-  test("must delete a new comment when the user discards its draft", async () => {
+  test("must ask before discarding, and delete the draft only when the user confirms, when the user discards a draft comment", async () => {
+    const { fake, render } = setUpTest({ thread: draftComment });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(elements.button("Discard"));
+    const threadsWhileAsking = fake.snapshot.threads.length;
+    await user.click(elements.confirmation("Discard this comment?").getByRole("button", { name: "Discard" }));
+
+    expect(threadsWhileAsking).toBe(1);
+    expect(fake.snapshot.threads).toEqual([]);
+  });
+
+  test("must ask before discarding, and delete the draft only when the user confirms, when the user discards a draft reply", async () => {
+    const { fake, render } = setUpTest({ thread: draftReply });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(elements.button("Discard"));
+    const draftWhileAsking = fake.snapshot.threads[0]?.draft;
+    await user.click(elements.confirmation("Discard this reply?").getByRole("button", { name: "Discard" }));
+
+    expect(draftWhileAsking?.body).toBe("Hourly, then");
+    expect(fake.snapshot.threads[0]?.messages).toHaveLength(2);
+    expect(fake.snapshot.threads[0]?.draft).toBeUndefined();
+  });
+
+  test("must ask before discarding, and delete the draft only when the user confirms, when the user discards from the draft's editor", async () => {
     const { fake, render } = setUpTest({ thread: draftComment });
     const user = userEvent.setup();
     render();
     await user.click(elements.button("Edit"));
 
     await user.click(elements.button("Discard"));
+    const threadsWhileAsking = fake.snapshot.threads.length;
+    await user.click(elements.confirmation("Discard this comment?").getByRole("button", { name: "Discard" }));
 
+    expect(threadsWhileAsking).toBe(1);
     expect(fake.snapshot.threads).toEqual([]);
+  });
+
+  test("must focus Cancel when the confirmation opens", async () => {
+    const { render } = setUpTest({ thread: draftComment });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(elements.button("Discard"));
+
+    expect(elements.confirmation("Discard this comment?").getByRole("button", { name: "Cancel" })).toHaveFocus();
+  });
+
+  test("must keep the draft and return focus to Discard when the user cancels the confirmation", async () => {
+    const { fake, render } = setUpTest({ thread: draftComment });
+    const user = userEvent.setup();
+    render();
+    await user.click(elements.button("Discard"));
+
+    await user.click(elements.confirmation("Discard this comment?").getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(elements.button("Discard")).toHaveFocus();
+    expect(fake.snapshot.threads[0]?.draft?.body).toBe("Why 24h?");
   });
 
   test("must make the text box read-only when the user's reply is saving", async () => {
@@ -201,20 +287,8 @@ describe("ThreadCard", () => {
 
     await user.click(elements.button("Discard"));
 
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(fake.snapshot.threads).toHaveLength(1);
-  });
-
-  test("must remove only the reply when the user discards a draft reply", async () => {
-    const { fake, render } = setUpTest({ thread: draftReply });
-    const user = userEvent.setup();
-    render();
-    await user.click(elements.button("Edit"));
-
-    await user.click(elements.button("Discard"));
-
-    expect(fake.snapshot.threads).toHaveLength(1);
-    expect(fake.snapshot.threads[0]?.messages).toHaveLength(2);
-    expect(fake.snapshot.threads[0]?.draft).toBeUndefined();
   });
 
   test("must resolve the thread when the user resolves it", async () => {
@@ -393,6 +467,7 @@ function setUpTest({ hasNewAgentMessage = false, thread }: { hasNewAgentMessage?
   const onChanged = vi.fn();
   const onFocusThread = vi.fn();
   const onHoverThread = vi.fn();
+  const onSeen = vi.fn();
   const onSelect = vi.fn();
   const render = (): RenderResult =>
     renderBase(
@@ -404,6 +479,7 @@ function setUpTest({ hasNewAgentMessage = false, thread }: { hasNewAgentMessage?
                 hasNewAgentMessage={hasNewAgentMessage}
                 isSelected={false}
                 onChanged={onChanged}
+                onSeen={onSeen}
                 onSelect={onSelect}
                 thread={thread}
               />
@@ -422,5 +498,6 @@ const elements = {
       .map((button) => button.textContent ?? "")
       .filter((name) => !name.startsWith("#")),
   button: (name: string) => screen.getByRole("button", { name }),
+  confirmation: (name: string) => within(screen.getByRole("dialog", { name })),
   textbox: (name: string) => screen.getByRole("textbox", { name }),
 };

@@ -7,6 +7,7 @@ import { ThreadCard } from "../ThreadCard/ThreadCard";
 export interface ThreadListProps {
   hasNewAgentMessage: (thread: Thread) => boolean;
   onChanged: () => void;
+  onSeen: (thread: Thread) => void;
   onSelect: (thread: Thread) => void;
   selectedThreadId: number | null;
 
@@ -41,6 +42,7 @@ export function ThreadList({ showsDocuments, threads, ...cardProps }: ThreadList
               hasNewAgentMessage={cardProps.hasNewAgentMessage(thread)}
               isSelected={thread.id === cardProps.selectedThreadId}
               onChanged={cardProps.onChanged}
+              onSeen={cardProps.onSeen}
               onSelect={cardProps.onSelect}
               thread={thread}
             />

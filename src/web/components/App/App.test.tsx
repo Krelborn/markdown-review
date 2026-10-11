@@ -329,6 +329,22 @@ describe("App", () => {
     expect(elements.panelToggle()).toHaveAttribute("aria-expanded", "true");
   });
 
+  test("must stop marking the agent's reply as new each time the user clicks its thread's marker in the doc", async () => {
+    const { fake, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    await user.click(await elements.marker(1));
+    fake.snapshot.threads[0]?.messages.push({ at: testTime, author: "agent", body: "Changed to 1h" });
+    fake.emit({ type: "threads-changed" });
+    await screen.findByText("Changed to 1h");
+    const wasNew = elements.thread(1).queryByText("New reply") !== null;
+
+    await user.click(await elements.marker(1));
+
+    expect(wasNew).toBe(true);
+    expect(elements.thread(1).queryByText("New reply")).not.toBeInTheDocument();
+  });
+
   test("must close the comments when the user shows a thread's passage from them", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
@@ -437,5 +453,7 @@ function selectText(element: HTMLElement, length: number): void {
 const elements = {
   article: () => within(screen.getByRole("article", { name: "docs/plan.md" })),
   documentColumn: () => screen.getByRole("main"),
+  marker: (threadId: number) => within(screen.getByRole("main")).findByRole("button", { name: `Thread #${threadId}` }),
   panelToggle: () => screen.getByRole("button", { name: "Comments" }),
+  thread: (threadId: number) => within(screen.getByRole("article", { name: `Thread #${threadId}` })),
 };

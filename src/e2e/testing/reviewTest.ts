@@ -1,7 +1,7 @@
 import { rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { test as base, expect } from "@playwright/test";
 
 import { createGitRepository } from "../../integration/testing/createGitRepository";
@@ -128,6 +128,8 @@ export async function writeDraftComment(page: Page, from: string, through: strin
   await page.keyboard.type(body);
   await page.getByRole("region", { name: "New comment" }).getByRole("button", { exact: true, name: "Save" }).click();
   await expect(page.getByRole("region", { name: "Drafts" })).toBeVisible();
+  // The draft's card can appear under the pointer, which WebKit then counts as pointing at it
+  await page.mouse.move(0, 0);
 }
 
 /**
@@ -173,4 +175,16 @@ function collectErrors(page: Page): string[] {
   });
   page.on("pageerror", (error) => errors.push(error.message));
   return errors;
+}
+
+/**
+ * @returns where the element is on the page
+ * @throws Error when the element is not on the page
+ */
+export async function boxOf(element: Locator): Promise<{ height: number; width: number; x: number; y: number }> {
+  const box = await element.boundingBox();
+  if (box === null) {
+    throw new Error("The element is not on the page");
+  }
+  return box;
 }

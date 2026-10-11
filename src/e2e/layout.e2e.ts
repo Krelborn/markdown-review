@@ -3,6 +3,7 @@ import { expect } from "@playwright/test";
 
 import type { ReviewFixture } from "./testing/reviewTest";
 import {
+  boxOf,
   plan,
   scrollDocumentToEnd,
   selectText,
@@ -793,14 +794,6 @@ async function expectBelowHeader(page: Page, element: Locator): Promise<void> {
   await expect
     .poll(async () => (await topOf(element)) - (await bottomOf(comments(page).locator("header"))))
     .toBeGreaterThanOrEqual(0);
-}
-
-async function boxOf(element: Locator): Promise<{ height: number; width: number; x: number; y: number }> {
-  const box = await element.boundingBox();
-  if (box === null) {
-    throw new Error("The element is not on the page");
-  }
-  return box;
 }
 
 /**

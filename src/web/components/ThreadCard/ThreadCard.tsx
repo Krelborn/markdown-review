@@ -12,6 +12,7 @@ import { useThreadReporter } from "../../review/useThreadReporter";
 import { Quote } from "../Quote/Quote";
 
 import { Message } from "./Message";
+import { moveFocusPastCard } from "./moveFocusPastCard";
 import { ThreadActions } from "./ThreadActions";
 import styles from "./ThreadCard.module.css";
 
@@ -23,6 +24,11 @@ export interface ThreadCardProps {
    * Called after the card changes the thread on the server
    */
   onChanged: () => void;
+
+  /**
+   * Called when the user acts on the thread, which shows them its messages
+   */
+  onSeen: (thread: Thread) => void;
 
   /**
    * Called when the user asks to see the thread in its doc
@@ -39,6 +45,7 @@ export function ThreadCard({
   hasNewAgentMessage,
   isSelected,
   onChanged,
+  onSeen,
   onSelect,
   thread,
 }: ThreadCardProps): JSX.Element {
@@ -89,7 +96,12 @@ export function ThreadCard({
             ))}
           </Stack>
         )}
-        <ThreadActions onChanged={onChanged} thread={thread} />
+        <ThreadActions
+          onChanged={onChanged}
+          onCommentDiscarded={() => moveFocusPastCard(cardRef.current)}
+          onSeen={() => onSeen(thread)}
+          thread={thread}
+        />
       </Stack>
     </Card>
   );
@@ -97,7 +109,7 @@ export function ThreadCard({
 
 function ThreadLocation({ onSelect, thread: { anchor, id } }: { onSelect: () => void; thread: Thread }): JSX.Element {
   return (
-    <button className={styles.location} onClick={onSelect} type="button">
+    <button className={styles.location} onClick={onSelect} type="button" data-thread-location="">
       <span className={styles.id}>#{id}</span> {describeLocation(anchor)}
     </button>
   );
@@ -114,7 +126,7 @@ function ThreadBadges({
     <Cluster gap={1}>
       {status === "draft" && <Badge tone="warning">Draft</Badge>}
       {hasNewAgentMessage && <Badge tone="info">New reply</Badge>}
-      {anchor.kind === "passage" && anchor.outdated && <Badge tone="warning">Outdated</Badge>}
+      {status === "open" && anchor.kind === "passage" && anchor.outdated && <Badge tone="warning">Outdated</Badge>}
       {status === "resolved" && <Badge tone="success">Resolved</Badge>}
     </Cluster>
   );

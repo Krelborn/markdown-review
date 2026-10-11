@@ -41,6 +41,11 @@ export interface ThreadSidebarProps {
   selectedThreadId: number | null;
 
   /**
+   * Counts the user's selections, selecting the selected thread again included
+   */
+  selectionCount: number;
+
+  /**
    * Every thread in the repo
    */
   threads: Thread[];
@@ -57,6 +62,7 @@ export function ThreadSidebar({
   onChanged,
   onSelectThread,
   selectedThreadId,
+  selectionCount,
   threads,
 }: ThreadSidebarProps): JSX.Element {
   const [chosenView, setChosenView] = useState<ThreadView>("document");
@@ -100,6 +106,7 @@ export function ThreadSidebar({
       onChanged={onChanged}
       onSelectThread={onSelectThread}
       selectedThreadId={selectedThreadId}
+      selectionCount={selectionCount}
       showsDocuments={inView.showsDocuments}
       threads={inView.threads}
     />

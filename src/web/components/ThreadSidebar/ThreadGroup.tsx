@@ -1,4 +1,4 @@
-import { Counter, Heading, Stack } from "@krelborn/stylesui";
+import { Badge, Counter, Heading, Stack } from "@krelborn/stylesui";
 import type { JSX } from "react";
 import { useState } from "react";
 
@@ -17,6 +17,12 @@ export interface ThreadGroupProps extends ThreadListProps {
    */
   isForcedOpen?: boolean;
 
+  /**
+   * How many of its threads have agent messages the user hasn't seen; a folded group opens each time this rises, and
+   * says how many while it is folded
+   */
+  newReplyCount?: number;
+
   title: string;
 }
 
@@ -26,12 +32,20 @@ export interface ThreadGroupProps extends ThreadListProps {
 export function ThreadGroup({
   isFolded,
   isForcedOpen = false,
+  newReplyCount = 0,
   title,
   ...listProps
 }: ThreadGroupProps): JSX.Element | null {
   const [isOpen, setIsOpen] = useState(false);
+  const [lastNewReplyCount, setLastNewReplyCount] = useState(0);
   if (isForcedOpen && !isOpen) {
     setIsOpen(true);
+  }
+  if (newReplyCount !== lastNewReplyCount) {
+    setLastNewReplyCount(newReplyCount);
+    if (newReplyCount > lastNewReplyCount) {
+      setIsOpen(true);
+    }
   }
   if (listProps.threads.length === 0) {
     return null;
@@ -45,7 +59,14 @@ export function ThreadGroup({
     <Stack as="section" gap={2} aria-label={title}>
       {isFolded ? (
         <details onToggle={(event) => setIsOpen(event.currentTarget.open)} open={isOpen}>
-          <summary className={styles.summary}>{heading}</summary>
+          <summary className={styles.summary}>
+            {heading}
+            {!isOpen && newReplyCount > 0 && (
+              <Badge className={styles.newReplies} tone="info">
+                {newReplyCount === 1 ? "1 new reply" : `${newReplyCount} new replies`}
+              </Badge>
+            )}
+          </summary>
           <ThreadList {...listProps} />
         </details>
       ) : (

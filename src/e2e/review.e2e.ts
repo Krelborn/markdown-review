@@ -34,7 +34,7 @@ test("must keep the highlight on the commented text when the agent edits the doc
 
   await expect(page.getByRole("button", { name: "#1 Line 5" })).toBeVisible();
   await expect(page.getByText("An introduction the agent added.")).toBeVisible();
-  expect(await highlightedText(page)).toEqual(["cache results for 24h"]);
+  await expect.poll(() => highlightedText(page)).toEqual(["cache results for 24h"]);
 });
 
 test("must move the thread to Resolved and show the agent's note when the agent resolves it", async ({
@@ -49,7 +49,7 @@ test("must move the thread to Resolved and show the agent's note when the agent 
   await review.run(["resolve", "1", "Added a retries setting"]);
 
   const resolved = page.getByRole("region", { name: "Resolved" });
-  await resolved.getByRole("heading", { name: "Resolved 1" }).click();
+  await expect(resolved.getByRole("article", { name: "Thread #1" })).toBeVisible();
   await expect(resolved.getByRole("article", { name: "Thread #1" })).toContainText("Added a retries setting");
   await expect(page.getByRole("region", { name: "Open" })).toBeHidden();
 });

@@ -17,3 +17,8 @@
 .summary > .heading {
   display: inline;
 }
+
+.newReplies {
+  margin-inline-start: var(--sui-space-2);
+  vertical-align: middle;
+}

@@ -3,7 +3,8 @@ import { useEffect } from "react";
 
 /**
  * Lets the user save the editor with Cmd+Enter or Ctrl+Enter, and answer Escape, from anywhere inside it, except while
- * an input method is composing text, when those keys belong to the input method
+ * an input method is composing text, when those keys belong to the input method, and inside a popover in the editor,
+ * such as Discard's confirmation, which answers Escape by closing
  *
  * @param formRef the editor's form
  * @param escape what Escape does
@@ -15,7 +16,7 @@ export function useEditorKeys(formRef: RefObject<HTMLFormElement | null>, escape
       return;
     }
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.isComposing) {
+      if (event.isComposing || (event.target instanceof Element && event.target.closest("[popover]") !== null)) {
         return;
       }
       if (event.key === "Escape") {

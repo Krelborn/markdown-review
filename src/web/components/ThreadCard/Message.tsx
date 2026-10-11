@@ -1,4 +1,4 @@
-import { Avatar, Badge, Cluster, Stack, Text } from "@krelborn/stylesui";
+import { Avatar, Badge, Cluster, Text } from "@krelborn/stylesui";
 import { clsx } from "clsx";
 import type { JSX } from "react";
 import { useState } from "react";
@@ -26,27 +26,25 @@ export function Message({ author, body, sentAt }: MessageProps): JSX.Element {
   return (
     <div className={styles.message}>
       <Avatar className={clsx({ [styles.agent ?? ""]: author === "agent" })} name={name} size="xs" aria-hidden={true} />
-      <Stack gap={1}>
-        <Cluster gap={2}>
-          <Text size="sm" weight="bold">
-            {name}
-          </Text>
-          {sentAt === null ? (
-            <Badge tone="warning">Draft</Badge>
-          ) : (
-            <time
-              className={styles.time}
-              dateTime={sentAt}
-              title={new Date(sentAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
-            >
-              {formatMessageTime(sentAt, now)}
-            </time>
-          )}
-        </Cluster>
-        <Text as="p" className={styles.body} size="sm">
-          {body}
+      <Cluster gap={2}>
+        <Text size="sm" weight="bold">
+          {name}
         </Text>
-      </Stack>
+        {sentAt === null ? (
+          <Badge tone="warning">Draft</Badge>
+        ) : (
+          <time
+            className={styles.time}
+            dateTime={sentAt}
+            title={new Date(sentAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+          >
+            {formatMessageTime(sentAt, now)}
+          </time>
+        )}
+      </Cluster>
+      <Text as="p" className={styles.body} size="sm">
+        {body}
+      </Text>
     </div>
   );
 }
