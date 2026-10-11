@@ -1,7 +1,7 @@
 # Comment cards: design spec
 
 - **Date:** 2026-10-11
-- **Status:** Draft, for review. The user's comments are worked in: `secondary` buttons, Discard asks first, and Resolve goes while a thread has a draft reply.
+- **Status:** Approved in conversation (2026-10-11)
 - **Changes:** the thread cards and the comment editor from the [side panel redesign spec](2026-10-09-side-panel-redesign-design.md), sections 5 and 7, and when its Resolved group is folded
 - **Changes nothing in:** the store, the HTTP API, the CLI or the protocol. The canonical text does not change, so neither `anchoringVersion` nor `protocolVersion` changes.
 
@@ -150,10 +150,10 @@ The Resolved group, folded, after the agent has answered:
 
 ### Discard
 
-- Discard opens its confirmation above it. The title is "Discard this comment?" for a draft comment and "Discard this reply?" for a draft reply, and the text beneath is "It hasn't been sent, and you can't get it back." The popover is a `dialog` named by its title, and Cancel takes focus.
+- Discard opens its confirmation above it, from its start edge, so it stays inside the comments; StylesUI would centre it on the button. The title is "Discard this comment?" for a draft comment and "Discard this reply?" for a draft reply, and the text beneath is "It hasn't been sent, and you can't get it back." The popover is a `dialog` named by its title, and Cancel takes focus.
 - **Discard** in the confirmation deletes the draft, as Discard does now: a draft comment's thread goes, and a draft reply leaves its thread. It is busy until the delete ends. If the server refuses, the popover closes and the card shows the refusal, as it does now.
 - **Cancel**, Escape and a click outside close the confirmation and leave the draft as it was. After Cancel or Escape, focus goes back to Discard.
-- In a draft editor, confirming also throws away the editor's unsaved text. While the editor is saving, its Discard does nothing, as now.
+- In a draft editor, confirming also throws away the editor's unsaved text. While the editor is saving, its Discard is disabled.
 - The unsaved-text question's Discard and Discard changes don't ask, as now.
 
 ### Editor
@@ -182,10 +182,11 @@ The empty-panel hint is hidden while the composer is open.
 
 | File | Change |
 | --- | --- |
-| `ThreadCard/DiscardDraftButton.tsx` (new) | Discard and its confirmation popover. Used by the read-only card and the draft editor |
+| `ThreadCard/DiscardDraftButton.tsx` (new) | Discard and its confirmation popover. Used by the read-only card and the draft editor. The popover is uncontrolled: StylesUI 0.6.0's `usePopover`, when controlled, throws when it is opened again after Escape |
+| `ThreadCard/moveFocusPastCard.ts` (new) | Moves focus off a card that is going: to the next card's location in view, the previous one's, or the panel's first button, **+ Comment** |
 | `ThreadCard/ThreadActions.tsx` | Discard on read-only drafts; no Resolve while there is a draft reply; every button `secondary`; marks seen on each action; moves focus after Discard; the reopening hint for a resolved thread's reply editor |
 | `ThreadCard/Message.tsx`, `ThreadCard.module.css` | The avatar, name line and body as three items of the message's grid |
-| `ThreadCard/ThreadCard.tsx` | No Outdated badge on a resolved thread |
+| `ThreadCard/ThreadCard.tsx` | No Outdated badge on a resolved thread; moves focus past itself when its draft comment is discarded |
 | `CommentForm/CommentForm.tsx`, `CommentForm.module.css` | `Textarea size="sm"`, `field-sizing: content` with its minimum and maximum heights, and the caret to the end on first focus |
 | `CommentForm/CommentFormButtons.tsx` | Cancel, Discard and Keep editing `secondary` |
 | `ThreadSidebar/CommentsList.tsx` | Marks the selected thread seen whenever `selectedThreadId` changes; gives the Resolved group its new-reply count; hides the hint while the composer is open |
@@ -253,7 +254,6 @@ The message's layout, for example:
   - "must focus Cancel when the confirmation opens"
   - "must not show Outdated when a resolved thread's passage has gone"
   - "must say that sending reopens the thread when the user replies to a resolved thread"
-  - "must make every button but Save secondary": checks `data-variant` on the read-only card, in the editor and in the Discard confirmation.
 - **`ThreadSidebar.test.tsx`:**
   - "must move focus to the next card's location when the user discards a draft comment", then to the previous one's, then to **+ Comment**.
   - "must clear New reply when the user selects the thread in the doc", and when they press Reply, Edit or Resolve.
@@ -273,6 +273,7 @@ jsdom lays nothing out, so sizes and positions are checked here.
 
 - "must close a draft reply's editor when the user discards the draft" confirms in the popover.
 - "must discard a draft from its card without opening the editor when the user confirms"
+- "must keep the draft and return focus to Discard when the user presses Escape in the confirmation", "must open the confirmation again when the user presses Discard after closing it with Escape", "must open the confirmation inside the comments, from Discard's start edge" and "must move focus to the next card's location when the user discards a draft comment"
 - "must give the editor the read-only text's font size and line height when the user edits a draft"
 - "must show all of a five-line draft without scrolling when the user edits it"
 - "must centre each avatar on its name line when a thread has messages and a draft reply": within 0.5px.
@@ -314,7 +315,7 @@ These came up in the review but need their own specs:
 - **Messages as markdown.** Agents write `` `code` `` and lists in their answers, which show as raw backticks and asterisks. Rendering messages with the inline rules of `createMarkdownIt` and DOMPurify would not change the canonical text, since messages are not anchored.
 - **Showing what the agent changed.** A resolved thread whose passage was rewritten points at a line, but the doc doesn't show what changed there. A per-round diff, or a highlight of the changed blocks, would make checking a round much quicker.
 - **Commenting on a whole table.** The gutter's **+** picks the row under the pointer, so a comment on a table quotes one row, with its cells joined by tabs.
-- **A `danger` button.** It is added to StylesUI's `Button` first. Then the confirming Discard switches from `secondary` to `danger`, and success criterion 1 and its test change with it.
+- **A `danger` button.** It is added to StylesUI's `Button` first. Then the confirming Discard switches from `secondary` to `danger`, and success criterion 1 changes with it.
 
 ## 14. Open questions
 
