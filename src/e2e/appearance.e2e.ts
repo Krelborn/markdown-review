@@ -102,6 +102,19 @@ test("must apply a choice made in one repo's review when the browser opens anoth
   }
 });
 
+test("must close the popover and keep the page when the user presses Escape after making a choice", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await chooseAppearance(page, ["Mist"]);
+
+  await page.keyboard.press("Escape");
+
+  await expect(page.getByRole("dialog", { name: "Appearance" })).toBeHidden();
+  await expect(page.getByRole("article", { name: "docs/plan.md" })).toBeVisible();
+});
+
 async function chooseAppearance(page: Page, choices: string[]): Promise<void> {
   await page.getByRole("button", { name: "Appearance" }).click();
   const popover = page.getByRole("dialog", { name: "Appearance" });

@@ -1,5 +1,6 @@
 import {
   IconButton,
+  PaletteIcon,
   Popover,
   Radio,
   RadioGroup,
@@ -43,18 +44,7 @@ export function AppearancePopover(): JSX.Element {
   return (
     <>
       <IconButton {...popover.getTriggerProps()} label="Appearance" placement="bottom" size="sm" variant="ghost">
-        <svg
-          className={styles.icon}
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor" />
-        </svg>
+        <PaletteIcon />
       </IconButton>
       <Popover {...popover.getOverlayProps()} aria-label="Appearance" role="dialog">
         <Stack gap={4}>

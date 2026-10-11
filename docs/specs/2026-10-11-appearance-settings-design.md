@@ -3,7 +3,7 @@
 - **Date:** 2026-10-11
 - **Status:** Design approved in conversation (2026-10-11)
 - **Changes:** the top bar, the page's colours, and how code and Mermaid diagrams follow light and dark mode
-- **Depends on:** StylesUI 0.5.0, which adds the `paper`, `mist` and `dusk` palettes and the `sunken`, `field` and `overlay` colour tokens
+- **Depends on:** StylesUI 0.5.0, which adds the `paper`, `mist` and `dusk` palettes and the `sunken`, `field` and `overlay` colour tokens, and 0.6.0, which adds `PaletteIcon` and stops Escape in a popover from crashing the app in Chromium
 
 ## 1. Problem
 
@@ -47,7 +47,7 @@
 
 ```text
 +--------------------------------------------------------------------+
-| [icon] plan.md v                                            (◐) (i) |  top bar
+| [icon] plan.md v                                           (P) (i) |  top bar
 +--------------------------------------------------------------------+
                                      +-------------------------------+
                                      | Mode                          |
@@ -65,7 +65,7 @@
                                      +-------------------------------+
 ```
 
-The Appearance button sits just left of About, at the right end of the bar, on the All docs page as well as on a doc. Its icon is a circle with one half filled. In a narrow window the doc's file name truncates before either button moves.
+The Appearance button sits just left of About, at the right end of the bar, on the All docs page as well as on a doc. Its icon is StylesUI's `PaletteIcon`. In a narrow window the doc's file name truncates before either button moves.
 
 ## 5. Behaviour
 
@@ -96,7 +96,7 @@ The Appearance button sits just left of About, at the right end of the bar, on t
 
 ### AppearancePopover (new, `src/web/components/AppearancePopover/`)
 
-- **Trigger.** A ghost `IconButton` labelled "Appearance", with the trigger props of `usePopover` and the placement `"bottom"`. Its icon, a circle with its left half filled, is drawn inline and styled like StylesUI's icons, because StylesUI doesn't export the `Icon` component its own icons are built on.
+- **Trigger.** A ghost `IconButton` labelled "Appearance", with the trigger props of `usePopover` and the placement `"bottom"`. Its icon is StylesUI's `PaletteIcon`.
 - **Popover.** `role="dialog"` with `aria-label="Appearance"`, holding the `SegmentedControl` labelled "Mode" and the `RadioGroup` labelled "Palette", both controlled by the appearance.
 - **Palette radios.** Each `Radio` holds a swatch, a `Theme` with the palette's name that draws the page colour, a line of text and a card on its surface colour, then the palette's name and a few words about it.
 
@@ -165,6 +165,7 @@ In a new `appearance.e2e.ts`:
 - Choosing Dark and Mist changes the page, and a reload keeps them, with the attributes already in the HTML the server sends.
 - With the browser in dark mode and the app set to Light, code is coloured with Shiki's light theme and diagrams are drawn in Mermaid's light theme.
 - A choice made in one repo's review applies when the same browser opens another repo's review.
+- Pressing Escape after a choice closes the popover and leaves the page in place.
 
 ## 8. Out of scope
 
