@@ -3,6 +3,9 @@ import path from "node:path";
 
 import type { Context, Hono } from "hono";
 
+import type { Appearance } from "../../shared/appearance/Appearance";
+import { defaultAppearance } from "../../shared/appearance/Appearance";
+import { readStoredAppearance } from "../../shared/appearance/appearanceCookies";
 import { isRepositoryRelativePath } from "../../shared/review/isRepositoryRelativePath";
 import { isFileNotFound } from "../files/isFileNotFound";
 import { readTextFileOrNull } from "../files/readTextFileOrNull";
@@ -26,7 +29,8 @@ export function registerShellRoutes(app: Hono, { webDirectory }: AppDependencies
     if (html === null) {
       throw new HttpError(500, "missing-web-app", "This build of markdown-review has no web app");
     }
-    return context.html(html, 200, { "Content-Security-Policy": contentSecurityPolicy });
+    const appearance = { ...defaultAppearance, ...readStoredAppearance(context.req.header("cookie") ?? "") };
+    return context.html(withAppearance(html, appearance), 200, { "Content-Security-Policy": contentSecurityPolicy });
   };
   app.get("/", serveShell);
   app.get("/document/*", serveShell);
@@ -59,4 +63,11 @@ export function registerShellRoutes(app: Hono, { webDirectory }: AppDependencies
       "X-Content-Type-Options": "nosniff",
     });
   });
+}
+
+/**
+ * Puts the appearance on the page's `<html>` element, so the page is drawn in it from the first frame
+ */
+function withAppearance(html: string, { mode, palette }: Appearance): string {
+  return html.replace("<html", `<html data-sui-mode="${mode}" data-sui-palette="${palette}"`);
 }

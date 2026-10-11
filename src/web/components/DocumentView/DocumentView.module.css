@@ -48,9 +48,7 @@
   margin-block-start: var(--sui-prose-flow);
 }
 
-/* Shiki writes its theme's background into the code block's style attribute */
 .content div[data-md-block] > pre {
-  background-color: var(--sui-color-surface) !important;
   border: var(--sui-border-width) solid var(--sui-color-border);
   border-radius: var(--sui-radius-lg);
   margin: 0;
@@ -75,7 +73,7 @@
 
 /* The header is generated content, so it is in neither the selection nor the canonical text that comments anchor to */
 .content div[data-language]:has(> pre)::before {
-  background-color: color-mix(in srgb, var(--sui-color-surface), var(--sui-color-text) 5%);
+  background-color: color-mix(in srgb, var(--sui-color-sunken), var(--sui-color-text) 5%);
   border: var(--sui-border-width) solid var(--sui-color-border);
   border-block-end: none;
   border-start-end-radius: var(--sui-radius-lg);

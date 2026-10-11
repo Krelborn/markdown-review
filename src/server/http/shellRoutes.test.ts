@@ -20,9 +20,28 @@ describe("shellRoutes", () => {
 
       expect(response.headers.get("content-type")).toBe("text/html; charset=UTF-8");
       expect(response.headers.get("content-security-policy")).toContain("script-src 'self';");
-      expect(await response.text()).toBe(testShellHtml);
+      expect(await response.text()).toBe(shellHtmlWith('data-sui-mode="system" data-sui-palette="paper"'));
     }
   );
+
+  test.each([
+    {
+      condition: "the cookies hold the user's choices",
+      cookie: "markdown-review-mode=dark; markdown-review-palette=mist",
+      expected: 'data-sui-mode="dark" data-sui-palette="mist"',
+    },
+    {
+      condition: "a cookie holds a value that is not on its list",
+      cookie: 'markdown-review-mode=light; markdown-review-palette="><script>',
+      expected: 'data-sui-mode="light" data-sui-palette="paper"',
+    },
+  ])("must draw the page in the stored appearance from the start when $condition", async ({ cookie, expected }) => {
+    const { request } = await setUpAppTest(getDirectory());
+
+    const response = await request("GET", "/document/docs/plan.md", { Cookie: cookie });
+
+    expect(await response.text()).toBe(shellHtmlWith(expected));
+  });
 
   test("must serve the app's script with its type when the page loads it", async () => {
     const { request } = await setUpAppTest(getDirectory());
@@ -80,3 +99,7 @@ describe("shellRoutes", () => {
     expect(await response.json()).toMatchObject({ error: { reason: "missing-web-app" } });
   });
 });
+
+function shellHtmlWith(appearanceAttributes: string): string {
+  return testShellHtml.replace("<html", `<html ${appearanceAttributes}`);
+}

@@ -13,10 +13,18 @@
   flex-shrink: 0;
 }
 
-/* The auto margin pushes the About button to the bar's right end */
+/* The auto margin pushes the Appearance and About buttons to the bar's right end */
 .title {
   font-family: var(--sui-font-body);
   font-weight: var(--sui-font-weight-bold);
   margin-inline-end: auto;
   min-inline-size: 0;
+}
+
+/* The Appearance and About buttons sit closer together than the bar's other items, as one group */
+.actions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--sui-space-1);
 }

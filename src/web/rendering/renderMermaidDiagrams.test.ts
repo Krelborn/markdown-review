@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { renderDocument } from "./renderDocument";
 import { hasMermaidDiagrams, renderMermaidDiagrams } from "./renderMermaidDiagrams";
@@ -11,12 +11,7 @@ const diagramSource = "```mermaid\ngraph TD\n  A-->B\n```\n";
 
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.stubGlobal("matchMedia", () => ({ matches: false }));
   mermaid.render.mockResolvedValue({ svg: '<svg aria-label="Request flow"><text>A</text></svg>' });
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
 });
 
 describe("renderMermaidDiagrams", () => {
@@ -24,17 +19,32 @@ describe("renderMermaidDiagrams", () => {
     const page = await renderPage(diagramSource);
     mermaid.parse.mockResolvedValue({ diagramType: "flowchart-v2" });
 
-    await renderMermaidDiagrams(page);
+    await renderMermaidDiagrams(page, "light");
 
     expect(page.querySelector('[data-md-block="0"] > svg')?.getAttribute("aria-label")).toBe("Request flow");
     expect(page.querySelector("pre")).toBeNull();
   });
 
+  test.each([
+    { colorScheme: "light", theme: "default" },
+    { colorScheme: "dark", theme: "dark" },
+  ] as const)(
+    "must draw in Mermaid's $theme theme when the page is in $colorScheme mode",
+    async ({ colorScheme, theme }) => {
+      const page = await renderPage(diagramSource);
+      mermaid.parse.mockResolvedValue({ diagramType: "flowchart-v2" });
+
+      await renderMermaidDiagrams(page, colorScheme);
+
+      expect(mermaid.initialize).toHaveBeenCalledWith(expect.objectContaining({ theme }));
+    }
+  );
+
   test("must keep showing the source when Mermaid cannot read the diagram", async () => {
     const page = await renderPage(diagramSource);
     mermaid.parse.mockResolvedValue(false);
 
-    await renderMermaidDiagrams(page);
+    await renderMermaidDiagrams(page, "light");
 
     expect(page.querySelector('[data-md-block="0"] > pre')?.textContent).toBe("graph TD\n  A-->B");
   });
@@ -44,7 +54,7 @@ describe("renderMermaidDiagrams", () => {
     mermaid.parse.mockResolvedValue({ diagramType: "flowchart-v2" });
     mermaid.render.mockResolvedValue({ svg: '<svg style="max-width: 1320px;"><text>A</text></svg>' });
 
-    await renderMermaidDiagrams(page);
+    await renderMermaidDiagrams(page, "light");
 
     expect(diagramWidthOf(page)).toBe("1320px");
   });
@@ -53,10 +63,10 @@ describe("renderMermaidDiagrams", () => {
     const page = await renderPage(diagramSource);
     mermaid.parse.mockResolvedValue({ diagramType: "flowchart-v2" });
     mermaid.render.mockResolvedValue({ svg: '<svg style="max-width: 1320px;"><text>A</text></svg>' });
-    await renderMermaidDiagrams(page);
+    await renderMermaidDiagrams(page, "light");
     mermaid.render.mockResolvedValue({ svg: "<svg><text>A</text></svg>" });
 
-    await renderMermaidDiagrams(page);
+    await renderMermaidDiagrams(page, "light");
 
     expect(diagramWidthOf(page)).toBe("");
   });
@@ -64,10 +74,10 @@ describe("renderMermaidDiagrams", () => {
   test("must draw a drawn diagram again from its definition when the diagrams are drawn again", async () => {
     const page = await renderPage(diagramSource);
     mermaid.parse.mockResolvedValue({ diagramType: "flowchart-v2" });
-    await renderMermaidDiagrams(page);
+    await renderMermaidDiagrams(page, "light");
     mermaid.render.mockResolvedValue({ svg: '<svg aria-label="Request flow in dark mode"><text>A</text></svg>' });
 
-    await renderMermaidDiagrams(page);
+    await renderMermaidDiagrams(page, "light");
 
     expect(page.querySelector('[data-md-block="0"] > svg')?.getAttribute("aria-label")).toBe(
       "Request flow in dark mode"
@@ -78,9 +88,9 @@ describe("renderMermaidDiagrams", () => {
   test("must draw a drawn diagram with an id its drawing does not have when the diagrams are drawn again", async () => {
     const page = await renderPage(diagramSource);
     mermaid.parse.mockResolvedValue({ diagramType: "flowchart-v2" });
-    await renderMermaidDiagrams(page);
+    await renderMermaidDiagrams(page, "light");
 
-    await renderMermaidDiagrams(page);
+    await renderMermaidDiagrams(page, "light");
 
     expect(mermaid.render.mock.calls[1]?.[0]).not.toBe(mermaid.render.mock.calls[0]?.[0]);
   });
@@ -91,7 +101,7 @@ describe("renderMermaidDiagrams", () => {
     const lightDrawing = deferDrawing();
     const darkDrawing = deferDrawing();
     mermaid.render.mockReturnValueOnce(lightDrawing.promise).mockReturnValueOnce(darkDrawing.promise);
-    const drawings = [renderMermaidDiagrams(page), renderMermaidDiagrams(page)];
+    const drawings = [renderMermaidDiagrams(page, "light"), renderMermaidDiagrams(page, "dark")];
 
     lightDrawing.resolve('<svg aria-label="Request flow"><text>A</text></svg>');
     darkDrawing.resolve('<svg aria-label="Request flow in dark mode"><text>A</text></svg>');
@@ -115,7 +125,7 @@ describe("renderMermaidDiagrams", () => {
     const page = await renderPage(diagramSource);
     mermaid.parse.mockResolvedValue({ diagramType: "flowchart-v2" });
 
-    await renderMermaidDiagrams(page);
+    await renderMermaidDiagrams(page, "light");
 
     expect(hasMermaidDiagrams(page)).toBe(true);
   });

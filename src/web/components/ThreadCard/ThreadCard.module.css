@@ -1,11 +1,11 @@
-/* Cards sit on the panel's surface colour, so they take the page background and lose StylesUI's shadow */
 .card {
-  --sui-card-bg: var(--sui-color-background);
   --sui-card-shadow: none;
 }
 
-.hovered {
-  --sui-card-bg: var(--sui-color-secondary-subtle);
+/* Pointing at the thread in the doc gives its location's underline the text's colour, as pointing at the link does.
+   Pointing at or focusing the card also hovers the thread, so the underline is left alone then. */
+.hovered:not(:hover, :focus-within) {
+  --location-underline: currentColor;
 }
 
 /* An inset shadow, so the bar does not change the card's size */
@@ -30,7 +30,7 @@
   padding: 0;
   text-align: start;
   text-decoration: underline;
-  text-decoration-color: var(--sui-color-border);
+  text-decoration-color: var(--location-underline, var(--sui-color-border));
   text-underline-offset: 2px;
 }
 

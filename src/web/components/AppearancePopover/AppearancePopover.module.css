@@ -1,0 +1,41 @@
+.choice {
+  align-items: center;
+}
+
+.content {
+  align-items: center;
+  display: flex;
+  gap: var(--sui-space-3);
+}
+
+/* A small page in the palette: lines of text and a link beside a card. Theme paints its background. */
+.swatch {
+  block-size: 2.25rem;
+  border: var(--sui-border-width) solid var(--sui-color-border);
+  border-radius: var(--sui-radius-md);
+  display: grid;
+  flex-shrink: 0;
+  gap: var(--sui-space-1);
+  grid-template-columns: 1fr 1rem;
+  inline-size: 3.5rem;
+  padding: var(--sui-space-1);
+}
+
+.lines {
+  background:
+    linear-gradient(var(--sui-color-text) 0 0) top left / 90% 3px no-repeat,
+    linear-gradient(var(--sui-color-text-muted) 0 0) center left / 100% 3px no-repeat,
+    linear-gradient(var(--sui-color-primary) 0 0) bottom left / 50% 3px no-repeat;
+  margin-block: 2px;
+}
+
+.card {
+  background-color: var(--sui-color-surface);
+  border: var(--sui-border-width) solid var(--sui-color-border);
+  border-radius: var(--sui-radius-sm);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+}

@@ -1,7 +1,5 @@
-/* Shiki writes the dark theme's colours into custom properties, which take over when the system is in dark mode */
-@media (prefers-color-scheme: dark) {
-  .shiki,
-  .shiki span {
-    color: var(--shiki-dark) !important;
-  }
+/* Shiki writes each token's light and dark colours into custom properties, and the page's colour mode picks one */
+.shiki,
+.shiki span {
+  color: light-dark(var(--shiki-light), var(--shiki-dark));
 }
