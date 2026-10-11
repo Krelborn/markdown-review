@@ -25,6 +25,17 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 
 `protocolVersion` in `src/shared/api/protocolVersion.ts` versions the HTTP API and the store format together. Bump it for any change an older CLI or server could not handle: the CLI replaces a server of an older protocol and refuses to touch one of a newer protocol. `server.json` and `GET /api/health` are how every version finds that protocol, so they may gain fields but must keep the ones they have.
 
+## Releasing
+
+Publishing a GitHub release stages that version on npm, and a maintainer approves it there.
+
+1. In a pull request, set `version` in `package.json`, and merge it.
+2. Publish a GitHub release from `main`, tagged `v<version>`. Mark it as a pre-release exactly when the version has a pre-release part, such as `0.2.0-beta.1`.
+3. `.github/workflows/publish.yml` checks that the tagged commit is on `main` and that the tag matches `package.json`, runs `ci.yml` on that commit, then runs `npm stage publish` through npm trusted publishing, with the dist-tag `next` for a pre-release and `latest` otherwise.
+4. Approve the staged version with 2FA in the Staged Packages tab of the package on npmjs.com, or with `npm stage approve <stage-id>`, which needs npm 11.15 or later (`npx npm@latest stage approve <stage-id>`); the publish job's log has the id. Check the version and dist-tag first: npm won't stop an older version from taking `latest`. Nothing is public until then, and `npm stage reject <stage-id>` withdraws it.
+
+If a job fails on something transient, such as a flaky e2e test, use "Re-run failed jobs" on the run's page. If the check or CI fails for a real reason, nothing reached npm: delete the release and its tag, fix `main`, and release the same version again.
+
 ## Anchoring
 
 Comments anchor to offsets in a doc's canonical text, which `parseBlocks` computes from markdown-it tokens and the browser reads back from the rendered page with `layOutBlockText`. The two must agree exactly: run the conformance test (`pnpm vitest run --project web src/web/rendering/blockConformance.test.ts`) after any change to `createMarkdownIt`, the markdown plugins, Shiki or DOMPurify, and add a case to `src/web/rendering/testing/conformanceCorpus.md` for any new kind of content. A change that gives the same source different canonical text, such as a new markdown plugin, must also raise `anchoringVersion` in `src/shared/markdown/anchoringVersion.ts`, so threads stored under the old text are re-anchored.
