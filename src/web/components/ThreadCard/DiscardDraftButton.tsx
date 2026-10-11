@@ -9,7 +9,7 @@ export interface DiscardDraftButtonProps {
   isReply: boolean;
 
   /**
-   * Whether the draft's editor is saving it, while which Discard does nothing
+   * Whether the draft's editor is saving it, while which Discard is disabled
    */
   isSaving: boolean;
 
@@ -25,19 +25,10 @@ export interface DiscardDraftButtonProps {
  * Discard, which asks the user to confirm before it deletes their draft
  */
 export function DiscardDraftButton({ isReply, isSaving, onDiscard }: DiscardDraftButtonProps): JSX.Element {
-  const [isOpen, setIsOpen] = useState(false);
   const [isDiscarding, setIsDiscarding] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const popover = usePopover({
-    onOpenChange: (open) => {
-      if (!open || !isSaving) {
-        setIsOpen(open);
-      }
-    },
-    open: isOpen,
-    placement: "top",
-  });
+  const popover = usePopover({ placement: "top" });
   const overlayProps = popover.getOverlayProps();
   const title = isReply ? "Discard this reply?" : "Discard this comment?";
   // WebKit doesn't focus a button the user clicks, so closing the popover can't hand focus back to Discard by itself
@@ -53,11 +44,11 @@ export function DiscardDraftButton({ isReply, isSaving, onDiscard }: DiscardDraf
     setIsDiscarding(true);
     await onDiscard();
     setIsDiscarding(false);
-    setIsOpen(false);
+    popover.close();
   };
   return (
     <>
-      <Button {...popover.getTriggerProps()} ref={triggerRef} size="sm" variant="secondary">
+      <Button {...popover.getTriggerProps()} disabled={isSaving} ref={triggerRef} size="sm" variant="secondary">
         Discard
       </Button>
       <Popover
@@ -77,7 +68,7 @@ export function DiscardDraftButton({ isReply, isSaving, onDiscard }: DiscardDraf
             It hasn't been sent, and you can't get it back.
           </Text>
           <Cluster gap={2} justify="end">
-            <Button onClick={() => setIsOpen(false)} ref={cancelRef} size="sm" variant="secondary">
+            <Button onClick={popover.close} ref={cancelRef} size="sm" variant="secondary">
               Cancel
             </Button>
             <Button busy={isDiscarding} onClick={() => void confirm()} size="sm" variant="secondary">

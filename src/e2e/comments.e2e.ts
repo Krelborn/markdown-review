@@ -214,6 +214,23 @@ test("must keep the draft and return focus to Discard when the user presses Esca
   await expect(thread.getByText("Why 24h?")).toBeVisible();
 });
 
+test("must open the confirmation again when the user presses Discard after closing it with Escape", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const discard = page.getByRole("article", { name: "Thread #1" }).getByRole("button", { name: "Discard" });
+  const confirmation = page.getByRole("dialog", { name: "Discard this comment?" });
+  await discard.click();
+  await page.keyboard.press("Escape");
+  await expect(confirmation).toBeHidden();
+
+  await discard.click();
+
+  await expect(confirmation).toBeVisible();
+});
+
 /**
  * @returns the point in the gutter, near its left edge and clear of the +, that is level with the middle of the element
  */
