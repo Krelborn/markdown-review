@@ -55,6 +55,18 @@ test("must frame each block in turn when the user moves the pointer down the gut
   await expect.poll(() => isFramed(page, retries)).toBe(true);
 });
 
+test("must keep the gutter's bar hidden behind the + while the user presses it", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+  const retries = page.getByRole("article", { name: "docs/plan.md" }).getByText("Retries happen three times.");
+  await page.getByTestId("block-gutter").hover({ position: await gutterBeside(page, retries) });
+  const button = page.getByRole("button", { name: "Comment on this block" });
+
+  await button.hover();
+  await page.mouse.down();
+
+  expect(await settledBackgroundAlpha(button)).toBe(255);
+});
+
 test("must start a comment on a block when the user clicks the gutter beside it", async ({ page, review }) => {
   await review.open("docs/plan.md");
   const retries = page.getByRole("article", { name: "docs/plan.md" }).getByText("Retries happen three times.");
@@ -147,6 +159,23 @@ async function gutterBeside(page: Page, element: Locator): Promise<{ x: number; 
     throw new Error("The gutter and the element must be on the page");
   }
   return { x: 2, y: box.y + box.height / 2 - gutter.y };
+}
+
+/**
+ * @returns the alpha, from 0 to 255, of the element's background colour once its transitions end, which a canvas
+ *   resolves from whatever colour syntax the browser computes it in
+ */
+function settledBackgroundAlpha(element: Locator): Promise<number | undefined> {
+  return element.evaluate(async (node) => {
+    await Promise.all(node.getAnimations().map((animation) => animation.finished));
+    const context = document.createElement("canvas").getContext("2d");
+    if (context === null) {
+      return undefined;
+    }
+    context.fillStyle = getComputedStyle(node).backgroundColor;
+    context.fillRect(0, 0, 1, 1);
+    return context.getImageData(0, 0, 1, 1).data[3];
+  });
 }
 
 /**
