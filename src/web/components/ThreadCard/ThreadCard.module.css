@@ -2,10 +2,6 @@
   --sui-card-shadow: none;
 }
 
-.hovered {
-  --sui-card-bg: var(--sui-color-secondary-subtle);
-}
-
 /* An inset shadow, so the bar does not change the card's size */
 .selected {
   --sui-card-shadow: inset 3px 0 0 var(--sui-color-primary);
@@ -32,7 +28,10 @@
   text-underline-offset: 2px;
 }
 
-.location:hover {
+/* Pointing at the thread in the doc makes its location look pointed at. Pointing at or focusing the card also hovers the
+   thread, so the link is left alone then. */
+.location:hover,
+.hovered:not(:hover, :focus-within) .location {
   text-decoration-color: currentColor;
 }
 

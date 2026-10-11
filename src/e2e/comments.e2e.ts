@@ -103,18 +103,38 @@ test("must emphasise a comment's passage while the user points at its card", asy
   await expect.poll(() => highlightedText(page, "markdown-review-hovered")).toEqual(["cache results for 24h"]);
 });
 
-test("must give a comment's card the hovered style when the user points at its passage", async ({ page, review }) => {
+test("must underline a comment's location in the text's colour while the user points at its marker", async ({
+  page,
+  review,
+}) => {
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
-  const card = page.getByRole("article", { name: "Thread #1" });
-  const article = page.getByRole("article", { name: "docs/plan.md" });
-  const hoveredBackground = await subtleSecondaryBackground(page);
-  await article.getByText("Retries happen three times.").hover();
-  await expect.poll(() => backgroundOf(card)).not.toBe(hoveredBackground);
 
-  await article.getByText("24h", { exact: true }).hover();
+  await page.getByRole("main").getByRole("button", { exact: true, name: "Thread #1" }).hover();
 
-  await expect.poll(() => backgroundOf(card)).toBe(hoveredBackground);
+  await expect.poll(() => isUnderlinedInTextColour(page.getByRole("button", { name: "#1 Line 3" }))).toBe(true);
+});
+
+test("must underline a comment's location in the text's colour while the user points at its passage", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+
+  await page.getByRole("article", { name: "docs/plan.md" }).getByText("24h", { exact: true }).hover();
+
+  await expect.poll(() => isUnderlinedInTextColour(page.getByRole("button", { name: "#1 Line 3" }))).toBe(true);
+});
+
+test("must leave a comment's location as it is while the user points at its card", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+
+  await page.getByRole("article", { name: "Thread #1" }).getByText("Why 24h?").hover();
+
+  await expect.poll(() => highlightedText(page, "markdown-review-hovered")).toEqual(["cache results for 24h"]);
+  expect(await isUnderlinedInTextColour(page.getByRole("button", { name: "#1 Line 3" }))).toBe(false);
 });
 
 test("must keep a half-written reply when the user goes to another doc and back", async ({ page, review }) => {
@@ -187,20 +207,12 @@ async function isFramed(page: Page, element: Locator): Promise<boolean> {
   return frame !== null && box !== null && frame.y <= box.y && frame.y + frame.height >= box.y + box.height;
 }
 
-function backgroundOf(element: Locator): Promise<string> {
-  return element.evaluate((node) => getComputedStyle(node).backgroundColor);
-}
-
 /**
- * @returns the colour a card shows as its background while its thread is hovered
+ * @returns whether the element's underline is drawn in its text's colour, as a comment's location is while pointed at
  */
-function subtleSecondaryBackground(page: Page): Promise<string> {
-  return page.evaluate(() => {
-    const probe = document.createElement("div");
-    probe.style.backgroundColor = "var(--sui-color-secondary-subtle)";
-    document.body.append(probe);
-    const { backgroundColor } = getComputedStyle(probe);
-    probe.remove();
-    return backgroundColor;
+function isUnderlinedInTextColour(element: Locator): Promise<boolean> {
+  return element.evaluate((node) => {
+    const { color, textDecorationColor } = getComputedStyle(node);
+    return textDecorationColor === color;
   });
 }
