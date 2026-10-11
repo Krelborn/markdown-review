@@ -23,13 +23,18 @@ export interface ThreadActionsProps {
    */
   onCommentDiscarded: () => void;
 
+  /**
+   * Called when the user acts on the thread, which shows them its messages
+   */
+  onSeen: () => void;
+
   thread: Thread;
 }
 
 /**
  * The user's part in a thread: their draft, or its editor while they write, and what they can do next
  */
-export function ThreadActions({ onChanged, onCommentDiscarded, thread }: ThreadActionsProps): JSX.Element {
+export function ThreadActions({ onChanged, onCommentDiscarded, onSeen, thread }: ThreadActionsProps): JSX.Element {
   const api = useReviewApi();
   const editor = useCommentEditorContext();
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +65,7 @@ export function ThreadActions({ onChanged, onCommentDiscarded, thread }: ThreadA
   const isReply = status !== "draft";
   const discard = (): Promise<void> =>
     run(async () => {
+      onSeen();
       await api.deleteDraft(id);
       if (isReply) {
         focusesReplyRef.current = true;
@@ -92,12 +98,22 @@ export function ThreadActions({ onChanged, onCommentDiscarded, thread }: ThreadA
           </div>
         )}
         {status === "open" && draft === undefined && (
-          <Button onClick={() => void run(() => api.resolveThread(id))} size="sm" variant="secondary">
+          <Button
+            onClick={() => {
+              onSeen();
+              void run(() => api.resolveThread(id));
+            }}
+            size="sm"
+            variant="secondary"
+          >
             Resolve
           </Button>
         )}
         <Button
-          onClick={() => editor.request({ kind: "thread", threadId: id })}
+          onClick={() => {
+            onSeen();
+            editor.request({ kind: "thread", threadId: id });
+          }}
           ref={replyRef}
           size="sm"
           variant="secondary"

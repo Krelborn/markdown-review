@@ -444,6 +444,7 @@ function setUpTest({ hasNewAgentMessage = false, thread }: { hasNewAgentMessage?
   const onChanged = vi.fn();
   const onFocusThread = vi.fn();
   const onHoverThread = vi.fn();
+  const onSeen = vi.fn();
   const onSelect = vi.fn();
   const render = (): RenderResult =>
     renderBase(
@@ -455,6 +456,7 @@ function setUpTest({ hasNewAgentMessage = false, thread }: { hasNewAgentMessage?
                 hasNewAgentMessage={hasNewAgentMessage}
                 isSelected={false}
                 onChanged={onChanged}
+                onSeen={onSeen}
                 onSelect={onSelect}
                 thread={thread}
               />

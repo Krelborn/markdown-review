@@ -1,5 +1,6 @@
 import { Stack, Text } from "@krelborn/stylesui";
 import type { JSX } from "react";
+import { useEffect, useEffectEvent } from "react";
 
 import type { Thread } from "../../../shared/review/threadSchema";
 import { groupThreads } from "../../review/groupThreads";
@@ -51,10 +52,23 @@ export function CommentsList({
 }: CommentsListProps): JSX.Element {
   const editor = useCommentEditorContext();
   const seen = useSeenMessages();
+  const markSelectedSeen = useEffectEvent((threadId: number) => {
+    const selected = threads.find(({ id }) => id === threadId);
+    if (selected !== undefined) {
+      seen.markSeen(selected);
+    }
+  });
+  // Selecting a thread by its highlight or marker in the doc shows it as surely as its card's location does
+  useEffect(() => {
+    if (selectedThreadId !== null) {
+      markSelectedSeen(selectedThreadId);
+    }
+  }, [selectedThreadId]);
   const groups = groupThreads(threads);
   const listProps = {
     hasNewAgentMessage: seen.hasNewAgentMessage,
     onChanged,
+    onSeen: seen.markSeen,
     onSelect: (thread: Thread) => {
       seen.markSeen(thread);
       onSelectThread(thread);

@@ -26,6 +26,11 @@ export interface ThreadCardProps {
   onChanged: () => void;
 
   /**
+   * Called when the user acts on the thread, which shows them its messages
+   */
+  onSeen: (thread: Thread) => void;
+
+  /**
    * Called when the user asks to see the thread in its doc
    */
   onSelect: (thread: Thread) => void;
@@ -40,6 +45,7 @@ export function ThreadCard({
   hasNewAgentMessage,
   isSelected,
   onChanged,
+  onSeen,
   onSelect,
   thread,
 }: ThreadCardProps): JSX.Element {
@@ -93,6 +99,7 @@ export function ThreadCard({
         <ThreadActions
           onChanged={onChanged}
           onCommentDiscarded={() => moveFocusPastCard(cardRef.current)}
+          onSeen={() => onSeen(thread)}
           thread={thread}
         />
       </Stack>

@@ -12,6 +12,8 @@ import { ThreadSidebar } from "./ThreadSidebar";
 
 const agentReply = { at: "2026-10-08T09:05:00.000Z", author: "agent" as const, body: "Changed to 1h" };
 
+const replied = buildThread({ anchor: buildPassageAnchor(), id: 2, messages: [...buildThread().messages, agentReply] });
+
 const threads: Thread[] = [
   buildThread({
     anchor: buildPassageAnchor(),
@@ -224,6 +226,45 @@ describe("ThreadSidebar", () => {
     expect(wasNew).toBe(true);
     expect(card.queryByText("New reply")).not.toBeInTheDocument();
     expect(onSelectThread).toHaveBeenCalledWith(replied);
+  });
+
+  test("must stop marking the agent's reply as new when the thread is selected in the doc", () => {
+    const { render, select } = setUpTest({ threads: [replied] });
+    render();
+    const wasNew = within(elements.thread(2)).queryByText("New reply") !== null;
+
+    select(2);
+
+    expect(wasNew).toBe(true);
+    expect(within(elements.thread(2)).queryByText("New reply")).not.toBeInTheDocument();
+  });
+
+  test.each<{ action: string; button: string; thread: Thread }>([
+    { action: "replies", button: "Reply", thread: replied },
+    { action: "resolves the thread", button: "Resolve", thread: replied },
+    {
+      action: "edits their draft reply",
+      button: "Edit",
+      thread: { ...replied, draft: { at: testTime, body: "Hourly" } },
+    },
+  ])("must stop marking the agent's reply as new when the user $action", async ({ button, thread }) => {
+    const { render } = setUpTest({ threads: [thread] });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(within(elements.thread(2)).getByRole("button", { name: button }));
+
+    expect(within(elements.thread(2)).queryByText("New reply")).not.toBeInTheDocument();
+  });
+
+  test("must stop marking the agent's reply as new when the user discards their draft reply", async () => {
+    const { render } = setUpTest({ threads: [{ ...replied, draft: { at: testTime, body: "Hourly" } }] });
+    const user = userEvent.setup();
+    render();
+
+    await discardDraftOnThread(user, 2, "Discard this reply?");
+
+    expect(within(elements.thread(2)).queryByText("New reply")).not.toBeInTheDocument();
   });
 
   test("must say how to comment when there are no threads", () => {
@@ -537,7 +578,9 @@ function setUpTest({
   const fake = createFakeReviewApi({ threads: shown });
   const onChanged = vi.fn();
   const onSelectThread = vi.fn();
-  const view = (listed: Thread[]) => (
+  let listed = shown;
+  let selectedThreadId: number | null = null;
+  const view = () => (
     <ReviewApiContext value={fake.api}>
       <CommentEditorHarness onChanged={onChanged} threads={listed}>
         {(editor) => (
@@ -547,7 +590,7 @@ function setUpTest({
             editor={editor}
             onChanged={onChanged}
             onSelectThread={onSelectThread}
-            selectedThreadId={null}
+            selectedThreadId={selectedThreadId}
             threads={listed}
           />
         )}
@@ -556,12 +599,17 @@ function setUpTest({
   );
   let rerenderBase: (ui: ReturnType<typeof view>) => void = () => {};
   const render = (): void => {
-    rerenderBase = renderBase(view(shown)).rerender;
+    rerenderBase = renderBase(view()).rerender;
   };
-  const showThreads = (listed: Thread[]): void => {
-    rerenderBase(view(listed));
+  const showThreads = (next: Thread[]): void => {
+    listed = next;
+    rerenderBase(view());
   };
-  return { fake, onChanged, onSelectThread, render, showThreads };
+  const select = (threadId: number | null): void => {
+    selectedThreadId = threadId;
+    rerenderBase(view());
+  };
+  return { fake, onChanged, onSelectThread, render, select, showThreads };
 }
 
 async function discardDraftOnThread(
