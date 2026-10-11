@@ -428,6 +428,12 @@
   --sui-button-fg: var(--sui-color-primary);
 }
 
+/* A ghost button's pressed background is translucent and set by a selector rather than a variable, so it is replaced
+   here with an opaque one, which needs a selector more specific than StylesUI's */
+.view .blockButton.pickingBlockButton:active:not(:disabled) {
+  background-color: color-mix(in srgb, var(--sui-color-primary) 25%, var(--sui-color-background));
+}
+
 .gutter {
   cursor: pointer;
   inline-size: var(--gutter-size);
