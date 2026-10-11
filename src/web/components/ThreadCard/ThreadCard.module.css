@@ -52,10 +52,13 @@
   padding: 0;
 }
 
+/* The avatar shares the name's row, so it stays centred on it whether the row holds a time or a taller badge */
 .message {
+  align-items: center;
+  column-gap: var(--sui-space-2);
   display: grid;
-  gap: var(--sui-space-2);
   grid-template-columns: auto minmax(0, 1fr);
+  row-gap: var(--sui-space-1);
 }
 
 .agent {
@@ -70,6 +73,10 @@
 
 .body {
   white-space: pre-wrap;
+}
+
+.message > .body {
+  grid-column: 2;
 }
 
 .leading {

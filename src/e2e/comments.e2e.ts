@@ -278,6 +278,38 @@ test("must scroll the editor when the draft is taller than half the window", asy
   expect(await overflowOf(textbox)).toBeGreaterThan(0);
 });
 
+test("must centre each avatar on its name line when a thread has messages and a draft reply", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  await submitDrafts(page, 1, "Request changes");
+  await review.run(["reply", "1", "The upstream data changes daily."]);
+  const thread = page.getByRole("article", { name: "Thread #1" });
+  await thread.getByRole("button", { name: "Reply" }).click();
+  await page.keyboard.type("Hourly, then.");
+
+  await thread.getByRole("button", { name: "Save" }).click();
+
+  await expect(thread.getByText("Hourly, then.")).toBeVisible();
+  expect(await avatarOffset(thread, "Y", "You", 0)).toBeCloseTo(0, 0);
+  expect(await avatarOffset(thread, "A", "Agent", 0)).toBeCloseTo(0, 0);
+  expect(await avatarOffset(thread, "Y", "You", 1)).toBeCloseTo(0, 0);
+});
+
+/**
+ * @returns how far, in pixels, the centre of a message's avatar sits below the centre of its name line
+ * @param initial the initial the avatar shows
+ * @param name the name beside it
+ * @param index which of the messages with that name, from the first
+ */
+async function avatarOffset(thread: Locator, initial: string, name: string, index: number): Promise<number> {
+  const avatar = await boxOf(thread.getByText(initial, { exact: true }).nth(index));
+  const nameLine = await boxOf(thread.getByText(name, { exact: true }).nth(index).locator(".."));
+  return avatar.y + avatar.height / 2 - (nameLine.y + nameLine.height / 2);
+}
+
 /**
  * Moves the pointer off the comments. Saving a comment leaves the pointer where its card can appear, and a card that
  * appears under a still pointer gets no pointerenter until the pointer leaves it.
