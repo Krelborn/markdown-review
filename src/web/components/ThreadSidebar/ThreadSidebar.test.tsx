@@ -50,6 +50,58 @@ describe("ThreadSidebar", () => {
     expect(screen.getByRole("article", { name: "Thread #4" })).not.toBeVisible();
   });
 
+  test("must open the Resolved group when a resolved thread gets a reply the user hasn't seen", () => {
+    const resolved = buildThread({ anchor: buildPassageAnchor(), id: 4, status: "resolved" });
+    const { render, showThreads } = setUpTest({ threads: [resolved] });
+    render();
+
+    showThreads([{ ...resolved, messages: [...resolved.messages, agentReply] }]);
+
+    expect(elements.thread(4)).toBeVisible();
+  });
+
+  test.each([
+    { count: 1, expected: "1 new reply" },
+    { count: 2, expected: "2 new replies" },
+  ])(
+    "must count the resolved threads with replies the user hasn't seen as '$expected' while the group is folded",
+    async ({ count, expected }) => {
+      const resolved = [4, 7].slice(0, count).map((id) =>
+        buildThread({
+          anchor: buildPassageAnchor({ startOffset: id }),
+          id,
+          messages: [...buildThread().messages, agentReply],
+          status: "resolved",
+        })
+      );
+      const { render } = setUpTest({ threads: resolved });
+      const user = userEvent.setup();
+      render();
+
+      await user.click(screen.getByRole("heading", { name: `Resolved ${count}` }));
+
+      expect(elements.thread(4)).not.toBeVisible();
+      expect(within(screen.getByRole("region", { name: "Resolved" })).getByText(expected)).toBeVisible();
+    }
+  );
+
+  test("must keep the Resolved group folded when the user folds it and no new reply arrives", async () => {
+    const resolved = buildThread({
+      anchor: buildPassageAnchor(),
+      id: 4,
+      messages: [...buildThread().messages, agentReply],
+      status: "resolved",
+    });
+    const { render, showThreads } = setUpTest({ threads: [resolved] });
+    const user = userEvent.setup();
+    render();
+    await user.click(screen.getByRole("heading", { name: "Resolved 1" }));
+
+    showThreads([{ ...resolved, updatedAt: "2026-10-08T10:00:00.000Z" }]);
+
+    expect(elements.thread(4)).not.toBeVisible();
+  });
+
   test.each([
     { action: "saves", button: "Save" },
     { action: "cancels", button: "Cancel" },

@@ -96,6 +96,7 @@ export function CommentsList({
       <ThreadGroup
         isFolded={true}
         isForcedOpen={groups.resolved.some((thread) => thread.id === editor.editingThreadId)}
+        newReplyCount={groups.resolved.filter(seen.hasNewAgentMessage).length}
         threads={groups.resolved}
         title="Resolved"
         {...listProps}
