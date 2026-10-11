@@ -85,7 +85,7 @@ export function CommentsList({
           newComment={editor.newComment}
         />
       )}
-      {threads.length === 0 && (
+      {threads.length === 0 && editor.newComment === null && (
         <Text as="p" size="sm" tone="muted">
           No comments yet. Select text in the doc, or press + beside a block, to comment on it.
         </Text>

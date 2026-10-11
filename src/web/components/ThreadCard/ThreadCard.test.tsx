@@ -76,6 +76,29 @@ describe("ThreadCard", () => {
     expect(screen.getByText("Originally: cache results for 24h")).toBeInTheDocument();
   });
 
+  test.each<{ condition: string; isShown: boolean; status: Thread["status"] }>([
+    { condition: "an open thread's passage has gone", isShown: true, status: "open" },
+    { condition: "a resolved thread's passage has gone", isShown: false, status: "resolved" },
+  ])("must show Outdated only on open threads when $condition", ({ isShown, status }) => {
+    const { render } = setUpTest({
+      thread: { ...conversation, anchor: buildPassageAnchor({ outdated: true }), status },
+    });
+
+    render();
+
+    expect(screen.queryByText("Outdated") !== null).toBe(isShown);
+  });
+
+  test("must say that sending reopens the thread when the user replies to a resolved thread", async () => {
+    const { render } = setUpTest({ thread: { ...conversation, status: "resolved" } });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(elements.button("Reply"));
+
+    expect(screen.getByText("Sending reopens this thread.")).toBeInTheDocument();
+  });
+
   test("must show a draft as text, with Edit and no text box, until the user edits it", () => {
     const { render } = setUpTest({ thread: draftComment });
 

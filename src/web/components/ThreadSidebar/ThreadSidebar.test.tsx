@@ -329,6 +329,19 @@ describe("ThreadSidebar", () => {
     ).toBeInTheDocument();
   });
 
+  test("must hide the empty-panel hint while the composer is open", async () => {
+    const { render } = setUpTest({ threads: [] });
+    const user = userEvent.setup();
+    render();
+
+    await user.click(screen.getByRole("button", { name: "New comment" }));
+    await user.click(screen.getByRole("button", { name: "On the whole review" }));
+
+    expect(
+      screen.queryByText("No comments yet. Select text in the doc, or press + beside a block, to comment on it.")
+    ).not.toBeInTheDocument();
+  });
+
   test("must ask what to do with a reply's text, and say what waits, when the user starts editing a draft", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
