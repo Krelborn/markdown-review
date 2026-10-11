@@ -71,3 +71,7 @@
 .body {
   white-space: pre-wrap;
 }
+
+.leading {
+  margin-inline-end: auto;
+}

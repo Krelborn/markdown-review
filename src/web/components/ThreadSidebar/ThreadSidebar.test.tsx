@@ -269,7 +269,7 @@ describe("ThreadSidebar", () => {
     await startReplyOnThread(user, 2, "Hourly");
     await user.click(within(elements.thread(1)).getByRole("button", { name: "Edit" }));
 
-    await user.click(screen.getByRole("button", { name: "Discard" }));
+    await user.click(within(elements.thread(2)).getByRole("button", { name: "Discard" }));
 
     expect(screen.getByRole("textbox", { name: "Draft comment" })).toHaveValue("Why 24h?");
     expect(fake.snapshot.threads[1]?.draft).toBeUndefined();
@@ -286,7 +286,10 @@ describe("ThreadSidebar", () => {
     const user = userEvent.setup();
     render();
     await user.click(within(elements.thread(1)).getByRole("button", { name: "Edit" }));
-    await user.click(screen.getByRole("button", { name: "Discard" }));
+    await user.click(within(elements.thread(1)).getByRole("button", { name: "Discard" }));
+    await user.click(
+      within(screen.getByRole("dialog", { name: "Discard this comment?" })).getByRole("button", { name: "Discard" })
+    );
     await startReplyOnThread(user, 2, "Hourly");
 
     await act(async () => finishDiscard());

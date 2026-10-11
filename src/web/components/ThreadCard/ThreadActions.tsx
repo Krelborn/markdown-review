@@ -8,6 +8,7 @@ import { useReviewApi } from "../../api/useReviewApi";
 import { useCommentEditorContext } from "../../review/useCommentEditorContext";
 import { CommentForm } from "../CommentForm/CommentForm";
 
+import { DiscardDraftButton } from "./DiscardDraftButton";
 import { Message } from "./Message";
 import styles from "./ThreadCard.module.css";
 
@@ -42,22 +43,16 @@ export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.El
       {error}
     </Alert>
   );
+  const discard = (): Promise<void> => run(() => api.deleteDraft(id));
+  const isReply = status !== "draft";
   if (editor.editingThreadId === id) {
-    const discard = (): void => {
-      if (editor.isSaving) {
-        return;
-      }
-      void run(() => api.deleteDraft(id));
-    };
     return (
       <>
         <CommentForm
           label={editorLabelOf(thread)}
           leading={
             draft === undefined ? undefined : (
-              <Button onClick={discard} size="sm" variant="secondary">
-                Discard
-              </Button>
+              <DiscardDraftButton isReply={isReply} isSaving={editor.isSaving} onDiscard={discard} />
             )
           }
         />
@@ -67,8 +62,13 @@ export function ThreadActions({ onChanged, thread }: ThreadActionsProps): JSX.El
   }
   return (
     <Stack gap={2}>
-      {draft !== undefined && <SavedDraft body={draft.body} isReply={status !== "draft"} />}
+      {draft !== undefined && <SavedDraft body={draft.body} isReply={isReply} />}
       <Cluster gap={2} justify="end">
+        {draft !== undefined && (
+          <div className={styles.leading}>
+            <DiscardDraftButton isReply={isReply} isSaving={false} onDiscard={discard} />
+          </div>
+        )}
         {status === "open" && draft === undefined && (
           <Button onClick={() => void run(() => api.resolveThread(id))} size="sm" variant="secondary">
             Resolve

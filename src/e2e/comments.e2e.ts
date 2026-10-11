@@ -164,9 +164,42 @@ test("must close a draft reply's editor when the user discards the draft", async
   await thread.getByRole("button", { name: "Edit" }).click();
 
   await thread.getByRole("button", { name: "Discard" }).click();
+  await page.getByRole("dialog", { name: "Discard this reply?" }).getByRole("button", { name: "Discard" }).click();
 
   await expect(thread.getByRole("textbox")).toHaveCount(0);
   await expect(thread.getByRole("button", { name: "Reply" })).toBeVisible();
+});
+
+test("must discard a draft from its card without opening the editor when the user confirms", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const thread = page.getByRole("article", { name: "Thread #1" });
+
+  await thread.getByRole("button", { name: "Discard" }).click();
+  await page.getByRole("dialog", { name: "Discard this comment?" }).getByRole("button", { name: "Discard" }).click();
+
+  await expect(thread).toHaveCount(0);
+});
+
+test("must keep the draft and return focus to Discard when the user presses Escape in the confirmation", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const thread = page.getByRole("article", { name: "Thread #1" });
+  const confirmation = page.getByRole("dialog", { name: "Discard this comment?" });
+  await thread.getByRole("button", { name: "Discard" }).click();
+  await expect(confirmation.getByRole("button", { name: "Cancel" })).toBeFocused();
+
+  await page.keyboard.press("Escape");
+
+  await expect(confirmation).toBeHidden();
+  await expect(thread.getByRole("button", { name: "Discard" })).toBeFocused();
+  await expect(thread.getByText("Why 24h?")).toBeVisible();
 });
 
 /**
