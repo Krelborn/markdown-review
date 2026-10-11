@@ -15,6 +15,7 @@ import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
 import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import { buildPassageAnchor, buildThread } from "../../../shared/review/testing/reviewBuilders";
 import type { Thread } from "../../../shared/review/threadSchema";
+import { AppearanceProvider } from "../../appearance/AppearanceProvider";
 import { HoveredThreadContext } from "../../review/HoveredThreadContext";
 
 import { DocumentView } from "./DocumentView";
@@ -861,19 +862,21 @@ function setUpTest({
   const onNavigate = vi.fn();
   const onSelectThread = vi.fn();
   const view = (shown: DocumentSource, shownSelectedThreadId: number | null, shownThreads: Thread[]) => (
-    <HoveredThreadContext value={{ hoveredThreadId, onFocusThread: () => {}, onHoverThread }}>
-      <DocumentView
-        document={shown}
-        hash={hash}
-        onComment={onComment}
-        onNavigate={onNavigate}
-        onSelectThread={onSelectThread}
-        pendingPassage={pendingPassage}
-        revealCount={0}
-        selectedThreadId={shownSelectedThreadId}
-        threads={shownThreads}
-      />
-    </HoveredThreadContext>
+    <AppearanceProvider>
+      <HoveredThreadContext value={{ hoveredThreadId, onFocusThread: () => {}, onHoverThread }}>
+        <DocumentView
+          document={shown}
+          hash={hash}
+          onComment={onComment}
+          onNavigate={onNavigate}
+          onSelectThread={onSelectThread}
+          pendingPassage={pendingPassage}
+          revealCount={0}
+          selectedThreadId={shownSelectedThreadId}
+          threads={shownThreads}
+        />
+      </HoveredThreadContext>
+    </AppearanceProvider>
   );
   let rerenderBase: (ui: ReturnType<typeof view>) => void = () => {};
   let unmount: () => void = () => {};

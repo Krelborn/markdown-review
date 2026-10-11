@@ -28,6 +28,7 @@ export async function loadHighlight(languages: readonly string[]): Promise<Highl
   return (code, language) =>
     isHighlightable(language.toLowerCase())
       ? loaded.codeToHtml(code, {
+          defaultColor: false,
           lang: language.toLowerCase(),
           themes: { dark: "github-dark", light: "github-light" },
         })

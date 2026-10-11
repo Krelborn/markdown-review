@@ -1,6 +1,4 @@
-/* Cards sit on the panel's surface colour, so they take the page background and lose StylesUI's shadow */
 .card {
-  --sui-card-bg: var(--sui-color-background);
   --sui-card-shadow: none;
 }
 

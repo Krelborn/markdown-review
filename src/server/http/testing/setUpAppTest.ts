@@ -18,7 +18,7 @@ export const testToken = "a".repeat(64);
 export const testPlan = "# Plan\n\nWe cache results for 24h.\n\nRetries happen three times.\n";
 
 export const testShellHtml =
-  '<!doctype html><title>Markdown Review</title><script type="module" src="/assets/app.js"></script>\n';
+  '<!doctype html><html lang="en"><title>Markdown Review</title><script type="module" src="/assets/app.js"></script>\n';
 
 export const testAppScript = 'document.title = "Markdown Review";\n';
 

@@ -1,7 +1,11 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import type { ColorMode, ColorScheme } from "../../../shared/appearance/Appearance";
 import { createDocumentText } from "../../../shared/markdown/createDocumentText";
+import { AppearanceProvider } from "../../appearance/AppearanceProvider";
+import { useAppearance } from "../../appearance/useAppearance";
+import { setAppearanceCookies } from "../../testing/setAppearanceCookies";
 
 import { useMermaidDiagrams } from "./useMermaidDiagrams";
 import type { RenderedDocument } from "./useRenderedDocument";
@@ -33,60 +37,69 @@ describe("useMermaidDiagrams", () => {
     await waitForDrawing("Request flow");
   });
 
-  test("must listen for the system switching between light and dark mode when the doc has a diagram", async () => {
-    const { darkMode, matchMedia, render, waitForDrawing } = setUpTest();
+  test.each<{ mode: ColorMode; systemScheme: ColorScheme; theme: string }>([
+    { mode: "light", systemScheme: "dark", theme: "default" },
+    { mode: "dark", systemScheme: "light", theme: "dark" },
+    { mode: "system", systemScheme: "dark", theme: "dark" },
+    { mode: "system", systemScheme: "light", theme: "default" },
+  ])(
+    "must draw in Mermaid's $theme theme when the user chose $mode and the system is in $systemScheme mode",
+    async ({ mode, systemScheme, theme }) => {
+      const { render, waitForDrawing } = setUpTest({ mode, systemScheme });
 
-    render();
-    await waitForDrawing("Request flow");
+      render();
+      await waitForDrawing("Request flow");
 
-    expect(matchMedia).toHaveBeenCalledWith("(prefers-color-scheme: dark)");
-    expect(darkMode.addEventListener).toHaveBeenCalledWith("change", expect.any(Function));
-  });
+      expect(mermaid.initialize).toHaveBeenLastCalledWith(expect.objectContaining({ theme }));
+    }
+  );
 
-  test("must draw the diagrams again when the system switches between light and dark mode", async () => {
-    const { render, switchColorScheme, waitForDrawing } = setUpTest();
+  test("must draw the diagrams again in dark colours when the system switches to dark mode under System", async () => {
+    const { render, switchSystemScheme, waitForDrawing } = setUpTest({ mode: "system" });
     render();
     await waitForDrawing("Request flow");
     mermaid.render.mockResolvedValue({ svg: '<svg aria-label="Request flow in dark mode"><text>A</text></svg>' });
 
-    switchColorScheme();
+    switchSystemScheme("dark");
 
     await waitForDrawing("Request flow in dark mode");
+    expect(mermaid.initialize).toHaveBeenLastCalledWith(expect.objectContaining({ theme: "dark" }));
   });
 
-  test("must stop listening for the switch when the doc is unmounted", async () => {
-    const { darkMode, listener, render, waitForDrawing } = setUpTest();
-    const { unmount } = render();
+  test("must draw the diagrams again in dark colours when the user chooses Dark", async () => {
+    const { render, waitForDrawing } = setUpTest({ mode: "light" });
+    const { result } = render();
     await waitForDrawing("Request flow");
-    const subscribed = listener();
+    mermaid.render.mockResolvedValue({ svg: '<svg aria-label="Request flow in dark mode"><text>A</text></svg>' });
 
-    unmount();
+    act(() => result.current.changeAppearance({ mode: "dark" }));
 
-    expect(darkMode.removeEventListener).toHaveBeenCalledWith("change", subscribed);
+    await waitForDrawing("Request flow in dark mode");
+    expect(mermaid.initialize).toHaveBeenLastCalledWith(expect.objectContaining({ theme: "dark" }));
   });
 
-  test("must stop listening for the switch when the doc no longer has diagrams", async () => {
-    const { content, darkMode, listener, render, waitForDrawing } = setUpTest();
-    const { rerender } = render();
+  test("must keep the drawing when the system switches mode while the user has chosen Light", async () => {
+    const { content, render, switchSystemScheme, waitForDrawing } = setUpTest({ mode: "light" });
+    render();
     await waitForDrawing("Request flow");
-    const subscribed = listener();
-    content.innerHTML = plainHtml;
+    mermaid.render.mockResolvedValue({ svg: '<svg aria-label="Request flow in dark mode"><text>A</text></svg>' });
 
-    rerender({ rendered: buildRenderedDocument() });
+    switchSystemScheme("dark");
+    await flushDrawing();
 
-    expect(darkMode.removeEventListener).toHaveBeenCalledWith("change", subscribed);
-    expect(darkMode.addEventListener).toHaveBeenCalledTimes(1);
+    expect(content.querySelector("svg")?.getAttribute("aria-label")).toBe("Request flow");
   });
 
   test.each([
     { condition: "the doc has no diagrams", html: plainHtml, rendered: buildRenderedDocument() },
     { condition: "the doc has not rendered yet", html: diagramHtml, rendered: null },
-  ])("must not look up the color scheme when $condition", ({ html, rendered }) => {
-    const { matchMedia, render } = setUpTest({ html, rendered });
+  ])("must not load Mermaid when $condition", async ({ html, rendered }) => {
+    const { render } = setUpTest({ html, rendered });
 
     render();
+    await flushDrawing();
 
-    expect(matchMedia).not.toHaveBeenCalled();
+    expect(mermaid.initialize).not.toHaveBeenCalled();
   });
 });
 
@@ -94,34 +107,44 @@ function buildRenderedDocument(): RenderedDocument {
   return { documentText: createDocumentText("# Plan\n"), hash: "hash of the plan", html: "" };
 }
 
+/**
+ * Waits long enough for a drawing that had started to have loaded Mermaid
+ */
+function flushDrawing(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
+}
+
 function setUpTest({
   html = diagramHtml,
+  mode = "system",
   rendered = buildRenderedDocument(),
-}: { html?: string; rendered?: RenderedDocument | null } = {}) {
-  const darkMode = {
-    addEventListener: vi.fn<(type: string, listener: () => void) => void>(),
-    removeEventListener: vi.fn<(type: string, listener: () => void) => void>(),
-  };
-  const matchMedia = vi.fn(() => darkMode);
-  vi.stubGlobal("matchMedia", matchMedia);
+  systemScheme = "light",
+}: { html?: string; mode?: ColorMode; rendered?: RenderedDocument | null; systemScheme?: ColorScheme } = {}) {
+  setAppearanceCookies({ mode });
+  const darkMode = Object.assign(new EventTarget(), { matches: systemScheme === "dark" });
+  vi.stubGlobal("matchMedia", () => darkMode);
   const content = document.createElement("div");
   content.innerHTML = html;
   const contentRef = { current: content };
 
   const render = () =>
-    renderHook(({ rendered: current }) => useMermaidDiagrams(contentRef, current), {
-      initialProps: { rendered },
+    renderHook(
+      ({ rendered: current }) => {
+        useMermaidDiagrams(contentRef, current);
+        return useAppearance();
+      },
+      { initialProps: { rendered }, wrapper: AppearanceProvider }
+    );
+  const switchSystemScheme = (scheme: ColorScheme): void => {
+    act(() => {
+      darkMode.matches = scheme === "dark";
+      darkMode.dispatchEvent(new Event("change"));
     });
-  const listener = (): (() => void) => {
-    const subscribed = darkMode.addEventListener.mock.lastCall?.[1];
-    if (subscribed === undefined) {
-      throw new Error("The hook did not listen for the system switching between light and dark mode");
-    }
-    return subscribed;
   };
-  const switchColorScheme = (): void => listener()();
   const waitForDrawing = (label: string) =>
     waitFor(() => expect(content.querySelector("svg")?.getAttribute("aria-label")).toBe(label));
 
-  return { content, darkMode, listener, matchMedia, render, switchColorScheme, waitForDrawing };
+  return { content, render, switchSystemScheme, waitForDrawing };
 }

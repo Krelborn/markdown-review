@@ -1,3 +1,5 @@
+import type { ColorScheme } from "../../shared/appearance/Appearance";
+
 const definitionAttribute = "data-mermaid-definition";
 
 /**
@@ -33,22 +35,23 @@ export function hasMermaidDiagrams(container: Element): boolean {
 }
 
 /**
- * Draws a rendered doc's Mermaid diagrams in the colours of the current light or dark mode, in place of their source
- * or their last drawing, loading Mermaid only when the doc has a diagram
+ * Draws a rendered doc's Mermaid diagrams in the colours of a light or dark mode, in place of their source or their
+ * last drawing, loading Mermaid only when the doc has a diagram
  *
  * Drawings run one at a time, each finding the diagrams when it starts, so a drawing that starts before the last one
  * ends replaces what that one drew rather than a node it has already replaced, and the latest mode's colours win
  *
  * @param container the rendered doc
+ * @param colorScheme the mode whose colours to draw in
  * @returns once every diagram is drawn; a diagram Mermaid cannot read keeps showing what it showed
  */
-export function renderMermaidDiagrams(container: Element): Promise<void> {
-  const drawing = lastDrawing.then(() => drawDiagrams(container));
+export function renderMermaidDiagrams(container: Element, colorScheme: ColorScheme): Promise<void> {
+  const drawing = lastDrawing.then(() => drawDiagrams(container, colorScheme));
   lastDrawing = drawing.catch(() => undefined);
   return drawing;
 }
 
-async function drawDiagrams(container: Element): Promise<void> {
+async function drawDiagrams(container: Element, colorScheme: ColorScheme): Promise<void> {
   const diagrams = findDiagrams(container);
   if (diagrams.length === 0) {
     return;
@@ -57,7 +60,7 @@ async function drawDiagrams(container: Element): Promise<void> {
   mermaid.initialize({
     securityLevel: "strict",
     startOnLoad: false,
-    theme: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default",
+    theme: colorScheme === "dark" ? "dark" : "default",
   });
   for (const { definition, drawing } of diagrams) {
     if ((await mermaid.parse(definition, { suppressErrors: true })) === false) {

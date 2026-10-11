@@ -1,4 +1,4 @@
-import { CloseIcon, IconButton, PageLayout, Theme } from "@krelborn/stylesui";
+import { CloseIcon, IconButton, PageLayout } from "@krelborn/stylesui";
 import { clsx } from "clsx";
 import type { JSX } from "react";
 import { useMemo, useRef } from "react";
@@ -7,6 +7,7 @@ import type { ReviewState } from "../../../shared/review/ReviewState";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { useReviewApi } from "../../api/useReviewApi";
 import { useReviewEvents } from "../../api/useReviewEvents";
+import { AppearanceProvider } from "../../appearance/AppearanceProvider";
 import { documentPathOf } from "../../navigation/documentPathOf";
 import { usePageLocation } from "../../navigation/usePageLocation";
 import { countDraftsByDocument } from "../../review/countDraftsByDocument";
@@ -79,7 +80,7 @@ export function App(): JSX.Element {
     closePanel();
   };
   return (
-    <Theme mode="system">
+    <AppearanceProvider>
       <PageLayout className={styles.page}>
         <TopBar documentPath={documentPath} onNavigate={navigate} />
         <PageAlerts isConnected={connection.isConnected} threads={threads} />
@@ -138,6 +139,6 @@ export function App(): JSX.Element {
           </div>
         </HoveredThreadProvider>
       </PageLayout>
-    </Theme>
+    </AppearanceProvider>
   );
 }

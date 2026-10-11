@@ -4,6 +4,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import { buildPassageAnchor, buildThread, testTime } from "../../../shared/review/testing/reviewBuilders";
 import { ReviewApiContext } from "../../api/ReviewApiContext";
+import { AppearanceProvider } from "../../appearance/AppearanceProvider";
 import { createFakeReviewApi } from "../../testing/createFakeReviewApi";
 
 import { TopBar } from "./TopBar";
@@ -43,12 +44,14 @@ describe("TopBar", () => {
   test.each([
     { documentPath: "docs/plan.md", page: "a doc" },
     { documentPath: null, page: "the docs list" },
-  ])("must offer the About button when $page is on screen", ({ documentPath }) => {
+  ])("must offer the Appearance and About buttons when $page is on screen", ({ documentPath }) => {
     const { render } = setUpTest({ documentPath });
 
     render();
 
-    expect(within(screen.getByRole("banner")).getByRole("button", { name: "About Markdown Review" })).toBeVisible();
+    const banner = within(screen.getByRole("banner"));
+    expect(banner.getByRole("button", { name: "Appearance" })).toBeVisible();
+    expect(banner.getByRole("button", { name: "About Markdown Review" })).toBeVisible();
   });
 
   test("must show the docs list when the user clicks the app's icon", async () => {
@@ -112,7 +115,9 @@ function setUpTest({
   const render = (): void => {
     renderBase(
       <ReviewApiContext value={fake.api}>
-        <TopBar documentPath={documentPath} onNavigate={onNavigate} />
+        <AppearanceProvider>
+          <TopBar documentPath={documentPath} onNavigate={onNavigate} />
+        </AppearanceProvider>
       </ReviewApiContext>
     );
   };
