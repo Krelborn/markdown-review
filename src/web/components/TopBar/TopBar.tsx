@@ -49,8 +49,10 @@ export function TopBar({ documentPath, onNavigate }: TopBarProps): JSX.Element {
       ) : (
         <DocumentSwitcher className={styles.title} documentPath={documentPath} onNavigate={onNavigate} />
       )}
-      <AppearancePopover />
-      <AboutPopover />
+      <div className={styles.actions}>
+        <AppearancePopover />
+        <AboutPopover />
+      </div>
     </header>
   );
 }
