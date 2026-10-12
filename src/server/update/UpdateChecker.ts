@@ -41,6 +41,7 @@ export class UpdateChecker {
   private isStarted = false;
   private readonly logger: Logger;
   private readonly now: () => Date;
+  private recorded: UpdateCheckFile | null = null;
   private readonly registry: string;
   private timer: NodeJS.Timeout | undefined;
   private readonly timeoutMilliseconds: number;
@@ -78,7 +79,7 @@ export class UpdateChecker {
    */
   public async distTags(): Promise<DistTags> {
     await this.checking;
-    return (await readUpdateCheckFile(this.cachePath))?.distTags ?? {};
+    return (await this.readLatest())?.distTags ?? {};
   }
 
   /**
@@ -99,7 +100,7 @@ export class UpdateChecker {
     if (!this.isStarted) {
       return;
     }
-    const cached = await readUpdateCheckFile(this.cachePath);
+    const cached = await this.readLatest();
     const untilStale =
       cached === null ? dayMilliseconds : Date.parse(cached.checkedAt) + dayMilliseconds - this.now().getTime();
     // At least a minute, so a clock that disagrees with the cache cannot make the checks spin
@@ -110,7 +111,7 @@ export class UpdateChecker {
   }
 
   private async refresh(): Promise<void> {
-    const cached = await readUpdateCheckFile(this.cachePath);
+    const cached = await this.readLatest();
     const now = this.now();
     if (isFresh(cached, now)) {
       return;
@@ -121,18 +122,33 @@ export class UpdateChecker {
     } catch (error) {
       this.logger.warn("Could not check the npm registry for a newer markdown-review", error);
       // Another repo's server may have saved a fresh answer while this request failed
-      const latest = await readUpdateCheckFile(this.cachePath);
+      const latest = await this.readLatest();
       if (isFresh(latest, now)) {
         return;
       }
       distTags = latest?.distTags ?? {};
     }
     const file: UpdateCheckFile = { checkedAt: now.toISOString(), distTags };
+    this.recorded = file;
     try {
       await writeJsonAtomically(this.cachePath, file);
     } catch (error) {
       this.logger.warn(`Could not write ${this.cachePath}`, error);
     }
+  }
+
+  /**
+   * The cache file, or this checker's own last check when that is newer, as it is when the file could not be written
+   */
+  private async readLatest(): Promise<UpdateCheckFile | null> {
+    const cached = await readUpdateCheckFile(this.cachePath);
+    if (
+      cached === null ||
+      (this.recorded !== null && Date.parse(this.recorded.checkedAt) > Date.parse(cached.checkedAt))
+    ) {
+      return this.recorded;
+    }
+    return cached;
   }
 }
 

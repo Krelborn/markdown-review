@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { chmod, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -99,6 +99,27 @@ describe("UpdateChecker", () => {
     expect(await checker.distTags()).toEqual({ latest: "0.5.0" });
   });
 
+  test("must keep the registry's answer and wait a day when the cache cannot be written", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    let clock = now;
+    const readOnly = path.join(getDirectory(), "read-only");
+    const cachePath = path.join(readOnly, "update-check.json");
+    await mkdir(readOnly);
+    await writeCache(cachePath, hoursBefore(30), { latest: "0.4.0" });
+    await chmod(readOnly, 0o555);
+    const { checker, requested } = setUpTest({ answer: { latest: "0.5.0" }, cachePath, now: () => clock });
+
+    checker.start();
+    await vi.waitFor(() => expect(vi.getTimerCount()).toBe(1));
+    clock = new Date(now.getTime() + 2 * hourMilliseconds);
+    await vi.advanceTimersByTimeAsync(2 * hourMilliseconds);
+    checker.stop();
+    await chmod(readOnly, 0o755);
+
+    expect(requested).toHaveLength(1);
+    expect(await checker.distTags()).toEqual({ latest: "0.5.0" });
+  });
+
   test("must give up when the registry takes longer than the timeout", async () => {
     const { cachePath, checker } = setUpTest({ answer: "never" });
 
@@ -136,11 +157,20 @@ interface SetUpOptions {
    */
   beforeAnswer?: () => Promise<void>;
 
+  /**
+   * Where the cache goes; a file in the test's directory unless a test needs another
+   */
+  cachePath?: string;
+
   now?: () => Date;
 }
 
-function setUpTest({ answer, beforeAnswer = async () => {}, now: clock = () => now }: SetUpOptions) {
-  const cachePath = path.join(getDirectory(), "update-check.json");
+function setUpTest({
+  answer,
+  beforeAnswer = async () => {},
+  cachePath = path.join(getDirectory(), "update-check.json"),
+  now: clock = () => now,
+}: SetUpOptions) {
   const { entries, logger } = createMemoryLogger();
   const requested: string[] = [];
   const fakeFetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
