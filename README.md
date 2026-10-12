@@ -1,19 +1,28 @@
-# Markdown Review
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/icon.svg" width="96" height="96" alt="">
+</p>
 
-> [!WARNING]
-> Markdown Review is in beta. It works, but expect rough edges, and expect commands and behaviour to change between releases until 1.0.
+<h1 align="center">Markdown Review</h1>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@krelborn/markdown-review"><img src="https://img.shields.io/npm/v/@krelborn/markdown-review" alt="npm version"></a>
+  <a href="https://github.com/Krelborn/markdown-review/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Krelborn/markdown-review/ci.yml?branch=main&label=CI" alt="CI status"></a>
+  <a href="https://www.npmjs.com/package/@krelborn/markdown-review"><img src="https://img.shields.io/npm/dm/@krelborn/markdown-review" alt="npm downloads per month"></a>
+  <a href="#requirements"><img src="https://img.shields.io/node/v/@krelborn/markdown-review" alt="Node.js versions"></a>
+  <a href="https://github.com/Krelborn/markdown-review/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@krelborn/markdown-review" alt="MIT licence"></a>
+</p>
 
 Review the markdown your coding agent writes, such as plans, specs and design notes, in your browser, the way you would review a pull request. Then hand your comments back to the agent so it can edit the docs and answer each one.
 
-Markdown Review is a local tool. It is one CLI that starts a small server for each repository and serves a browser app on `127.0.0.1`. The agent talks to it through ordinary shell commands, so it works with Claude Code, OpenCode or any agent that has a shell tool. It needs no MCP server and no plugin.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/review-dark.png">
+  <img src="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/review-light.png" alt="A plan open in Markdown Review. The doc is on the left with two passages highlighted, and the comments column on the right holds a draft comment, an open thread in which the agent asks a question, and resolved threads.">
+</picture>
 
-## How it works
+Markdown Review runs locally on your machine. It is a CLI that starts a small server for each repository and serves a browser app on `127.0.0.1`. The agent talks to it through ordinary shell commands, so it works with Claude Code, OpenCode or any agent that has a shell tool. No MCP server or plugin needed.
 
-1. Your agent writes a doc and runs `markdown-review open docs/plan.md`. The doc opens rendered in your browser.
-2. You comment on passages, blocks, whole docs or the review as a whole, across as many linked docs as you like. Then you submit.
-3. The agent, waiting in `markdown-review poll`, receives each comment with its file, line range, quoted text and your words.
-4. The agent edits the docs and resolves or replies to each comment. Your browser re-renders the doc in place, and your comments follow the text they were made on.
-5. You read the answers, reply to any thread to reopen it, and submit again, until you approve the review. The agent then carries on with its task.
+> [!WARNING]
+> Markdown Review is in beta. It works, but expect rough edges, and expect commands and behaviour to change between releases until 1.0.
 
 ## Requirements
 
@@ -25,7 +34,7 @@ The tool works best inside a git repository, where the repository root is the sc
 
 ## Install
 
-Install the CLI globally:
+A global install is recommended:
 
 ```sh
 npm install --global @krelborn/markdown-review
@@ -42,27 +51,11 @@ markdown-review install-skill --global   # into ~/.claude/skills, for every repo
 
 Claude Code and OpenCode both read skills from there. The skill loads when an agent session starts, so start a new session after installing it.
 
-### Install from source
-
-Building from source needs read access to `@krelborn/stylesui`, a private package on GitHub Packages that the web app is built with. The npm package already includes it, so you don't need it to install or use Markdown Review. If you do want to build from source, [open an issue](https://github.com/Krelborn/markdown-review/issues) asking for access.
-
-With access:
-
-```sh
-git clone https://github.com/Krelborn/markdown-review.git
-cd markdown-review
-GITHUB_TOKEN=$(gh auth token) pnpm install
-pnpm build
-npm link
-```
-
-The install reads a GitHub token with `read:packages` from `GITHUB_TOKEN`. `npm link` puts `markdown-review` on your `PATH`; you can also run `node <this repo>/dist/cli.js` directly.
-
 ## Usage
 
 ### Ask your agent for a review
 
-With the skill installed, ask in plain words, for example "have me review the plan in markdown-review". The agent opens the doc, waits for your comments, edits the doc, answers each comment and waits again, until you approve.
+With the skill installed, ask in plain words, for example "I'd like to review the plan in markdown-review". The agent opens the doc, waits for your comments, edits the doc, answers each comment and waits again, until you approve.
 
 You can also start a review yourself, then tell the agent to pick up the comments:
 
@@ -78,16 +71,21 @@ markdown-review open docs/plan.md
 - **Comment on a block:** hover over a block and click the **+** in the left margin. Use this for code blocks, tables, diagrams and HTML.
 - **Comment on a doc or on the whole review:** click **+ Comment** at the top of the comments and choose **On this doc** or **On the whole review**.
 
-You write one comment at a time. If you start another while the open one has text you haven't saved, it asks whether to save or discard that text first. Press Cmd+Enter (Ctrl+Enter on Windows and Linux) to save, and Escape to close.
-
-Saved comments are drafts, marked with a Draft badge, until you submit them. Click **Edit** to change one, or **Discard** to throw one away; it asks first. When you are ready, click **Submit** at the foot of the comments. It shows how many drafts it will send and which docs they are on. Choose:
+Comments are saved as drafts until you submit them. Click **Edit** to change one, or **Discard** to throw one away; it asks first. When you are ready to hand over to your agent, click **Submit**. Choose:
 
 - **Request changes**, to send your drafts to the agent and wait for its answers.
 - **Approve**, to end the review. Any drafts are sent with the approval, and the agent addresses them before carrying on.
 
-The comments are grouped into Drafts, Open, Outdated and Resolved. When other docs have comments too, **This doc** and **All docs** tabs at the top switch between this doc's comments and every doc's, so you can review a set of docs together. Click a thread's location to jump to its passage, or click highlighted text to find its thread. Reply to a resolved thread to reopen it. Resolved stays folded until the agent answers in it, when it opens to show you. A thread becomes outdated when the agent's edits remove the text it was on.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/submit-dark.png">
+    <img src="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/submit-light.png" width="384" alt="The Submit review popover, offering Request changes or Approve for one draft, and saying the agent is listening and will hear at once.">
+  </picture>
+</p>
 
-The bar beneath the comments shows whether the agent is listening. If it is not, your comments wait in its inbox until it next looks; the **Submit** menu says which.
+The comments are grouped into Drafts, Open, Outdated and Resolved. When other docs have comments too, **This doc** and **All docs** tabs at the top switch between this doc's comments and every doc's, so you can review a set of docs together. Click a thread's location to jump to its passage, or click highlighted text to find its thread.
+
+Reply to a resolved thread to reopen it. Resolved stays folded until the agent answers in it, when it opens to show you. A thread becomes outdated when the agent's edits remove the text it was on.
 
 Links between markdown docs in the repository open in the app. Docs render with GitHub-style tables, task lists, alerts, syntax-highlighted code and Mermaid diagrams. Frontmatter shows as a Properties panel at the top of the doc, and each heading has a link you can copy.
 
@@ -113,6 +111,33 @@ Set `MARKDOWN_REVIEW_NO_BROWSER=1` to stop `open` from launching a browser.
 
 `poll` waits for a person, so it can outlast an agent's shell timeout. Give the shell command a timeout of at least 600000 ms. In Claude Code, run `markdown-review poll --timeout 7080` in the background with a Bash timeout of 7200000 ms; a submit still ends it at once. If `poll` stops before you submit, nothing is lost: the agent runs it again. The skill tells the agent all of this.
 
+## How it works
+
+1. Your agent writes a doc and runs `markdown-review open docs/plan.md`. The doc opens rendered in your browser.
+2. You comment on passages, blocks, whole docs or the review as a whole, across as many linked docs as you like. Then you submit.
+3. The agent, waiting in `markdown-review poll`, receives each comment with its file, line range, quoted text and your words.
+4. The agent edits the docs and resolves or replies to each comment. Your browser re-renders the doc in place, and your comments follow the text they were made on.
+5. You read the answers, reply to any thread to reopen it, and submit again, until you approve the review. The agent then carries on with its task.
+
+This is what the agent receives in step 3 for the review in the screenshot above:
+
+```text
+3 threads need you (docs/plans/rate-limiting.md: 3)
+
+#1 docs/plans/rate-limiting.md:15
+  quote: "stored in Redis so that every instance of the API shares the same count."
+  user: What happens when Redis is down? I'd rather fail open than reject every request.
+
+#2 docs/plans/rate-limiting.md:21
+  quote: "Enterprise\t6000\t1000"
+  user: Enterprise customers negotiate their own limits, so read these from the plan record instead of hard-coding them.
+
+#3 docs/plans/rate-limiting.md (whole doc)
+  user: Looks good overall. Add a section on how we'll know it's working once it's live.
+
+next_step: Edit the docs, then run `markdown-review resolve <id> "<what changed>"` for #1, #2 and #3, or `markdown-review reply <id> "<question>"` if you need input. Then run `markdown-review poll` to wait for the next round.
+```
+
 ## Where reviews are stored
 
 Comments live in a `.markdown-review/` directory at the repository root, one JSON file per doc, alongside the server's runtime files. It contains a `.gitignore` of `*`, so nothing is committed by default.
@@ -125,6 +150,22 @@ The server stops itself after 30 minutes with no browser connected, no `poll` wa
 
 The server listens only on `127.0.0.1`. Agent commands need a random token that the server writes to `.markdown-review/server.json` with owner-only permissions, so a web page cannot post comments to your agent. Raw HTML in docs is sanitized before it is shown, and other files from the repository are served as plain content, never run as code.
 
+## Build from source
+
+Building from source needs read access to `@krelborn/stylesui`, a private package on GitHub Packages that the web app is built with. The npm package already includes it, so you don't need it to install or use Markdown Review. If you do want to build from source, [open an issue](https://github.com/Krelborn/markdown-review/issues) asking for access.
+
+With access:
+
+```sh
+git clone https://github.com/Krelborn/markdown-review.git
+cd markdown-review
+GITHUB_TOKEN=$(gh auth token) pnpm install
+pnpm build
+npm link
+```
+
+The install reads a GitHub token with `read:packages` from `GITHUB_TOKEN`. `npm link` puts `markdown-review` on your `PATH`; you can also run `node <this repo>/dist/cli.js` directly.
+
 ## Feedback
 
 Bug reports, questions and ideas are very welcome: please [open an issue](https://github.com/Krelborn/markdown-review/issues).
@@ -133,4 +174,4 @@ I'm not accepting pull requests. Markdown Review is a small project I maintain i
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/Krelborn/markdown-review/blob/main/LICENSE)
