@@ -22,6 +22,6 @@ test("must show the newer version in the About popover when the update check has
   await page.getByRole("banner").getByRole("button", { name: "About Markdown Review, update available" }).click();
 
   await expect(page.getByRole("dialog", { name: "About Markdown Review" })).toContainText(
-    "Version 99.0.0 is available. Ask your agent to update it, or run npm install --global @krelborn/markdown-review@latest"
+    "Version 99.0.0 is available. Ask your agent to update it, or run npm install --global @krelborn/markdown-review@latest && markdown-review stop"
   );
 });

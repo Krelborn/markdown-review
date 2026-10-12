@@ -31,7 +31,7 @@ interface UpdateCheckerOptions {
 }
 
 /**
- * Asks the npm registry for markdown-review's dist-tags at most once a day for the user, keeping the answer in a cache
+ * Asks the npm registry for markdown-review's dist-tags about once a day for the user, keeping the answer in a cache
  * file that every repo's server and the CLI read
  */
 export class UpdateChecker {

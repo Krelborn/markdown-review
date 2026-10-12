@@ -25,7 +25,7 @@
 
 **Success looks like:**
 
-1. **Check.** The review server asks the npm registry for the dist-tags at most once a day across all repos, without delaying startup or any request. A failed or slow check (3 seconds at most) changes nothing a user sees.
+1. **Check.** The review server asks the npm registry for the dist-tags about once a day across all repos (servers for two repos that start together may both ask), without delaying startup or any request. A failed or slow check (3 seconds at most) changes nothing a user sees.
 2. **Notice on `open`.** When a newer version is known, `open` prints an `update_available` line saying which version is out and that the agent should offer it once the review is approved.
 3. **Offer on approval.** When the review is approved, `poll` and `inbox` print `update_available` again, with the exact commands to run. The agent asks the user, and runs them only if the user agrees.
 4. **Stale skill.** When an installed copy of the skill, in the repo or in the home directory, differs from the copy this CLI bundles, `open` and the approved output print a `skill_outdated` line with the `install-skill` command that refreshes it.
@@ -124,7 +124,7 @@ A new section in `skills/markdown-review/SKILL.md`, after "Approval":
 
 ### Browser
 
-- `GET /api/update`, a browser route, answers `{ "availableVersion": "0.4.0" | null, "command": string | null }`, validated by `updateResponseSchema` in `src/shared/api/apiResponseSchemas.ts`. The server works it out from the cache and its own version, and waits for a check in progress. `command` is the global install command, or null when markdown-review runs through npx.
+- `GET /api/update`, a browser route, answers `{ "availableVersion": "0.4.0" | null, "command": string | null }`, validated by `updateResponseSchema` in `src/shared/api/apiResponseSchemas.ts`. The server works it out from the cache and its own version, and waits for a check in progress. `command` is the global install command followed by `&& markdown-review stop`, so the old server doesn't keep running, or null when markdown-review runs through npx.
 - The web app fetches it once on load. When `availableVersion` isn't null:
   - The About button shows a small dot in the `primary` colour, and its label becomes "About Markdown Review, update available".
   - The popover shows, under "Version 0.3.0": "Version 0.4.0 is available. Ask your agent to update it, or run" followed by the command in a `<code>`. With no command, for npx, it ends at "Ask your agent to update it."

@@ -21,7 +21,7 @@ describe("updateRoutes", () => {
 
     expect(update).toEqual({
       availableVersion: "9.0.0",
-      command: "npm install --global @krelborn/markdown-review@latest",
+      command: "npm install --global @krelborn/markdown-review@latest && markdown-review stop",
     });
   });
 
@@ -47,7 +47,7 @@ describe("updateRoutes", () => {
 
     expect(update).toEqual({
       availableVersion: "9.0.0-beta.1",
-      command: "npm install --global @krelborn/markdown-review@next",
+      command: "npm install --global @krelborn/markdown-review@next && markdown-review stop",
     });
   });
 
