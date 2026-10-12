@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { createMemoryLogger } from "../logging/testing/createMemoryLogger";
 import { setUpTemporaryDirectory } from "../testing/setUpTemporaryDirectory";
@@ -12,7 +12,13 @@ const getDirectory = setUpTemporaryDirectory();
 
 const now = new Date("2026-10-12T12:00:00.000Z");
 
-const hoursBefore = (hours: number): string => new Date(now.getTime() - hours * 60 * 60_000).toISOString();
+const hourMilliseconds = 60 * 60_000;
+
+const hoursBefore = (hours: number): string => new Date(now.getTime() - hours * hourMilliseconds).toISOString();
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("UpdateChecker", () => {
   test("must record the registry's dist-tags when there is no cache", async () => {
@@ -65,6 +71,34 @@ describe("UpdateChecker", () => {
     ]);
   });
 
+  test("must keep another server's fresh answer when its own request fails", async () => {
+    const { cachePath, checker } = setUpTest({
+      answer: new TypeError("fetch failed"),
+      beforeAnswer: () => writeCache(cachePath, hoursBefore(1), { latest: "0.5.0" }),
+    });
+    await writeCache(cachePath, hoursBefore(30), { latest: "0.4.0" });
+
+    await checker.check();
+
+    expect(await readUpdateCheckFile(cachePath)).toEqual({ checkedAt: hoursBefore(1), distTags: { latest: "0.5.0" } });
+  });
+
+  test("must check again when the cache turns a day old rather than a day after starting", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    let clock = now;
+    const { cachePath, checker, requested } = setUpTest({ answer: { latest: "0.5.0" }, now: () => clock });
+    await writeCache(cachePath, hoursBefore(23), { latest: "0.4.0" });
+
+    checker.start();
+    await vi.waitFor(() => expect(vi.getTimerCount()).toBe(1));
+    clock = new Date(now.getTime() + hourMilliseconds);
+    await vi.advanceTimersByTimeAsync(hourMilliseconds);
+    await vi.waitFor(() => expect(requested).toHaveLength(1));
+    checker.stop();
+
+    expect(await checker.distTags()).toEqual({ latest: "0.5.0" });
+  });
+
   test("must give up when the registry takes longer than the timeout", async () => {
     const { cachePath, checker } = setUpTest({ answer: "never" });
 
@@ -94,12 +128,24 @@ async function writeCache(cachePath: string, checkedAt: string, distTags: Record
 
 type Answer = Record<string, unknown> | Response | Error | "never";
 
-function setUpTest({ answer }: { answer: Answer }) {
+interface SetUpOptions {
+  answer: Answer;
+
+  /**
+   * What happens while the request is in flight, such as another server writing the cache
+   */
+  beforeAnswer?: () => Promise<void>;
+
+  now?: () => Date;
+}
+
+function setUpTest({ answer, beforeAnswer = async () => {}, now: clock = () => now }: SetUpOptions) {
   const cachePath = path.join(getDirectory(), "update-check.json");
   const { entries, logger } = createMemoryLogger();
   const requested: string[] = [];
   const fakeFetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
     requested.push(String(input));
+    await beforeAnswer();
     if (answer === "never") {
       return new Promise((_resolve, reject) => {
         init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
@@ -114,7 +160,7 @@ function setUpTest({ answer }: { answer: Answer }) {
     cachePath,
     fetch: fakeFetch,
     logger,
-    now: () => now,
+    now: clock,
     registry: "https://registry.test",
     timeoutMilliseconds: 20,
   });

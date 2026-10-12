@@ -7,6 +7,8 @@ import type { DistTags, UpdateCheckFile } from "./updateCheckFileSchema";
 
 const dayMilliseconds = 24 * 60 * 60_000;
 
+const minuteMilliseconds = 60_000;
+
 interface UpdateCheckerOptions {
   /**
    * The user's update check cache file
@@ -36,6 +38,7 @@ export class UpdateChecker {
   private readonly cachePath: string;
   private checking: Promise<void> | undefined;
   private readonly fetch: typeof fetch;
+  private isStarted = false;
   private readonly logger: Logger;
   private readonly now: () => Date;
   private readonly registry: string;
@@ -79,29 +82,50 @@ export class UpdateChecker {
   }
 
   /**
-   * Checks now, then once a day while the process runs
+   * Checks now, then whenever the cache turns a day old while the process runs
    */
   public start(): void {
-    void this.check();
-    this.timer = setInterval(() => void this.check(), dayMilliseconds);
-    this.timer.unref();
+    this.isStarted = true;
+    void this.checkAndSchedule();
   }
 
   public stop(): void {
-    clearInterval(this.timer);
+    this.isStarted = false;
+    clearTimeout(this.timer);
+  }
+
+  private async checkAndSchedule(): Promise<void> {
+    await this.check();
+    if (!this.isStarted) {
+      return;
+    }
+    const cached = await readUpdateCheckFile(this.cachePath);
+    const untilStale =
+      cached === null ? dayMilliseconds : Date.parse(cached.checkedAt) + dayMilliseconds - this.now().getTime();
+    // At least a minute, so a clock that disagrees with the cache cannot make the checks spin
+    const delay = Math.min(Math.max(untilStale, minuteMilliseconds), dayMilliseconds);
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => void this.checkAndSchedule(), delay);
+    this.timer.unref();
   }
 
   private async refresh(): Promise<void> {
     const cached = await readUpdateCheckFile(this.cachePath);
     const now = this.now();
-    if (cached !== null && now.getTime() - Date.parse(cached.checkedAt) < dayMilliseconds) {
+    if (isFresh(cached, now)) {
       return;
     }
-    let distTags = cached?.distTags ?? {};
+    let distTags: DistTags;
     try {
       distTags = await fetchDistTags(this.registry, this.fetch, this.timeoutMilliseconds);
     } catch (error) {
       this.logger.warn("Could not check the npm registry for a newer markdown-review", error);
+      // Another repo's server may have saved a fresh answer while this request failed
+      const latest = await readUpdateCheckFile(this.cachePath);
+      if (isFresh(latest, now)) {
+        return;
+      }
+      distTags = latest?.distTags ?? {};
     }
     const file: UpdateCheckFile = { checkedAt: now.toISOString(), distTags };
     try {
@@ -110,4 +134,8 @@ export class UpdateChecker {
       this.logger.warn(`Could not write ${this.cachePath}`, error);
     }
   }
+}
+
+function isFresh(file: UpdateCheckFile | null, now: Date): boolean {
+  return file !== null && now.getTime() - Date.parse(file.checkedAt) < dayMilliseconds;
 }
