@@ -27,6 +27,12 @@ If the `markdown-review` command is not found, install it with `npm install --gl
 
 The review ends when the user approves it, and `poll` and `inbox` then start with "Review approved". Address any comments that came with the approval, then carry on with your task. Do not run `poll` again for that review.
 
+## Updates
+
+- `open` may print `update_available` when a newer markdown-review is out. Tell the user, and carry on with the review.
+- Once the review is approved, `poll` and `inbox` print `update_available` again with the commands to run. Ask the user whether to update, and run them only if they agree. If they install packages another way, such as with pnpm or under `sudo`, adapt the install command and keep the rest.
+- `skill_outdated` means an installed copy of this skill is from another version. Once the review is approved, run the command it gives and tell the user.
+
 ## Good to know
 
 - A quote is the text as the browser shows it, not the markdown source. The line range is exact, so use it to find the passage.

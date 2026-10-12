@@ -109,6 +109,12 @@ These are the commands the agent runs. You rarely need them yourself, but they a
 
 Set `MARKDOWN_REVIEW_NO_BROWSER=1` to stop `open` from launching a browser.
 
+### Updates
+
+Once a day at most, the review server asks the npm registry for the latest version of `@krelborn/markdown-review`, and keeps the answer in `~/.cache/markdown-review/` (or under `$XDG_CACHE_HOME`). The request names only the package. When a newer version is out, the About button in the browser shows a dot, and `open` tells the agent, which offers to update once you approve the review and only updates if you agree. The agent is also told when an installed copy of the skill is from another version.
+
+Set `MARKDOWN_REVIEW_NO_UPDATE_CHECK=1` or `NO_UPDATE_NOTIFIER` to turn the check off. It is also off when `CI` is set.
+
 ### Long waits
 
 `poll` waits for a person, so it can outlast an agent's shell timeout. Give the shell command a timeout of at least 600000 ms. In Claude Code, run `markdown-review poll --timeout 7080` in the background with a Bash timeout of 7200000 ms; a submit still ends it at once. If `poll` stops before you submit, nothing is lost: the agent runs it again. The skill tells the agent all of this.
