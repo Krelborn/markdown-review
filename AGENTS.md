@@ -18,7 +18,7 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 - `src/cli/`: the agent's CLI. `main.ts` is the bin entry; the CLI starts the server by running itself as `serve --root <root>`, detached.
 - `src/integration/`: tests that drive the built CLI the way an agent does.
 - `src/e2e/`: Playwright tests in which a user reviews in the browser while the CLI plays the agent.
-- `skills/markdown-review/SKILL.md`: the skill that teaches agents the review loop. The build bundles it into `dist/cli.js`, and `install-skill` writes that copy.
+- `skills/markdown-review/SKILL.md`: the skill that teaches agents the review loop. The build bundles it into `dist/cli.js`, and `install-skill` writes that copy, with the package version as `metadata.version` in its frontmatter. The CLI calls an installed copy outdated when that version is older than its own, so every release asks for the skill to be reinstalled. Don't put a version in the source file: the package version is the skill's version.
 - `src/web/`: the React app the server serves, built with `vite.web.config.mts` from `src/web/index.html`. `components/` holds one folder per component; `rendering/` holds the walk that reads canonical text from rendered blocks, and the conformance test that checks it against `src/shared`.
 
 ## Protocol

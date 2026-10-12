@@ -37,8 +37,10 @@ const spec = "# Spec\n\n## Goals\n\nResults are cached.\n";
 export interface ReviewFixture {
   /**
    * Runs the agent's `open` for the doc, shows the page it prints in the browser and waits until the doc has rendered
+   *
+   * @param env variables to set in the CLI's environment, which the server it starts inherits
    */
-  open(document: string): Promise<void>;
+  open(document: string, env?: Record<string, string>): Promise<void>;
 
   root: string;
   run(args: string[]): Promise<CliResult>;
@@ -60,8 +62,8 @@ export const test = base.extend<{ review: ReviewFixture }>({
     const root = await createGitRepository({ "docs/plan.md": plan, "docs/spec.md": spec });
     const errors = collectErrors(page);
     await runTest({
-      open: async (document) => {
-        const { stdout } = await startCli(root, ["open", document]).result;
+      open: async (document, env) => {
+        const { stdout } = await startCli(root, ["open", document], "", env).result;
         await page.goto(stdout.slice(stdout.indexOf("http"), stdout.indexOf("\n")));
         await expect(
           page.getByRole("banner").getByRole("heading", { level: 1, name: path.posix.basename(document) })

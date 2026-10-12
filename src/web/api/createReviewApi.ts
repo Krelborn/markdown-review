@@ -3,6 +3,7 @@ import {
   documentListSchema,
   documentSourceSchema,
   threadsSnapshotSchema,
+  updateResponseSchema,
 } from "../../shared/api/apiResponseSchemas";
 
 import type { ReviewApi } from "./ReviewApi";
@@ -25,6 +26,7 @@ export function createReviewApi(): ReviewApi {
       documentSourceSchema.parse(await receive(`/api/document?path=${encodeURIComponent(document)}`)),
     readDocuments: async () => documentListSchema.parse(await receive("/api/documents")),
     readThreads: async () => threadsSnapshotSchema.parse(await receive("/api/threads?all=1")),
+    readUpdate: async () => updateResponseSchema.parse(await receive("/api/update")),
     resolveThread: (id) => send("POST", `/api/threads/${id}/resolve`),
     submit: (verdict) => send("POST", "/api/submit", { verdict }),
     subscribe: subscribeToEvents,

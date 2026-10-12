@@ -50,6 +50,15 @@ describe("formatInbox", () => {
     );
   });
 
+  test("must put the notices just before next_step when there are some", () => {
+    const text = formatInbox(snapshot([], approved), ["update_available: one\n", "skill_outdated: two\n"]);
+
+    expect(text).toBe(
+      "Review approved. No threads need you.\n\nupdate_available: one\nskill_outdated: two\n\nnext_step: The user " +
+        "approved the review. Carry on with your task; do not run `markdown-review poll` again for this review.\n"
+    );
+  });
+
   test("must tell the agent to carry on when the review is approved and nothing needs it", () => {
     expect(formatInbox(snapshot([], approved))).toBe(
       "Review approved. No threads need you.\n\nnext_step: The user approved the review. Carry on with your task; " +

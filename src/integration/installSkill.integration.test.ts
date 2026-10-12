@@ -3,6 +3,8 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 
 import skill from "../../skills/markdown-review/SKILL.md?raw";
+import { stampSkill } from "../cli/skillStamps";
+import { packageVersion } from "../server/runtime/packageVersion";
 
 import { setUpReviewRepository } from "./testing/setUpReviewRepository";
 
@@ -16,6 +18,6 @@ describe("install-skill", () => {
 
     const skillPath = path.join(repository.root, ".claude", "skills", "markdown-review", "SKILL.md");
     expect(exitCode).toBe(0);
-    expect(await readFile(skillPath, "utf8")).toBe(skill);
+    expect(await readFile(skillPath, "utf8")).toBe(stampSkill(skill, packageVersion));
   });
 });

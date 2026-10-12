@@ -1,5 +1,6 @@
 import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const cliPath = fileURLToPath(new URL("../../../dist/cli.js", import.meta.url));
@@ -21,16 +22,26 @@ export interface RunningCli {
 }
 
 /**
- * Runs the built CLI in a directory the way an agent's shell does, with `MARKDOWN_REVIEW_NO_BROWSER` set
+ * Runs the built CLI in a directory the way an agent's shell does, with `MARKDOWN_REVIEW_NO_BROWSER` and
+ * `MARKDOWN_REVIEW_NO_UPDATE_CHECK` set, and a home directory of its own in `.home` under the directory, so neither
+ * the user's update check cache nor their installed skill shows through
  *
  * @param root the directory to run it in
  * @param args the arguments after the program name
  * @param input what the command reads from standard input
+ * @param env variables to set or override in the command's environment
  */
-export function startCli(root: string, args: string[], input = ""): RunningCli {
+export function startCli(root: string, args: string[], input = "", env: Record<string, string> = {}): RunningCli {
+  const { XDG_CACHE_HOME: _userCache, ...inherited } = process.env;
   const child = spawn(process.execPath, [cliPath, ...args], {
     cwd: root,
-    env: { ...process.env, MARKDOWN_REVIEW_NO_BROWSER: "1" },
+    env: {
+      ...inherited,
+      HOME: path.join(root, ".home"),
+      MARKDOWN_REVIEW_NO_BROWSER: "1",
+      MARKDOWN_REVIEW_NO_UPDATE_CHECK: "1",
+      ...env,
+    },
   });
   let stdout = "";
   let stderr = "";
