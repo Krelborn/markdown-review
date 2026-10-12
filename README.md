@@ -111,7 +111,7 @@ Set `MARKDOWN_REVIEW_NO_BROWSER=1` to stop `open` from launching a browser.
 
 ### Updates
 
-Once a day at most, the review server asks the npm registry for the latest version of `@krelborn/markdown-review`, and keeps the answer in `~/.cache/markdown-review/` (or under `$XDG_CACHE_HOME`). The request names only the package. When a newer version is out, the About button in the browser shows a dot, and `open` tells the agent, which offers to update once you approve the review and only updates if you agree. The agent is also told when an installed copy of the skill is from another version.
+Once a day at most, the review server asks the npm registry for the latest version of `@krelborn/markdown-review`, and keeps the answer in `~/.cache/markdown-review/` (or under `$XDG_CACHE_HOME`). The request names only the package. When a newer version is out, the About button in the browser shows a dot, and `open` tells the agent, which offers to update once you approve the review and only updates if you agree. The agent is also told when an installed copy of the skill is from an older version.
 
 Set `MARKDOWN_REVIEW_NO_UPDATE_CHECK=1` or `NO_UPDATE_NOTIFIER` to turn the check off. It is also off when `CI` is set.
 

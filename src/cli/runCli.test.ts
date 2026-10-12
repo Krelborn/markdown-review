@@ -13,6 +13,7 @@ import { setUpTemporaryDirectory } from "../server/testing/setUpTemporaryDirecto
 
 import { pollTimeoutAdvice, waitForCommentsStep } from "./nextSteps";
 import { runCli } from "./runCli";
+import { stampSkill } from "./skillStamps";
 
 const runCommand = promisify(execFile);
 
@@ -116,7 +117,7 @@ describe("runCli", () => {
     const { stdout } = await run(["open", "docs/plan.md"]);
 
     expect(stdout).toContain(
-      `\n\nskill_outdated: The markdown-review skill at ${skillPath} is not this version's (${packageVersion}). ` +
+      `\n\nskill_outdated: The markdown-review skill at ${skillPath} is older than this version (${packageVersion}). ` +
         "Once the user approves the review, run `markdown-review install-skill`. The new skill loads in the next " +
         `agent session.\n\nnext_step: ${waitForCommentsStep}\n`
     );
@@ -234,7 +235,7 @@ describe("runCli", () => {
       `Installed the markdown-review skill at ${skillPath}\n\n` +
         "next_step: The skill loads when an agent session starts. To start a review now, run `markdown-review open <doc.md>`.\n"
     );
-    expect(await readFile(skillPath, "utf8")).toBe(skill);
+    expect(await readFile(skillPath, "utf8")).toBe(stampSkill(skill, packageVersion));
   });
 
   test("must install the skill in the user's skills directory when the agent installs it with --global", async () => {
@@ -242,7 +243,9 @@ describe("runCli", () => {
 
     await run(["install-skill", "--global"]);
 
-    expect(await readFile(path.join(home, ".claude", "skills", "markdown-review", "SKILL.md"), "utf8")).toBe(skill);
+    expect(await readFile(path.join(home, ".claude", "skills", "markdown-review", "SKILL.md"), "utf8")).toBe(
+      stampSkill(skill, packageVersion)
+    );
   });
 
   test("must replace the skill and say so when an older version is installed", async () => {
@@ -254,7 +257,7 @@ describe("runCli", () => {
     const { stdout } = await run(["install-skill"]);
 
     expect(stdout.startsWith(`Updated the markdown-review skill at ${skillPath}\n`)).toBe(true);
-    expect(await readFile(skillPath, "utf8")).toBe(skill);
+    expect(await readFile(skillPath, "utf8")).toBe(stampSkill(skill, packageVersion));
   });
 });
 

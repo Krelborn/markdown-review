@@ -1,7 +1,6 @@
 import { realpath } from "node:fs/promises";
 import os from "node:os";
 
-import skill from "../../skills/markdown-review/SKILL.md?raw";
 import { packageVersion } from "../server/runtime/packageVersion";
 import { findAvailableUpdate } from "../server/update/findAvailableUpdate";
 import { findInstallKind } from "../server/update/installCommands";
@@ -34,6 +33,6 @@ export async function readUpdateNotices(
     availableUpdate: findAvailableUpdate(packageVersion, cached?.distTags ?? {}),
     currentVersion: packageVersion,
     installKind: findInstallKind(realCliPath),
-    skills: await findInstalledSkills(root, env.HOME ?? os.homedir(), skill),
+    skills: await findInstalledSkills(root, env.HOME ?? os.homedir(), packageVersion),
   });
 }

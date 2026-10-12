@@ -6,24 +6,43 @@ import { setUpTemporaryDirectory } from "../server/testing/setUpTemporaryDirecto
 
 import { findInstalledSkills } from "./findInstalledSkills";
 import { skillInstallPath } from "./skillInstallPath";
+import { stampSkill } from "./skillStamps";
 
 const getDirectory = setUpTemporaryDirectory();
 
-const bundled = "# Markdown Review\n";
+const skill = "# Markdown Review\n";
 
 describe("findInstalledSkills", () => {
   test("must find no copies when the skill is not installed", async () => {
     const { home, root } = setUpTest();
 
-    expect(await findInstalledSkills(root, home, bundled)).toEqual([]);
+    expect(await findInstalledSkills(root, home, "0.3.0")).toEqual([]);
   });
 
-  test("must report whether each installed copy is the bundled skill", async () => {
-    const { home, install, root } = setUpTest();
-    await install(root, "# An older skill\n");
-    await install(home, bundled);
+  test.each([
+    { contents: stampSkill(skill, "0.3.0"), isCurrent: true, installedBy: "the running version" },
+    { contents: stampSkill("# A later skill\n", "0.4.0"), isCurrent: true, installedBy: "a newer version" },
+    { contents: stampSkill(skill, "0.2.0"), isCurrent: false, installedBy: "an older version" },
+    { contents: skill, isCurrent: false, installedBy: "a version that did not stamp it" },
+    { contents: stampSkill(skill, "not-a-version"), isCurrent: false, installedBy: "an unreadable version" },
+  ])(
+    "must report isCurrent $isCurrent when the copy was installed by $installedBy",
+    async ({ contents, isCurrent }) => {
+      const { home, install, root } = setUpTest();
+      await install(root, contents);
 
-    expect(await findInstalledSkills(root, home, bundled)).toEqual([
+      expect(await findInstalledSkills(root, home, "0.3.0")).toEqual([
+        { isCurrent, isGlobal: false, path: skillInstallPath(root) },
+      ]);
+    }
+  );
+
+  test("must list the repo's copy before the home directory's when both are installed", async () => {
+    const { home, install, root } = setUpTest();
+    await install(home, stampSkill(skill, "0.3.0"));
+    await install(root, skill);
+
+    expect(await findInstalledSkills(root, home, "0.3.0")).toEqual([
       { isCurrent: false, isGlobal: false, path: skillInstallPath(root) },
       { isCurrent: true, isGlobal: true, path: skillInstallPath(home) },
     ]);

@@ -1,5 +1,5 @@
 import type { InstallKind } from "../server/update/installCommands";
-import { cliCommand, installCommand } from "../server/update/installCommands";
+import { cliCommand, globalInstallCommand } from "../server/update/installCommands";
 
 import type { InstalledSkill } from "./findInstalledSkills";
 
@@ -43,14 +43,14 @@ export function formatUpdateNotices({
     .filter((skill) => !skill.isCurrent)
     .map(
       (skill) =>
-        `skill_outdated: The markdown-review skill at ${skill.path} is not this version's (${currentVersion}). ` +
+        `skill_outdated: The markdown-review skill at ${skill.path} is older than this version (${currentVersion}). ` +
         `${when} \`${installSkillCommand(installKind, skill)}\`. The new skill loads in the next agent session.\n`
     );
 }
 
 function describeUpdate(installKind: InstallKind, skills: readonly InstalledSkill[]): string {
   const commands = [
-    ...(installKind === "global" ? [installCommand(installKind)] : []),
+    ...(installKind === "global" ? [globalInstallCommand] : []),
     cliCommand(installKind, "stop"),
     ...skills.map((skill) => installSkillCommand(installKind, skill)),
   ];

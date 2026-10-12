@@ -79,7 +79,7 @@ describe("formatUpdateNotices", () => {
         skills: [{ ...repositorySkill, isCurrent: false }, globalSkill],
       })
     ).toEqual([
-      "skill_outdated: The markdown-review skill at /repo/.claude/skills/x/SKILL.md is not this version's (0.3.0). " +
+      "skill_outdated: The markdown-review skill at /repo/.claude/skills/x/SKILL.md is older than this version (0.3.0). " +
         `${when} \`markdown-review install-skill\`. The new skill loads in the next agent session.\n`,
     ]);
   });

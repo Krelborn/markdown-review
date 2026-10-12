@@ -31,7 +31,7 @@ The review ends when the user approves it, and `poll` and `inbox` then start wit
 
 - `open` may print `update_available` when a newer markdown-review is out. Tell the user, and carry on with the review.
 - Once the review is approved, `poll` and `inbox` print `update_available` again with the commands to run. Ask the user whether to update, and run them only if they agree. If they install packages another way, such as with pnpm or under `sudo`, adapt the install command and keep the rest.
-- `skill_outdated` means an installed copy of this skill is from another version. Once the review is approved, run the command it gives and tell the user.
+- `skill_outdated` means an installed copy of this skill is from an older version. Once the review is approved, run the command it gives and tell the user.
 
 ## Good to know
 
