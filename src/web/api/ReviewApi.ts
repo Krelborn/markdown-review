@@ -1,5 +1,10 @@
 import type { Verdict } from "../../shared/api/apiRequestSchemas";
-import type { DocumentList, DocumentSource, ThreadsSnapshot } from "../../shared/api/apiResponseSchemas";
+import type {
+  DocumentList,
+  DocumentSource,
+  ThreadsSnapshot,
+  UpdateResponse,
+} from "../../shared/api/apiResponseSchemas";
 import type { NewThread } from "../../shared/review/newThreadSchema";
 
 import type { ReviewEvent } from "./reviewEventSchema";
@@ -17,6 +22,11 @@ export interface ReviewApi {
    * Reads every thread in the repo, with the review's state
    */
   readThreads(): Promise<ThreadsSnapshot>;
+
+  /**
+   * Reads whether a newer markdown-review is out, and the command that installs it
+   */
+  readUpdate(): Promise<UpdateResponse>;
 
   resolveThread(id: number): Promise<void>;
   submit(verdict: Verdict): Promise<void>;

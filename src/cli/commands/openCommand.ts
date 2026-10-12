@@ -9,9 +9,11 @@ import { CliError } from "../CliError";
 import { connectToServer } from "../connectToServer";
 import { findRoot } from "../findRoot";
 import { waitForCommentsInRootStep, waitForCommentsStep } from "../nextSteps";
+import { readUpdateNotices } from "../readUpdateNotices";
 import { toRepositoryPath } from "../toRepositoryPath";
 
-export async function openCommand(args: string[], { cliPath, terminal }: CliContext): Promise<number> {
+export async function openCommand(args: string[], context: CliContext): Promise<number> {
+  const { cliPath, terminal } = context;
   const { positionals } = parseArgs({ allowPositionals: true, args, options: {} });
   if (positionals.length > 1) {
     throw new CliError("open takes at most one path", "Run `markdown-review open [path]`.", 2);
@@ -24,7 +26,11 @@ export async function openCommand(args: string[], { cliPath, terminal }: CliCont
   const { navigated, url } = await client.open(document);
   const shown = navigated ? "Shown in the browser tab that was already open." : await openUrl(url, terminal.env);
   const nextStep = root === workingRoot ? waitForCommentsStep : waitForCommentsInRootStep(root);
-  terminal.stdout(`Opened ${document ?? "the docs list"} for review: ${url}\n${shown}\n\nnext_step: ${nextStep}\n`);
+  const notices = await readUpdateNotices(context, root, false);
+  const noticeSection = notices.length > 0 ? `${notices.join("")}\n` : "";
+  terminal.stdout(
+    `Opened ${document ?? "the docs list"} for review: ${url}\n${shown}\n\n${noticeSection}next_step: ${nextStep}\n`
+  );
   return 0;
 }
 

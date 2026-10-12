@@ -8,6 +8,7 @@ import { readServerSentEvents } from "../http/testing/readServerSentEvents";
 import { createMemoryLogger } from "../logging/testing/createMemoryLogger";
 import { serverFilePath } from "../store/storePaths";
 import { setUpTemporaryDirectory } from "../testing/setUpTemporaryDirectory";
+import { UpdateChecker } from "../update/UpdateChecker";
 
 import { preferredPort } from "./preferredPort";
 import type { RunningServer } from "./runServer";
@@ -34,6 +35,19 @@ describe("runServer", () => {
     expect(recorded).toMatchObject({ pid: process.pid, port: server.port, protocol: 1, root });
     expect((await stat(serverFilePath(root))).mode & 0o777).toBe(0o600);
     expect(health.root).toBe(root);
+  });
+
+  test("must check npm for a newer version when it starts", async () => {
+    const updateChecker = new UpdateChecker({
+      cachePath: path.join(getDirectory(), "update-check.json"),
+      fetch: async () => Response.json({ latest: "9.0.0" }),
+      logger: createMemoryLogger().logger,
+      registry: "https://registry.test",
+    });
+
+    await setUpTest({ updateChecker });
+
+    expect(await updateChecker.distTags()).toEqual({ latest: "9.0.0" });
   });
 
   test("must remove server.json when it stops", async () => {
@@ -82,7 +96,13 @@ describe("runServer", () => {
   });
 });
 
-async function setUpTest({ idleMilliseconds, root }: { idleMilliseconds?: number; root?: string } = {}): Promise<{
+interface SetUpOptions {
+  idleMilliseconds?: number;
+  root?: string;
+  updateChecker?: UpdateChecker;
+}
+
+async function setUpTest({ idleMilliseconds, root, updateChecker }: SetUpOptions = {}): Promise<{
   root: string;
   server: RunningServer;
 }> {
@@ -91,6 +111,7 @@ async function setUpTest({ idleMilliseconds, root }: { idleMilliseconds?: number
     idleMilliseconds,
     logger: createMemoryLogger().logger,
     root: repositoryRoot,
+    updateChecker,
     webDirectory: path.join(getDirectory(), "web"),
   });
   cleanUps.unshift(() => server.close());

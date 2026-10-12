@@ -2,6 +2,7 @@ import { render as renderBase, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 
+import type { UpdateResponse } from "../../../shared/api/apiResponseSchemas";
 import { buildPassageAnchor, buildThread, testTime } from "../../../shared/review/testing/reviewBuilders";
 import { ReviewApiContext } from "../../api/ReviewApiContext";
 import { AppearanceProvider } from "../../appearance/AppearanceProvider";
@@ -17,6 +18,26 @@ const draftThread = buildThread({
 });
 
 describe("TopBar", () => {
+  test("must mark the About button when the server reports a newer version", async () => {
+    const { render } = setUpTest({
+      update: { availableVersion: "9.0.0", command: "npm install --global @krelborn/markdown-review@latest" },
+    });
+
+    render();
+
+    expect(await screen.findByRole("button", { name: "About Markdown Review, update available" })).toBeVisible();
+  });
+
+  test("must leave the About button plain when the server cannot say whether a newer version is out", async () => {
+    const { fake, render } = setUpTest();
+    fake.api.readUpdate.mockRejectedValue(new Error("offline"));
+
+    render();
+
+    await vi.waitFor(() => expect(fake.api.readUpdate).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: "About Markdown Review" })).toBeVisible();
+  });
+
   test("must title the page with the doc's file name when a doc is on screen", () => {
     const { render } = setUpTest();
 
@@ -106,11 +127,14 @@ describe("TopBar", () => {
   });
 });
 
-function setUpTest({
-  documentPath = "docs/plan.md",
-  recent = [],
-}: { documentPath?: string | null; recent?: string[] } = {}) {
-  const fake = createFakeReviewApi({ recent, threads: [draftThread] });
+interface SetUpOptions {
+  documentPath?: string | null;
+  recent?: string[];
+  update?: UpdateResponse;
+}
+
+function setUpTest({ documentPath = "docs/plan.md", recent = [], update }: SetUpOptions = {}) {
+  const fake = createFakeReviewApi({ recent, threads: [draftThread], update });
   const onNavigate = vi.fn();
   const render = (): void => {
     renderBase(
@@ -121,7 +145,7 @@ function setUpTest({
       </ReviewApiContext>
     );
   };
-  return { onNavigate, render };
+  return { fake, onNavigate, render };
 }
 
 const elements = {

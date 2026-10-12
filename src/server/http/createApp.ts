@@ -13,6 +13,7 @@ import { HttpError } from "./HttpError";
 import { registerPollRoutes } from "./pollRoutes";
 import { refuseOtherOrigins, requireAgentToken, requireBrowserOrigin, requireLocalHost } from "./securityMiddleware";
 import { registerShellRoutes } from "./shellRoutes";
+import { registerUpdateRoutes } from "./updateRoutes";
 
 const statusForStoreError = {
   "invalid-file": 500,
@@ -70,6 +71,7 @@ export function createApp(dependencies: AppDependencies): Hono {
   registerBrowserRoutes(app, dependencies);
   registerEventRoutes(app, dependencies);
   registerFileRoutes(app, dependencies);
+  registerUpdateRoutes(app, dependencies);
   registerShellRoutes(app, dependencies);
   return app;
 }

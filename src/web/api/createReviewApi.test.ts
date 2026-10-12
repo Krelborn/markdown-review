@@ -27,6 +27,14 @@ describe("createReviewApi", () => {
     ]);
   });
 
+  test("must return what the server says about a newer version when the page asks", async () => {
+    const update = { availableVersion: "9.0.0", command: "npm install --global @krelborn/markdown-review@latest" };
+    const sent = stubFetch(200, update);
+
+    expect(await createReviewApi().readUpdate()).toEqual(update);
+    expect(sent).toEqual([{ body: undefined, contentType: null, method: "GET", url: "/api/update" }]);
+  });
+
   test("must send the change as JSON when the user saves a draft", async () => {
     const sent = stubFetch(200, { thread: {} });
 

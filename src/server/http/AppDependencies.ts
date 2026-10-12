@@ -3,12 +3,20 @@ import type { ServerEvents } from "../events/ServerEvents";
 import type { Logger } from "../logging/Logger";
 import type { ActivityMonitor } from "../runtime/ActivityMonitor";
 import type { ReviewStore } from "../store/ReviewStore";
+import type { InstallKind } from "../update/installCommands";
+import type { UpdateChecker } from "../update/UpdateChecker";
 
 import type { RecentDocuments } from "./RecentDocuments";
 
 export interface AppDependencies {
   activity: ActivityMonitor;
   events: ServerEvents;
+
+  /**
+   * How the running markdown-review was installed, which decides the update command
+   */
+  installKind: InstallKind;
+
   logger: Logger;
 
   /**
@@ -26,6 +34,11 @@ export interface AppDependencies {
   shutdown: () => void;
   store: ReviewStore;
   tabs: BrowserTabs;
+
+  /**
+   * What checks npm for a newer markdown-review, or null when the environment opts out
+   */
+  updateChecker: UpdateChecker | null;
 
   /**
    * The secret agent routes require, from `server.json`

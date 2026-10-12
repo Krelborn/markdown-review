@@ -1,7 +1,7 @@
 import type { Mock } from "vitest";
 import { vi } from "vitest";
 
-import type { DocumentCount, ThreadsSnapshot } from "../../shared/api/apiResponseSchemas";
+import type { DocumentCount, ThreadsSnapshot, UpdateResponse } from "../../shared/api/apiResponseSchemas";
 import { createDocumentText } from "../../shared/markdown/createDocumentText";
 import { linesForRange } from "../../shared/markdown/linesForRange";
 import type { Anchor } from "../../shared/review/anchorSchema";
@@ -17,6 +17,11 @@ export interface FakeReviewApiOptions {
   documents?: Record<string, string>;
   recent?: string[];
   threads?: Thread[];
+
+  /**
+   * What the server says about a newer version; none unless a test needs one
+   */
+  update?: UpdateResponse;
 }
 
 export interface FakeReviewApi {
@@ -44,6 +49,7 @@ export function createFakeReviewApi({
   documents = { "docs/plan.md": testDocument },
   recent = [],
   threads = [],
+  update = { availableVersion: null, command: null },
 }: FakeReviewApiOptions = {}): FakeReviewApi {
   const snapshot: ThreadsSnapshot = {
     problems: [],
@@ -97,6 +103,7 @@ export function createFakeReviewApi({
     },
     readDocuments: () => Promise.resolve({ documents: countByDocument(snapshot.threads), problems: [], recent }),
     readThreads: () => Promise.resolve(structuredClone(snapshot)),
+    readUpdate: () => Promise.resolve(update),
     resolveThread: (id) => change(id, (thread, at) => ({ ...thread, status: "resolved", updatedAt: at })),
     submit: (verdict) => {
       const at = new Date().toISOString();
@@ -133,6 +140,7 @@ export function createFakeReviewApi({
       readDocument: vi.fn(api.readDocument),
       readDocuments: vi.fn(api.readDocuments),
       readThreads: vi.fn(api.readThreads),
+      readUpdate: vi.fn(api.readUpdate),
       resolveThread: vi.fn(api.resolveThread),
       submit: vi.fn(api.submit),
       subscribe: vi.fn(api.subscribe),

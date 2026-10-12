@@ -5,12 +5,16 @@ import { connectToServer } from "../connectToServer";
 import { findRoot } from "../findRoot";
 import { formatInbox } from "../formatInbox";
 import { readDocumentOption } from "../readDocumentOption";
+import { readUpdateNotices } from "../readUpdateNotices";
 
-export async function inboxCommand(args: string[], { cliPath, terminal }: CliContext): Promise<number> {
+export async function inboxCommand(args: string[], context: CliContext): Promise<number> {
+  const { cliPath, terminal } = context;
   const { values } = parseArgs({ args, options: { document: { type: "string" } } });
   const root = await findRoot(terminal.workingDirectory);
   const document = await readDocumentOption(root, terminal.workingDirectory, values.document);
   const client = await connectToServer(root, cliPath);
-  terminal.stdout(formatInbox(await client.inbox(document)));
+  const inbox = await client.inbox(document);
+  const notices = inbox.review.approved ? await readUpdateNotices(context, root, true) : [];
+  terminal.stdout(formatInbox(inbox, notices));
   return 0;
 }
