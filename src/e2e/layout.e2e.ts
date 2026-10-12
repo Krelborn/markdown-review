@@ -176,13 +176,18 @@ for (const { button, edge, popover, side } of [
     await review.open("docs/plan.md");
     const trigger = button(page);
     const triggerBox = await boxOf(trigger);
+    const popoverId = await trigger.getAttribute("aria-controls");
 
     await trigger.click();
 
-    const popoverBox = await boxOf(page.locator(":popover-open"));
+    const popoverBox = await boxOf(page.locator(`[id="${popoverId}"]`));
     const edgeOf = (box: { width: number; x: number }): number => (edge === "start" ? box.x : box.x + box.width);
+    const gap =
+      side === "below"
+        ? popoverBox.y - (triggerBox.y + triggerBox.height)
+        : triggerBox.y - (popoverBox.y + popoverBox.height);
     expect(edgeOf(popoverBox)).toBeCloseTo(edgeOf(triggerBox), 0);
-    expect(popoverBox.y > triggerBox.y).toBe(side === "below");
+    expect(gap).toBeGreaterThanOrEqual(0);
   });
 }
 

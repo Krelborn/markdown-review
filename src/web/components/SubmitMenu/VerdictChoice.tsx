@@ -7,37 +7,24 @@ import { VerdictOption } from "./VerdictOption";
 
 export interface VerdictChoiceProps {
   /**
+   * Given to the checked radio
+   */
+  checkedRef: Ref<HTMLInputElement>;
+
+  /**
    * How many drafts a submit sends
    */
   draftCount: number;
 
   onVerdictChange: (verdict: Verdict) => void;
-
-  /**
-   * The verdict the popover opens with
-   */
-  openingVerdict: Verdict;
-
-  /**
-   * Given to the radio of the verdict the popover opens with
-   */
-  openingVerdictRef: Ref<HTMLInputElement>;
-
   verdict: Verdict;
 }
 
 /**
  * The verdicts the user can submit with: asking for changes, which needs a draft, or approving the review
  */
-export function VerdictChoice({
-  draftCount,
-  onVerdictChange,
-  openingVerdict,
-  openingVerdictRef,
-  verdict,
-}: VerdictChoiceProps): JSX.Element {
-  const refFor = (value: Verdict): Ref<HTMLInputElement> | undefined =>
-    value === openingVerdict ? openingVerdictRef : undefined;
+export function VerdictChoice({ checkedRef, draftCount, onVerdictChange, verdict }: VerdictChoiceProps): JSX.Element {
+  const refFor = (value: Verdict): Ref<HTMLInputElement> | undefined => (value === verdict ? checkedRef : undefined);
   return (
     <RadioGroup
       label={<VisuallyHidden>Verdict</VisuallyHidden>}
