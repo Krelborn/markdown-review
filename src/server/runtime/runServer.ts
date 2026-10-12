@@ -118,6 +118,8 @@ export async function runServer({
     watchDocument: (document) => watcher.watch(document),
     webDirectory,
   });
+  // Before the server can be found, so the page's first GET /api/update waits for the check rather than missing it
+  updateChecker?.start();
   const server = createServer(getRequestListener(app.fetch));
   port = await listen(server, preferredPort(root));
   const serverFile: ServerFile = {
@@ -135,7 +137,6 @@ export async function runServer({
       watcher.watch(thread.anchor.document);
     }
   }
-  updateChecker?.start();
   logger.info(`Serving ${root} on http://127.0.0.1:${port}`);
 
   async function stop(): Promise<void> {
