@@ -15,6 +15,7 @@ import { RecentDocuments } from "../http/RecentDocuments";
 import type { Logger } from "../logging/Logger";
 import { ReviewStore } from "../store/ReviewStore";
 import { serverFilePath } from "../store/storePaths";
+import { findInstallKind } from "../update/installCommands";
 import { UpdateChecker } from "../update/UpdateChecker";
 import { registryUrl, updateCheckFilePath, updateChecksDisabled } from "../update/updateCheckSettings";
 
@@ -102,6 +103,7 @@ export async function runServer({
   const app = createApp({
     activity,
     events,
+    installKind: findInstallKind(process.argv[1] ?? ""),
     logger,
     pollKeepAliveMilliseconds,
     port: () => port,
@@ -111,6 +113,7 @@ export async function runServer({
     store,
     tabs: new BrowserTabs(),
     token,
+    updateChecker,
     version: packageVersion,
     watchDocument: (document) => watcher.watch(document),
     webDirectory,

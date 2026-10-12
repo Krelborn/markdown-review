@@ -8,6 +8,7 @@ import type { LogEntry } from "../../logging/testing/createMemoryLogger";
 import { createMemoryLogger } from "../../logging/testing/createMemoryLogger";
 import { ActivityMonitor } from "../../runtime/ActivityMonitor";
 import { ReviewStore } from "../../store/ReviewStore";
+import type { UpdateChecker } from "../../update/UpdateChecker";
 import { createApp } from "../createApp";
 import { RecentDocuments } from "../RecentDocuments";
 
@@ -56,6 +57,11 @@ interface AppTestOptions {
    * How long the activity monitor waits before it counts the app as idle; an hour unless a test needs to see it
    */
   idleMilliseconds?: number;
+
+  /**
+   * What the app asks about a newer version; none unless a test needs one
+   */
+  updateChecker?: UpdateChecker | null;
 }
 
 /**
@@ -64,7 +70,7 @@ interface AppTestOptions {
  */
 export async function setUpAppTest(
   directory: string,
-  { idleMilliseconds = 60 * 60_000 }: AppTestOptions = {}
+  { idleMilliseconds = 60 * 60_000, updateChecker = null }: AppTestOptions = {}
 ): Promise<AppTest> {
   const root = path.join(directory, "repo");
   await mkdir(path.join(root, "docs"), { recursive: true });
@@ -94,6 +100,7 @@ export async function setUpAppTest(
   const app = createApp({
     activity,
     events,
+    installKind: "global",
     logger,
     pollKeepAliveMilliseconds: 50,
     port: () => testPort,
@@ -105,6 +112,7 @@ export async function setUpAppTest(
     store,
     tabs,
     token: testToken,
+    updateChecker,
     version: "0.0.0-test",
     watchDocument: (document) => watched.push(document),
     webDirectory,
