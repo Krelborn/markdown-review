@@ -41,13 +41,17 @@ export function ThreadActions({ onChanged, onCommentDiscarded, onSeen, thread }:
   const replyRef = useRef<HTMLButtonElement>(null);
   const focusesReplyRef = useRef(false);
   const { draft, id, status } = thread;
-  // Reply takes the place of a discarded draft reply's Edit only once the threads show the draft gone
+  // Reply takes the place of a discarded draft reply's Edit only once the threads show the draft gone,
+  // which can be before or after the deletion returns; a draft the threads show again ends the wait
+  const hasDraft = draft !== undefined;
   useEffect(() => {
-    if (focusesReplyRef.current && draft === undefined) {
+    if (hasDraft) {
+      focusesReplyRef.current = false;
+    } else if (focusesReplyRef.current) {
       focusesReplyRef.current = false;
       replyRef.current?.focus();
     }
-  }, [draft]);
+  }, [hasDraft]);
   const run = async (action: () => Promise<void>): Promise<void> => {
     try {
       await action();
@@ -66,10 +70,14 @@ export function ThreadActions({ onChanged, onCommentDiscarded, onSeen, thread }:
   const discard = (): Promise<void> =>
     run(async () => {
       onSeen();
-      await api.deleteDraft(id);
-      if (isReply) {
-        focusesReplyRef.current = true;
-      } else {
+      focusesReplyRef.current = isReply;
+      try {
+        await api.deleteDraft(id);
+      } catch (failure) {
+        focusesReplyRef.current = false;
+        throw failure;
+      }
+      if (!isReply) {
         onCommentDiscarded();
       }
     });

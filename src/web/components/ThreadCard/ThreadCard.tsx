@@ -126,7 +126,7 @@ function ThreadBadges({
     <Cluster gap={1}>
       {status === "draft" && <Badge tone="warning">Draft</Badge>}
       {hasNewAgentMessage && <Badge tone="info">New reply</Badge>}
-      {status === "open" && anchor.kind === "passage" && anchor.outdated && <Badge tone="warning">Outdated</Badge>}
+      {status !== "resolved" && anchor.kind === "passage" && anchor.outdated && <Badge tone="warning">Outdated</Badge>}
       {status === "resolved" && <Badge tone="success">Resolved</Badge>}
     </Cluster>
   );

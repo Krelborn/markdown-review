@@ -508,6 +508,67 @@ describe("ThreadSidebar", () => {
     expect(within(elements.thread(2)).getByRole("button", { name: "Reply" })).toHaveFocus();
   });
 
+  test("must move focus to Reply when the threads show a draft reply gone before its discard finishes", async () => {
+    const withDraftReply = buildThread({
+      anchor: buildPassageAnchor(),
+      draft: { at: testTime, body: "Hourly" },
+      id: 2,
+    });
+    const { draft: _draft, ...withoutDraft } = withDraftReply;
+    const { fake, render, showThreads } = setUpTest({ threads: [withDraftReply] });
+    const finishDiscard = deferDeleteDraft(fake);
+    const user = userEvent.setup();
+    render();
+
+    await discardDraftOnThread(user, 2, "Discard this reply?");
+    showThreads([withoutDraft]);
+    await act(async () => finishDiscard());
+
+    expect(within(elements.thread(2)).getByRole("button", { name: "Reply" })).toHaveFocus();
+  });
+
+  test("must move focus to Reply when the threads refresh while a draft reply is being discarded", async () => {
+    const withDraftReply = buildThread({
+      anchor: buildPassageAnchor(),
+      draft: { at: testTime, body: "Hourly" },
+      id: 2,
+    });
+    const { draft: _draft, ...withoutDraft } = withDraftReply;
+    const { fake, render, showThreads } = setUpTest({ threads: [withDraftReply] });
+    const finishDiscard = deferDeleteDraft(fake);
+    const user = userEvent.setup();
+    render();
+
+    await discardDraftOnThread(user, 2, "Discard this reply?");
+    showThreads([structuredClone(withDraftReply)]);
+    await act(async () => finishDiscard());
+    showThreads([withoutDraft]);
+
+    expect(within(elements.thread(2)).getByRole("button", { name: "Reply" })).toHaveFocus();
+  });
+
+  test("must leave focus alone when a later draft reply goes after one was discarded before the threads showed it", async () => {
+    const withDraftReply = buildThread({
+      anchor: buildPassageAnchor(),
+      draft: { at: testTime, body: "Hourly" },
+      id: 2,
+    });
+    const { draft: _draft, ...withoutDraft } = withDraftReply;
+    const { fake, render, showThreads } = setUpTest({ threads: [withDraftReply] });
+    const finishDiscard = deferDeleteDraft(fake);
+    const user = userEvent.setup();
+    render();
+    await discardDraftOnThread(user, 2, "Discard this reply?");
+    showThreads([withoutDraft]);
+    await act(async () => finishDiscard());
+    showThreads([{ ...withDraftReply, draft: { at: testTime, body: "Daily" } }]);
+    await user.click(screen.getByRole("button", { name: "#2 Line 3" }));
+
+    showThreads([withoutDraft]);
+
+    expect(screen.getByRole("button", { name: "#2 Line 3" })).toHaveFocus();
+  });
+
   test("must move focus to Save again when the user starts yet another comment while asked", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
@@ -721,6 +782,21 @@ function setUpTest({
     rerenderBase(view());
   };
   return { fake, onChanged, onSelectThread, render, select, showThreads };
+}
+
+/**
+ * Holds the next draft deletion until the test finishes it
+ *
+ * @returns finishes the held deletion
+ */
+function deferDeleteDraft(fake: ReturnType<typeof createFakeReviewApi>): () => void {
+  let finish = (): void => {};
+  fake.api.deleteDraft.mockReturnValueOnce(
+    new Promise<void>((resolve) => {
+      finish = () => resolve();
+    })
+  );
+  return () => finish();
 }
 
 async function discardDraftOnThread(
