@@ -10,7 +10,7 @@ import { stampSkill } from "./skillStamps";
 
 const getDirectory = setUpTemporaryDirectory();
 
-const skill = "# Markdown Review\n";
+const skill = "---\nname: markdown-review\n---\n# Markdown Review\n";
 
 describe("findInstalledSkills", () => {
   test("must find no copies when the skill is not installed", async () => {
@@ -21,7 +21,7 @@ describe("findInstalledSkills", () => {
 
   test.each([
     { contents: stampSkill(skill, "0.3.0"), isCurrent: true, installedBy: "the running version" },
-    { contents: stampSkill("# A later skill\n", "0.4.0"), isCurrent: true, installedBy: "a newer version" },
+    { contents: stampSkill(`${skill}A later line\n`, "0.4.0"), isCurrent: true, installedBy: "a newer version" },
     { contents: stampSkill(skill, "0.2.0"), isCurrent: false, installedBy: "an older version" },
     { contents: skill, isCurrent: false, installedBy: "a version that did not stamp it" },
     { contents: stampSkill(skill, "not-a-version"), isCurrent: false, installedBy: "an unreadable version" },

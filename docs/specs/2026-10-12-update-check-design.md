@@ -50,7 +50,7 @@
 | npx | The commands say to run `npx @krelborn/markdown-review@latest` from now on | Treat it as a global install | Installing globally isn't what an npx user chose |
 | How the CLI tells npx from a global install | `_npx` in the real path of `dist/cli.js` | `npm_config_user_agent`; `npm_execpath` | The path is set by where npx unpacks packages. The environment variables also appear when a global install runs from an npm script |
 | Linked source checkouts | No special case | Detect the checkout and stay quiet | A checkout is at or ahead of the released version, so it hears nothing anyway |
-| Stale skill detection | `install-skill` ends the skill with `<!-- markdown-review <version> -->`, and a copy is stale when that version is older than the running one, or missing | Compare each installed `SKILL.md` with the bundled one, byte for byte; a version in the skill's frontmatter | A byte comparison calls a newer or edited copy stale, so the agent would overwrite a newer skill with an older one. The stamp comes from the package version, so nothing needs bumping by hand |
+| Stale skill detection | `install-skill` writes the package version to the skill's frontmatter as `metadata.version`, and a copy is stale when that version is older than the running one, or missing | Compare each installed `SKILL.md` with the bundled one, byte for byte; a version kept by hand in the source `SKILL.md` | A byte comparison calls a newer or edited copy stale, so the agent would overwrite a newer skill with an older one. `metadata` is the Agent Skills spec's place for a skill's own fields, and Claude Code ignores it. Writing it at install time means nothing needs bumping by hand |
 | Browser notice | A dot on the About button, and a line in the About popover | A page alert under the top bar | Chosen by the user. It never gets in the way of reading |
 | When the browser learns of an update | It asks once when the page loads. The route waits for a check in progress | Push it over the event stream | The page usually loads just as the server starts, so the check is often in flight. Waiting up to its 3-second timeout covers that, and a later update can wait for the next load |
 
@@ -167,7 +167,7 @@ node dist/cli.js open README.md
 | `src/server/http/updateRoutes.ts` | `GET /api/update` |
 | `src/server/runtime/runServer.ts` | Starts the `UpdateChecker`; `RunServerOptions` gains it so tests can pass their own |
 | `src/cli/skillInstallPath.ts` | Where `install-skill` writes the skill under a repo or home directory |
-| `src/cli/skillStamps.ts` | Stamps the skill with the version that installs it, and reads the stamp back |
+| `src/cli/skillStamps.ts` | Writes the installing version to the skill's `metadata.version`, and reads it back |
 | `src/cli/findInstalledSkills.ts` | Installed skill copies, and whether each is from the running version or a newer one |
 | `src/cli/formatUpdateNotices.ts` | The `update_available` and `skill_outdated` lines |
 | `src/cli/readUpdateNotices.ts` | Reads the cache and the installed skills, and formats the notices |
