@@ -7,6 +7,7 @@ import skill from "../../../skills/markdown-review/SKILL.md?raw";
 import { readTextFileOrNull } from "../../server/files/readTextFileOrNull";
 import type { CliContext } from "../CliContext";
 import { findRoot } from "../findRoot";
+import { skillInstallPath } from "../skillInstallPath";
 
 /**
  * Writes the skill that teaches agents the review workflow where Claude Code and OpenCode look for skills
@@ -14,7 +15,7 @@ import { findRoot } from "../findRoot";
 export async function installSkillCommand(args: string[], { terminal }: CliContext): Promise<number> {
   const { values } = parseArgs({ args, options: { global: { type: "boolean" } } });
   const base = values.global === true ? (terminal.env.HOME ?? os.homedir()) : await findRoot(terminal.workingDirectory);
-  const skillPath = path.join(base, ".claude", "skills", "markdown-review", "SKILL.md");
+  const skillPath = skillInstallPath(base);
   const installed = await readTextFileOrNull(skillPath);
   await mkdir(path.dirname(skillPath), { recursive: true });
   await writeFile(skillPath, skill);
