@@ -7,13 +7,15 @@ import { findRoot } from "../findRoot";
 import { formatInbox } from "../formatInbox";
 import { pollTimeoutAdvice } from "../nextSteps";
 import { readDocumentOption } from "../readDocumentOption";
+import { readUpdateNotices } from "../readUpdateNotices";
 import { ServerRequestError } from "../ServerRequestError";
 
 const defaultTimeoutSeconds = 540;
 
 const interruptedExitCodes: Record<string, number> = { SIGINT: 130, SIGTERM: 143 };
 
-export async function pollCommand(args: string[], { cliPath, terminal }: CliContext): Promise<number> {
+export async function pollCommand(args: string[], context: CliContext): Promise<number> {
+  const { cliPath, terminal } = context;
   const { values } = parseArgs({ args, options: { document: { type: "string" }, timeout: { type: "string" } } });
   const timeoutSeconds = readTimeout(values.timeout);
   const root = await findRoot(terminal.workingDirectory);
@@ -38,7 +40,8 @@ export async function pollCommand(args: string[], { cliPath, terminal }: CliCont
         `No comments yet.\n\nnext_step: Run \`markdown-review poll\` again to keep waiting. ${pollTimeoutAdvice}\n`
       );
     } else {
-      terminal.stdout(formatInbox(result));
+      const notices = result.review.approved ? await readUpdateNotices(context, root, true) : [];
+      terminal.stdout(formatInbox(result, notices));
     }
     return 0;
   } catch (error) {

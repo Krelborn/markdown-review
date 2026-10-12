@@ -86,6 +86,42 @@ describe("runCli", () => {
     );
   });
 
+  test("must tell the agent to mention a newer version when the update check has found one", async () => {
+    const { home, run } = await setUpTest({ withServer: true });
+    await writeUpdateCheck(home, "99.0.0");
+
+    const { stdout } = await run(["open", "docs/plan.md"]);
+
+    expect(stdout).toContain(
+      `\n\nupdate_available: markdown-review 99.0.0 is out; this is ${packageVersion}. Tell the user, and offer to ` +
+        `update once they approve the review.\n\nnext_step: ${waitForCommentsStep}\n`
+    );
+  });
+
+  test("must not mention a newer version when the environment opts out of update checks", async () => {
+    const { home, run } = await setUpTest({ env: { MARKDOWN_REVIEW_NO_UPDATE_CHECK: "1" }, withServer: true });
+    await writeUpdateCheck(home, "99.0.0");
+
+    const { stdout } = await run(["open", "docs/plan.md"]);
+
+    expect(stdout).not.toContain("update_available");
+  });
+
+  test("must tell the agent to refresh the skill when the installed copy is from another version", async () => {
+    const { root, run } = await setUpTest({ withServer: true });
+    const skillPath = path.join(root, ".claude", "skills", "markdown-review", "SKILL.md");
+    await mkdir(path.dirname(skillPath), { recursive: true });
+    await writeFile(skillPath, "# An older skill\n");
+
+    const { stdout } = await run(["open", "docs/plan.md"]);
+
+    expect(stdout).toContain(
+      `\n\nskill_outdated: The markdown-review skill at ${skillPath} is not this version's (${packageVersion}). ` +
+        "Once the user approves the review, run `markdown-review install-skill`. The new skill loads in the next " +
+        `agent session.\n\nnext_step: ${waitForCommentsStep}\n`
+    );
+  });
+
   test("must refuse the doc when it is outside the working directory and neither is in git", async () => {
     const { root, run } = await setUpTest({ inGit: false });
     await writeFile(path.join(root, "..", "elsewhere.md"), "# Elsewhere\n");
@@ -222,12 +258,19 @@ describe("runCli", () => {
   });
 });
 
+async function writeUpdateCheck(home: string, latest: string): Promise<void> {
+  const cachePath = path.join(home, ".cache", "markdown-review", "update-check.json");
+  await mkdir(path.dirname(cachePath), { recursive: true });
+  await writeFile(cachePath, JSON.stringify({ checkedAt: new Date().toISOString(), distTags: { latest } }));
+}
+
 interface SetUpOptions {
+  env?: Record<string, string>;
   inGit?: boolean;
   withServer?: boolean;
 }
 
-async function setUpTest({ inGit = true, withServer = false }: SetUpOptions = {}) {
+async function setUpTest({ env = {}, inGit = true, withServer = false }: SetUpOptions = {}) {
   const root = path.join(await realpath(getDirectory()), "repo");
   const home = path.join(await realpath(getDirectory()), "home");
   await mkdir(path.join(root, "docs"), { recursive: true });
@@ -249,7 +292,7 @@ async function setUpTest({ inGit = true, withServer = false }: SetUpOptions = {}
       cliPath: path.join(root, "unused-cli.js"),
       terminal: {
         workingDirectory: root,
-        env: { HOME: home, MARKDOWN_REVIEW_NO_BROWSER: "1" },
+        env: { HOME: home, MARKDOWN_REVIEW_NO_BROWSER: "1", ...env },
         readStdin: async () => "",
         stderr: (text) => {
           stderr += text;

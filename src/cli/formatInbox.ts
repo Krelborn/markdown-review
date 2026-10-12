@@ -13,9 +13,11 @@ const quoteEndLength = 60;
  * Describes the agent's inbox as compact text for the agent to read
  *
  * @param snapshot the review state and the threads that need the agent
- * @returns the summary, each thread grouped by doc with its messages, any store problems, and a final `next_step`
+ * @param notices lines to put just before `next_step`, each ending in a newline
+ * @returns the summary, each thread grouped by doc with its messages, any store problems, the notices, and a final
+ *   `next_step`
  */
-export function formatInbox({ problems, review, threads }: ThreadsSnapshot): string {
+export function formatInbox({ problems, review, threads }: ThreadsSnapshot, notices: readonly string[] = []): string {
   const ordered = orderByDocument(threads);
   const ids = ordered.map((thread) => thread.id);
   const sections = [summaryLine(review.approved, ordered)];
@@ -24,6 +26,9 @@ export function formatInbox({ problems, review, threads }: ThreadsSnapshot): str
   }
   if (problems.length > 0) {
     sections.push(problems.map((problem) => `warning: ${indentContinuation(problem, "  ")}`).join("\n"));
+  }
+  if (notices.length > 0) {
+    sections.push(notices.join("").trimEnd());
   }
   sections.push(`next_step: ${nextStep(review.approved, ids)}`);
   return `${sections.join("\n\n")}\n`;
