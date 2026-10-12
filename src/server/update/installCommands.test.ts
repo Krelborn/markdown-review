@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { cliCommand, findInstallKind, globalInstallCommand } from "./installCommands";
+import { cliCommand, findInstallKind, globalInstallCommand, globalUpdateCommand } from "./installCommands";
 
 describe("installCommands", () => {
   test.each([
@@ -20,5 +20,12 @@ describe("installCommands", () => {
 
   test("must install the given dist-tag when it updates a global install", () => {
     expect(globalInstallCommand("next")).toBe("npm install --global @krelborn/markdown-review@next");
+  });
+
+  test("must stop the given repo's server, quoted for the shell, when it updates a global install", () => {
+    expect(globalUpdateCommand("latest", "/Users/someone/it's a repo")).toBe(
+      "npm install --global @krelborn/markdown-review@latest && " +
+        "(cd '/Users/someone/it'\\''s a repo' && markdown-review stop)"
+    );
   });
 });

@@ -15,13 +15,13 @@ describe("updateRoutes", () => {
   test("must offer the newer version and its install command when the update check has found one", async () => {
     const { cachePath, updateChecker } = setUpTest();
     await writeFile(cachePath, JSON.stringify({ checkedAt: new Date().toISOString(), distTags: { latest: "9.0.0" } }));
-    const { browser } = await setUpAppTest(getDirectory(), { updateChecker });
+    const { browser, root } = await setUpAppTest(getDirectory(), { updateChecker });
 
     const update = updateResponseSchema.parse(await (await browser("GET", "/api/update")).json());
 
     expect(update).toEqual({
       availableVersion: "9.0.0",
-      command: "npm install --global @krelborn/markdown-review@latest && markdown-review stop",
+      command: `npm install --global @krelborn/markdown-review@latest && (cd '${root}' && markdown-review stop)`,
     });
   });
 
@@ -41,13 +41,13 @@ describe("updateRoutes", () => {
       cachePath,
       JSON.stringify({ checkedAt: new Date().toISOString(), distTags: { latest: "0.0.0-test", next: "9.0.0-beta.1" } })
     );
-    const { browser } = await setUpAppTest(getDirectory(), { updateChecker });
+    const { browser, root } = await setUpAppTest(getDirectory(), { updateChecker });
 
     const update = updateResponseSchema.parse(await (await browser("GET", "/api/update")).json());
 
     expect(update).toEqual({
       availableVersion: "9.0.0-beta.1",
-      command: "npm install --global @krelborn/markdown-review@next && markdown-review stop",
+      command: `npm install --global @krelborn/markdown-review@next && (cd '${root}' && markdown-review stop)`,
     });
   });
 

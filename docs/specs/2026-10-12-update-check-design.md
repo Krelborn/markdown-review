@@ -124,7 +124,7 @@ A new section in `skills/markdown-review/SKILL.md`, after "Approval":
 
 ### Browser
 
-- `GET /api/update`, a browser route, answers `{ "availableVersion": "0.4.0" | null, "command": string | null }`, validated by `updateResponseSchema` in `src/shared/api/apiResponseSchemas.ts`. The server works it out from the cache and its own version, and waits for a check in progress. `command` is the global install command followed by `&& markdown-review stop`, so the old server doesn't keep running, or null when markdown-review runs through npx.
+- `GET /api/update`, a browser route, answers `{ "availableVersion": "0.4.0" | null, "command": string | null }`, validated by `updateResponseSchema` in `src/shared/api/apiResponseSchemas.ts`. The server works it out from the cache and its own version, and waits for a check in progress. `command` is the global install command followed by `&& (cd '<root>' && markdown-review stop)`, so the old server for this repo stops wherever the user runs it, or null when markdown-review runs through npx.
 - The web app fetches it once on load. When `availableVersion` isn't null:
   - The About button shows a small dot in the `primary` colour, and its label becomes "About Markdown Review, update available".
   - The popover shows, under "Version 0.3.0": "Version 0.4.0 is available. Ask your agent to update it, or run" followed by the command in a `<code>`. With no command, for npx, it ends at "Ask your agent to update it."

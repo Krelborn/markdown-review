@@ -38,3 +38,16 @@ export function cliCommand(kind: InstallKind, args: string, versionOrTag: string
 export function globalInstallCommand(distTag: string): string {
   return `npm install --global @krelborn/markdown-review@${distTag}`;
 }
+
+/**
+ * @param distTag the dist-tag to install, e.g. "latest"
+ * @param root the repo whose review server is running the old version
+ * @returns a POSIX shell command that updates a global install, then stops that repo's server from wherever it is run
+ */
+export function globalUpdateCommand(distTag: string, root: string): string {
+  return `${globalInstallCommand(distTag)} && (cd ${quoteForShell(root)} && markdown-review stop)`;
+}
+
+function quoteForShell(text: string): string {
+  return `'${text.replaceAll("'", "'\\''")}'`;
+}
