@@ -22,7 +22,7 @@ export interface NewCommentMenuProps {
  * can take one, a button starts it directly
  */
 export function NewCommentMenu({ documentPath, onComment }: NewCommentMenuProps): JSX.Element {
-  const popover = usePopover();
+  const popover = usePopover({ placement: "bottom-end" });
   const start = (newComment: NewComment): void => {
     popover.close();
     onComment(newComment);

@@ -41,6 +41,7 @@ export function DocumentSwitcher({ className, documentPath, onNavigate }: Docume
         api.readDocuments().then(setList, (failure: unknown) => setError(describeFailure(failure)));
       }
     },
+    placement: "bottom-start",
   });
   return (
     <>

@@ -1,8 +1,6 @@
 import { Button, Cluster, Popover, Stack, Text, usePopover } from "@krelborn/stylesui";
-import type { JSX, ToggleEvent } from "react";
+import type { JSX } from "react";
 import { useRef, useState } from "react";
-
-import styles from "./ThreadCard.module.css";
 
 export interface DiscardDraftButtonProps {
   /**
@@ -29,28 +27,9 @@ export interface DiscardDraftButtonProps {
 export function DiscardDraftButton({ isReply, isSaving, onDiscard }: DiscardDraftButtonProps): JSX.Element {
   const [isDiscarding, setIsDiscarding] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const popover = usePopover({ placement: "top" });
-  const overlayProps = popover.getOverlayProps();
+  // Cancel takes focus, so a stray Enter keeps the draft
+  const popover = usePopover({ initialFocus: cancelRef, placement: "top-start" });
   const title = isReply ? "Discard this reply?" : "Discard this comment?";
-  // Focus goes back to Discard only from inside the popover, as on Escape: a click outside leaves it where the user
-  // clicked. Whether it was inside is known only before the popover hides, which moves it out
-  const returnsFocusRef = useRef(false);
-  const noteFocus = (event: ToggleEvent<HTMLElement>): void => {
-    returnsFocusRef.current = event.newState === "closed" && event.currentTarget.contains(document.activeElement);
-  };
-  const moveFocus = (event: ToggleEvent<HTMLElement>): void => {
-    if (event.newState === "open") {
-      cancelRef.current?.focus();
-    } else if (returnsFocusRef.current) {
-      triggerRef.current?.focus();
-    }
-  };
-  // WebKit doesn't focus a button the user clicks, so focus may not be on Cancel when the user presses it
-  const cancel = (): void => {
-    triggerRef.current?.focus();
-    popover.close();
-  };
   const confirm = async (): Promise<void> => {
     setIsDiscarding(true);
     await onDiscard();
@@ -59,23 +38,10 @@ export function DiscardDraftButton({ isReply, isSaving, onDiscard }: DiscardDraf
   };
   return (
     <>
-      <Button {...popover.getTriggerProps()} disabled={isSaving} ref={triggerRef} size="sm" variant="secondary">
+      <Button {...popover.getTriggerProps()} disabled={isSaving} size="sm" variant="secondary">
         Discard
       </Button>
-      <Popover
-        {...overlayProps}
-        className={styles.confirmation}
-        onBeforeToggle={(event) => {
-          overlayProps.onBeforeToggle(event);
-          noteFocus(event);
-        }}
-        onToggle={(event) => {
-          overlayProps.onToggle(event);
-          moveFocus(event);
-        }}
-        aria-label={title}
-        role="dialog"
-      >
+      <Popover {...popover.getOverlayProps()} aria-label={title} role="dialog">
         <Stack gap={2}>
           <Text size="sm" weight="bold">
             {title}
@@ -84,10 +50,10 @@ export function DiscardDraftButton({ isReply, isSaving, onDiscard }: DiscardDraf
             It hasn't been sent, and you can't get it back.
           </Text>
           <Cluster gap={2} justify="end">
-            <Button onClick={cancel} ref={cancelRef} size="sm" variant="secondary">
+            <Button onClick={popover.close} ref={cancelRef} size="sm" variant="secondary">
               Cancel
             </Button>
-            <Button busy={isDiscarding} onClick={() => void confirm()} size="sm" variant="secondary">
+            <Button busy={isDiscarding} onClick={() => void confirm()} size="sm" variant="danger">
               Discard
             </Button>
           </Cluster>

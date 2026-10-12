@@ -1,5 +1,5 @@
 import { Radio, Text } from "@krelborn/stylesui";
-import type { JSX } from "react";
+import type { JSX, Ref } from "react";
 import { useId } from "react";
 
 import type { Verdict } from "../../../shared/api/apiRequestSchemas";
@@ -14,17 +14,23 @@ export interface VerdictOptionProps {
 
   isDisabled: boolean;
   label: string;
+
+  /**
+   * The radio's input
+   */
+  ref?: Ref<HTMLInputElement>;
+
   value: Verdict;
 }
 
 /**
  * One verdict the user can submit with: its radio, and what it will do
  */
-export function VerdictOption({ description, isDisabled, label, value }: VerdictOptionProps): JSX.Element {
+export function VerdictOption({ description, isDisabled, label, ref, value }: VerdictOptionProps): JSX.Element {
   const descriptionId = useId();
   return (
     <div className={styles.option}>
-      <Radio disabled={isDisabled} value={value} aria-describedby={descriptionId}>
+      <Radio disabled={isDisabled} ref={ref} value={value} aria-describedby={descriptionId}>
         {label}
       </Radio>
       <Text className={styles.description} id={descriptionId} size="sm" tone="muted">
