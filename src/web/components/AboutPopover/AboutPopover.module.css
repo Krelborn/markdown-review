@@ -1,0 +1,15 @@
+.trigger {
+  display: inline-flex;
+  position: relative;
+}
+
+.updateDot {
+  background-color: var(--sui-color-primary);
+  block-size: 0.5rem;
+  border-radius: 50%;
+  inline-size: 0.5rem;
+  inset-block-start: 0.125rem;
+  inset-inline-end: 0.125rem;
+  pointer-events: none;
+  position: absolute;
+}

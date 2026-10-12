@@ -1,6 +1,8 @@
 import { Heading, Link } from "@krelborn/stylesui";
 import type { JSX } from "react";
 
+import { useAvailableUpdate } from "../../api/useAvailableUpdate";
+import { useReviewApi } from "../../api/useReviewApi";
 import { isPlainLeftClick } from "../../navigation/isPlainLeftClick";
 import { AboutPopover } from "../AboutPopover/AboutPopover";
 import { AppearancePopover } from "../AppearancePopover/AppearancePopover";
@@ -26,6 +28,7 @@ export interface TopBarProps {
  * menu of docs to go to; and, at the right end, the Appearance and About buttons
  */
 export function TopBar({ documentPath, onNavigate }: TopBarProps): JSX.Element {
+  const update = useAvailableUpdate(useReviewApi());
   return (
     <header className={styles.topBar}>
       <Link
@@ -51,7 +54,7 @@ export function TopBar({ documentPath, onNavigate }: TopBarProps): JSX.Element {
       )}
       <div className={styles.actions}>
         <AppearancePopover />
-        <AboutPopover />
+        <AboutPopover update={update} />
       </div>
     </header>
   );
