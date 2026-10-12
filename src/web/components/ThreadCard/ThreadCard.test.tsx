@@ -78,8 +78,9 @@ describe("ThreadCard", () => {
 
   test.each<{ condition: string; isShown: boolean; status: Thread["status"] }>([
     { condition: "an open thread's passage has gone", isShown: true, status: "open" },
+    { condition: "a draft comment's passage has gone", isShown: true, status: "draft" },
     { condition: "a resolved thread's passage has gone", isShown: false, status: "resolved" },
-  ])("must show Outdated only on open threads when $condition", ({ isShown, status }) => {
+  ])("must show Outdated on every thread but a resolved one when $condition", ({ isShown, status }) => {
     const { render } = setUpTest({
       thread: { ...conversation, anchor: buildPassageAnchor({ outdated: true }), status },
     });
