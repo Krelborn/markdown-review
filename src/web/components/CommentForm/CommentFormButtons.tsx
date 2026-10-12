@@ -30,7 +30,7 @@ export function CommentFormButtons({ leading }: CommentFormButtonsProps): JSX.El
     }
   }, [isAsking, questionRevision]);
   const start = isAsking ? (
-    <Button onClick={editor.discardChanges} size="sm" variant="secondary">
+    <Button onClick={editor.discardChanges} size="sm" variant="outline-danger">
       {editor.savedBody === null ? "Discard" : "Discard changes"}
     </Button>
   ) : (

@@ -38,7 +38,7 @@ const paletteChoices: readonly PaletteChoice[] = [
  * in; each choice applies at once and is remembered for every repo's review
  */
 export function AppearancePopover(): JSX.Element {
-  const popover = usePopover();
+  const popover = usePopover({ placement: "bottom-end" });
   const { appearance, changeAppearance } = useAppearance();
   const descriptionId = useId();
   return (

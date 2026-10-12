@@ -5,6 +5,7 @@ import {
   highlightedText,
   plan,
   scrollDocumentToEnd,
+  submitButtonName,
   submitDrafts,
   test,
   withParagraphs,
@@ -63,6 +64,23 @@ test("must end the agent's poll when the user approves the review", async ({ pag
   const { stdout } = await poll.result;
   expect(stdout.startsWith("Review approved. No threads need you.\n")).toBe(true);
   await expect(page.getByText("Approved", { exact: true })).toBeVisible();
+});
+
+test("must focus the verdict Submit review opens with, then return focus to Submit when the user clicks Cancel", async ({
+  page,
+  review,
+}) => {
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const submit = page.getByRole("button", { exact: true, name: submitButtonName(1) });
+  const popover = page.getByRole("dialog", { name: "Submit review" });
+  await submit.click();
+  await expect(popover.getByRole("radio", { name: "Request changes" })).toBeFocused();
+
+  await popover.getByRole("button", { name: "Cancel" }).click();
+
+  await expect(popover).toBeHidden();
+  await expect(submit).toBeFocused();
 });
 
 test("must open the linked doc without reloading the page when the user follows a relative link", async ({

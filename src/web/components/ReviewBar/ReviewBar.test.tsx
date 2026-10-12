@@ -159,6 +159,45 @@ describe("ReviewBar", () => {
   });
 
   test.each([
+    { drafts: oneDraft, submit: "Submit 1 draft", verdict: "Request changes" },
+    { drafts: [], submit: "Submit", verdict: "Approve" },
+  ])("must focus $verdict when the user opens the popover with $submit", async ({ drafts, submit, verdict }) => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render({ drafts });
+
+    await user.click(screen.getByRole("button", { name: submit }));
+
+    expect(elements.submitDialog().getByRole("radio", { name: verdict })).toHaveFocus();
+  });
+
+  test("must focus Request changes when the user opens the popover again after choosing Approve", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render({ drafts: oneDraft });
+    await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
+    await user.click(elements.submitDialog().getByRole("radio", { name: "Approve" }));
+    await user.click(elements.submitDialog().getByRole("button", { name: "Cancel" }));
+
+    await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
+
+    expect(elements.submitDialog().getByRole("radio", { name: "Request changes" })).toHaveFocus();
+  });
+
+  test("must focus Request changes when the user opens the popover again after writing a draft", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    const { rerender } = render();
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+    await user.click(elements.submitDialog().getByRole("button", { name: "Cancel" }));
+    rerender({ drafts: oneDraft });
+
+    await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
+
+    expect(elements.submitDialog().getByRole("radio", { name: "Request changes" })).toHaveFocus();
+  });
+
+  test.each([
     { expanded: "false", isPanelOpen: false },
     { expanded: "true", isPanelOpen: true },
   ])(

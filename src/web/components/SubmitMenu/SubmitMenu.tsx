@@ -1,17 +1,6 @@
-import {
-  Alert,
-  Button,
-  Cluster,
-  Counter,
-  Popover,
-  RadioGroup,
-  Stack,
-  Text,
-  usePopover,
-  VisuallyHidden,
-} from "@krelborn/stylesui";
+import { Alert, Button, Cluster, Counter, Popover, Stack, Text, usePopover, VisuallyHidden } from "@krelborn/stylesui";
 import type { JSX } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type { Verdict } from "../../../shared/api/apiRequestSchemas";
 import { describeFailure } from "../../api/describeFailure";
@@ -19,7 +8,7 @@ import { useReviewApi } from "../../api/useReviewApi";
 import type { DraftCount } from "../../review/countDraftsByDocument";
 
 import { DraftsSummary } from "./DraftsSummary";
-import { VerdictOption } from "./VerdictOption";
+import { VerdictChoice } from "./VerdictChoice";
 
 export interface SubmitMenuProps {
   /**
@@ -49,18 +38,21 @@ export interface SubmitMenuProps {
 export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }: SubmitMenuProps): JSX.Element {
   const api = useReviewApi();
   const draftCount = drafts.reduce((sum, { count }) => sum + count, 0);
-  const [verdict, setVerdict] = useState<Verdict>("approve");
+  // Held while the popover is open, so drafts going then can't turn a request for changes into an approval. While it is
+  // shut, the verdict is the one it opens with, so the checked radio is the one it focuses
+  const [heldVerdict, setHeldVerdict] = useState<Verdict | null>(null);
+  const verdict = heldVerdict ?? openingVerdictOf(draftCount);
+  const checkedVerdictRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const canSubmit = !hasUnsavedText && (verdict === "approve" || draftCount > 0);
   const popover = usePopover({
+    initialFocus: checkedVerdictRef,
     onOpenChange: (open) => {
-      if (open) {
-        setVerdict(draftCount > 0 ? "request-changes" : "approve");
-        setError(null);
-      }
+      setHeldVerdict(open ? verdict : null);
+      setError(null);
     },
-    placement: "top",
+    placement: "top-end",
   });
   const submit = async (): Promise<void> => {
     setIsSubmitting(true);
@@ -88,24 +80,12 @@ export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }
         <Stack gap={3}>
           <Text weight="bold">Submit review</Text>
           <DraftsSummary drafts={drafts} />
-          <RadioGroup
-            label={<VisuallyHidden>Verdict</VisuallyHidden>}
-            onValueChange={(value) => setVerdict(value === "approve" ? "approve" : "request-changes")}
-            value={verdict}
-          >
-            <VerdictOption
-              description="Send your comments and ask the agent to revise."
-              isDisabled={draftCount === 0}
-              label="Request changes"
-              value="request-changes"
-            />
-            <VerdictOption
-              description={draftCount === 0 ? "End the review." : "Send your comments and end the review."}
-              isDisabled={false}
-              label="Approve"
-              value="approve"
-            />
-          </RadioGroup>
+          <VerdictChoice
+            checkedRef={checkedVerdictRef}
+            draftCount={draftCount}
+            onVerdictChange={setHeldVerdict}
+            verdict={verdict}
+          />
           <Text as="p" size="sm" tone="muted">
             {agentWaiting
               ? "The agent is listening and will hear at once."
@@ -131,4 +111,14 @@ export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }
       </Popover>
     </>
   );
+}
+
+/**
+ * Works out the verdict the submit popover opens with
+ *
+ * @param draftCount how many drafts a submit sends
+ * @returns asking for changes when there are drafts, and approving otherwise
+ */
+function openingVerdictOf(draftCount: number): Verdict {
+  return draftCount > 0 ? "request-changes" : "approve";
 }

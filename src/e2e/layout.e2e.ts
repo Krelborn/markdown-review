@@ -137,6 +137,60 @@ test("must keep Submit and its menu in full view when the comments outgrow their
   await expect(page.getByRole("dialog", { name: "Submit review" })).toBeInViewport({ ratio: 1 });
 });
 
+for (const { button, edge, popover, side } of [
+  {
+    button: (page: Page) => page.getByRole("banner").getByRole("button", { name: "plan.md" }),
+    edge: "start",
+    popover: "doc switcher",
+    side: "below",
+  },
+  {
+    button: (page: Page) => page.getByRole("button", { name: "Appearance" }),
+    edge: "end",
+    popover: "Appearance",
+    side: "below",
+  },
+  {
+    button: (page: Page) => page.getByRole("button", { name: "About Markdown Review" }),
+    edge: "end",
+    popover: "About",
+    side: "below",
+  },
+  {
+    button: (page: Page) => page.getByRole("button", { name: "New comment" }),
+    edge: "end",
+    popover: "+ Comment",
+    side: "below",
+  },
+  {
+    button: (page: Page) => page.getByRole("button", { exact: true, name: submitButtonName(0) }),
+    edge: "end",
+    popover: "Submit review",
+    side: "above",
+  },
+]) {
+  test(`must open the ${popover} popover ${side} its button, from the button's ${edge} edge`, async ({
+    page,
+    review,
+  }) => {
+    await review.open("docs/plan.md");
+    const trigger = button(page);
+    const triggerBox = await boxOf(trigger);
+    const popoverId = await trigger.getAttribute("aria-controls");
+
+    await trigger.click();
+
+    const popoverBox = await boxOf(page.locator(`[id="${popoverId}"]`));
+    const edgeOf = (box: { width: number; x: number }): number => (edge === "start" ? box.x : box.x + box.width);
+    const gap =
+      side === "below"
+        ? popoverBox.y - (triggerBox.y + triggerBox.height)
+        : triggerBox.y - (popoverBox.y + popoverBox.height);
+    expect(edgeOf(popoverBox)).toBeCloseTo(edgeOf(triggerBox), 0);
+    expect(gap).toBeGreaterThanOrEqual(0);
+  });
+}
+
 test("must keep the header and the review bar to one line each when the window is very narrow", async ({
   page,
   review,

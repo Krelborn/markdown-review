@@ -10,7 +10,7 @@ import { appDetails } from "./appDetails";
  * and the licences of the code it bundles, each opening in a new tab
  */
 export function AboutPopover(): JSX.Element {
-  const popover = usePopover();
+  const popover = usePopover({ placement: "bottom-end" });
   return (
     <>
       <IconButton

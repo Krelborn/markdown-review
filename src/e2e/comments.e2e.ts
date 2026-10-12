@@ -197,23 +197,32 @@ test("must move focus to the next card's location when the user discards a draft
   await expect(page.getByRole("button", { name: "#2 Line 5" })).toBeFocused();
 });
 
-test("must keep the draft and return focus to Discard when the user presses Escape in the confirmation", async ({
-  page,
-  review,
-}) => {
-  await review.open("docs/plan.md");
-  await writeDraftComment(page, "cache", "24h", "Why 24h?");
-  const thread = page.getByRole("article", { name: "Thread #1" });
-  const confirmation = page.getByRole("dialog", { name: "Discard this comment?" });
-  await thread.getByRole("button", { name: "Discard" }).click();
-  await expect(confirmation.getByRole("button", { name: "Cancel" })).toBeFocused();
+for (const { action, close } of [
+  { action: "presses Escape", close: (page: Page) => page.keyboard.press("Escape") },
+  {
+    action: "clicks Cancel",
+    close: (page: Page) =>
+      page.getByRole("dialog", { name: "Discard this comment?" }).getByRole("button", { name: "Cancel" }).click(),
+  },
+]) {
+  test(`must keep the draft and return focus to Discard when the user ${action} in the confirmation`, async ({
+    page,
+    review,
+  }) => {
+    await review.open("docs/plan.md");
+    await writeDraftComment(page, "cache", "24h", "Why 24h?");
+    const thread = page.getByRole("article", { name: "Thread #1" });
+    const confirmation = page.getByRole("dialog", { name: "Discard this comment?" });
+    await thread.getByRole("button", { name: "Discard" }).click();
+    await expect(confirmation.getByRole("button", { name: "Cancel" })).toBeFocused();
 
-  await page.keyboard.press("Escape");
+    await close(page);
 
-  await expect(confirmation).toBeHidden();
-  await expect(thread.getByRole("button", { name: "Discard" })).toBeFocused();
-  await expect(thread.getByText("Why 24h?")).toBeVisible();
-});
+    await expect(confirmation).toBeHidden();
+    await expect(thread.getByRole("button", { name: "Discard" })).toBeFocused();
+    await expect(thread.getByText("Why 24h?")).toBeVisible();
+  });
+}
 
 test("must keep the editor open and return focus to Discard when the user presses Escape in its confirmation", async ({
   page,
