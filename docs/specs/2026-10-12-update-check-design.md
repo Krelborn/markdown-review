@@ -156,26 +156,28 @@ node dist/cli.js open README.md
 
 | Path | What |
 | --- | --- |
-| `src/server/update/compareVersions.ts` | Semver precedence for `x.y.z` and `x.y.z-pre` |
+| `src/server/update/semanticVersions.ts` | `compareVersions` and `isPrerelease`: semver precedence for `x.y.z` and `x.y.z-pre` |
 | `src/server/update/findAvailableUpdate.ts` | The version to offer, from the current version and the dist-tags |
-| `src/server/update/updateCheckFileSchema.ts` | zod schema of the cache file |
-| `src/server/update/updateCheckFilePath.ts` | The cache file's path, from `XDG_CACHE_HOME` or `HOME` |
-| `src/server/update/updateChecksDisabled.ts` | Whether the environment opts out |
-| `src/server/update/fetchDistTags.ts` | The registry request, with its timeout and validation |
-| `src/server/update/UpdateChecker.ts` | Runs the daily check, writes the cache, and answers what is available, waiting for a check in progress |
-| `src/server/update/findInstallKind.ts` | `"npx"` or `"global"`, from the CLI's real path |
-| `src/server/update/updateCommands.ts` | The commands to offer, for an install kind and the installed skill copies |
+| `src/server/update/updateCheckFileSchema.ts` | zod schemas of the dist-tags and the cache file |
+| `src/server/update/readUpdateCheckFile.ts` | Reads the cache file, or null |
+| `src/server/update/updateCheckSettings.ts` | The cache file's path, the registry's URL, and whether the environment opts out |
+| `src/server/update/fetchDistTags.ts`, `RegistryRequestError.ts` | The registry request, with its timeout and validation |
+| `src/server/update/UpdateChecker.ts` | Runs the daily check, writes the cache, and answers what is recorded, waiting for a check in progress |
+| `src/server/update/installCommands.ts` | `findInstallKind`, and the commands to run or install markdown-review for an install kind |
 | `src/server/http/updateRoutes.ts` | `GET /api/update` |
 | `src/server/runtime/runServer.ts` | Starts the `UpdateChecker`; `RunServerOptions` gains it so tests can pass their own |
-| `src/cli/findOutdatedSkills.ts` | Installed skill copies that differ from the bundled one |
+| `src/cli/skillInstallPath.ts` | Where `install-skill` writes the skill under a repo or home directory |
+| `src/cli/findInstalledSkills.ts` | Installed skill copies, and whether each is the bundled one |
 | `src/cli/formatUpdateNotices.ts` | The `update_available` and `skill_outdated` lines |
+| `src/cli/readUpdateNotices.ts` | Reads the cache and the installed skills, and formats the notices |
 | `src/cli/commands/openCommand.ts`, `pollCommand.ts`, `inboxCommand.ts` | Print the notices |
+| `src/web/api/useAvailableUpdate.ts` | Asks `GET /api/update` once when the page loads |
 | `src/web/components/AboutPopover/` | The dot and the popover line |
 | `skills/markdown-review/SKILL.md` | The Updates section |
 | `src/integration/updateCheck.integration.test.ts` | The CLI and server against a stub registry |
 | `README.md` | The opt-out variables, and that the server contacts the npm registry once a day |
 
-`installSkillCommand` and `findOutdatedSkills` share the skill's two install paths through one helper, rather than each building them.
+`installSkillCommand` and `findInstalledSkills` share the skill's install path through `skillInstallPath`.
 
 ## 8. Code style
 
@@ -210,9 +212,9 @@ export function findAvailableUpdate(current: string, distTags: DistTags): string
   - `compareVersions`: release order, pre-release before release, numeric and alphanumeric identifiers, unparseable input.
   - `findAvailableUpdate`: up to date, newer `latest`, pre-release install with newer `next` and with newer `latest`, missing tags.
   - `UpdateChecker`, with an injected `fetch`, clock and cache path: a fresh cache asks no one; a stale cache fetches and writes; a failure keeps the old tags and waits a day; a slow fetch times out; opted out, nothing reads, writes or fetches; a caller during a check waits for it.
-  - `findInstallKind`, `updateCommands`, `formatUpdateNotices`, `findOutdatedSkills`, and the route in `updateRoutes.test.ts`.
+  - `installCommands`, `formatUpdateNotices`, `findInstalledSkills`, and the route in `updateRoutes.test.ts`.
 - **Web (`web` project):** the About button and popover with and without an available update, and when the fetch fails.
-- **Integration:** `startCli` sets `XDG_CACHE_HOME` to a temporary directory and `MARKDOWN_REVIEW_NO_UPDATE_CHECK=1`, so no other test contacts the registry. `updateCheck.integration.test.ts` clears the opt-out and points `MARKDOWN_REVIEW_REGISTRY_URL` at a local stub. It checks that the server writes the cache, that `open` prints `update_available`, that the approved `inbox` prints the commands, and that a changed installed skill prints `skill_outdated`.
+- **Integration:** `startCli` sets `HOME` to a `.home` directory inside the test repository, clears `XDG_CACHE_HOME`, and sets `MARKDOWN_REVIEW_NO_UPDATE_CHECK=1`, so no other test reads the user's cache or skill or contacts the registry. The `node` test project sets `MARKDOWN_REVIEW_NO_UPDATE_CHECK=1` too, for the servers its tests start. `updateCheck.integration.test.ts` clears the opt-out and points `MARKDOWN_REVIEW_REGISTRY_URL` at a local stub. It checks that the server writes the cache, that `open` prints `update_available`, that the approved `inbox` prints the commands, and that a changed installed skill prints `skill_outdated`.
 - **End-to-end:** one Playwright test with a seeded cache file shows the dot and the popover line. The e2e harness sets the same environment as `startCli`.
 
 ## 10. Boundaries
