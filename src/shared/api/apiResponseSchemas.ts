@@ -55,7 +55,8 @@ export const documentListSchema = z.strictObject({
 export const documentSourceSchema = z.strictObject({ hash: z.string(), path: documentPathSchema, source: z.string() });
 
 /**
- * `GET /api/update`: the newer version on npm, and the command that installs it; both null when none is known
+ * `GET /api/update`: the newer version on npm, or null when none is known, and the command that installs it, null also
+ * when markdown-review runs through npx
  */
 export const updateResponseSchema = z.strictObject({
   availableVersion: z.string().nullable(),

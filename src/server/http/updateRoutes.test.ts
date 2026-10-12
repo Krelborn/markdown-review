@@ -35,6 +35,16 @@ describe("updateRoutes", () => {
     expect(update.availableVersion).toBe("9.0.0");
   });
 
+  test("must offer the newer version without a command when markdown-review runs through npx", async () => {
+    const { cachePath, updateChecker } = setUpTest();
+    await writeFile(cachePath, JSON.stringify({ checkedAt: new Date().toISOString(), distTags: { latest: "9.0.0" } }));
+    const { browser } = await setUpAppTest(getDirectory(), { installKind: "npx", updateChecker });
+
+    const update = updateResponseSchema.parse(await (await browser("GET", "/api/update")).json());
+
+    expect(update).toEqual({ availableVersion: "9.0.0", command: null });
+  });
+
   test.each([
     { condition: "the running version is the latest", latest: "0.0.0-test" },
     { condition: "nothing has been recorded", latest: null },

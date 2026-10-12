@@ -48,7 +48,14 @@ export function AboutPopover({ update }: AboutPopoverProps): JSX.Element {
           </Cluster>
           {update !== null && (
             <Text as="p" size="sm">
-              Version {update.version} is available. Ask your agent to update it, or run <code>{update.command}</code>
+              Version {update.version} is available. Ask your agent to update it
+              {update.command === null ? (
+                "."
+              ) : (
+                <>
+                  , or run <code>{update.command}</code>
+                </>
+              )}
             </Text>
           )}
           <Text as="p" size="sm">

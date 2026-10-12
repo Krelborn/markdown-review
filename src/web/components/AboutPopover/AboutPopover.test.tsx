@@ -37,6 +37,17 @@ describe("AboutPopover", () => {
     );
   });
 
+  test("must only suggest asking the agent when there is no command to show", async () => {
+    const user = userEvent.setup();
+    render(<AboutPopover update={{ command: null, version: "9.0.0" }} />);
+
+    await user.click(screen.getByRole("button", { name: "About Markdown Review, update available" }));
+
+    expect(elements.aboutDialog().getByText("Version 9.0.0 is available.", { exact: false })).toHaveTextContent(
+      "Version 9.0.0 is available. Ask your agent to update it."
+    );
+  });
+
   test("must not mention an update when none is available", async () => {
     const user = userEvent.setup();
     render(<AboutPopover update={null} />);

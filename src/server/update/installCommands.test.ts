@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { cliCommand, findInstallKind, installCommand } from "./installCommands";
+import { cliCommand, findInstallKind } from "./installCommands";
 
 describe("installCommands", () => {
   test.each([
@@ -16,12 +16,5 @@ describe("installCommands", () => {
     { expected: "npx @krelborn/markdown-review@latest stop", kind: "npx" },
   ] as const)("must run the command through $kind when installed that way", ({ expected, kind }) => {
     expect(cliCommand(kind, "stop")).toBe(expected);
-  });
-
-  test.each([
-    { expected: "npm install --global @krelborn/markdown-review@latest", kind: "global" },
-    { expected: "npx @krelborn/markdown-review@latest <command>", kind: "npx" },
-  ] as const)("must give '$expected' as the way to update a $kind install", ({ expected, kind }) => {
-    expect(installCommand(kind)).toBe(expected);
   });
 });

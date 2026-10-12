@@ -4,9 +4,9 @@ import type { ReviewApi } from "./ReviewApi";
 
 export interface AvailableUpdate {
   /**
-   * The shell command that installs it
+   * The shell command that installs it, or null when the agent has to work it out
    */
-  command: string;
+  command: string | null;
 
   version: string;
 }
@@ -23,7 +23,7 @@ export function useAvailableUpdate(api: ReviewApi): AvailableUpdate | null {
     let isCurrent = true;
     api.readUpdate().then(
       ({ availableVersion, command }) => {
-        if (isCurrent && availableVersion !== null && command !== null) {
+        if (isCurrent && availableVersion !== null) {
           setUpdate({ command, version: availableVersion });
         }
       },

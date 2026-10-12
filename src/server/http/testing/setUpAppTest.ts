@@ -8,6 +8,7 @@ import type { LogEntry } from "../../logging/testing/createMemoryLogger";
 import { createMemoryLogger } from "../../logging/testing/createMemoryLogger";
 import { ActivityMonitor } from "../../runtime/ActivityMonitor";
 import { ReviewStore } from "../../store/ReviewStore";
+import type { InstallKind } from "../../update/installCommands";
 import type { UpdateChecker } from "../../update/UpdateChecker";
 import { createApp } from "../createApp";
 import { RecentDocuments } from "../RecentDocuments";
@@ -59,6 +60,11 @@ interface AppTestOptions {
   idleMilliseconds?: number;
 
   /**
+   * How the app says markdown-review was installed; global unless a test needs npx
+   */
+  installKind?: InstallKind;
+
+  /**
    * What the app asks about a newer version; none unless a test needs one
    */
   updateChecker?: UpdateChecker | null;
@@ -70,7 +76,7 @@ interface AppTestOptions {
  */
 export async function setUpAppTest(
   directory: string,
-  { idleMilliseconds = 60 * 60_000, updateChecker = null }: AppTestOptions = {}
+  { idleMilliseconds = 60 * 60_000, installKind = "global", updateChecker = null }: AppTestOptions = {}
 ): Promise<AppTest> {
   const root = path.join(directory, "repo");
   await mkdir(path.join(root, "docs"), { recursive: true });
@@ -100,7 +106,7 @@ export async function setUpAppTest(
   const app = createApp({
     activity,
     events,
-    installKind: "global",
+    installKind,
     logger,
     pollKeepAliveMilliseconds: 50,
     port: () => testPort,

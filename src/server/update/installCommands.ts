@@ -25,9 +25,6 @@ export function cliCommand(kind: InstallKind, args: string): string {
 }
 
 /**
- * @param kind how markdown-review is installed
- * @returns the shell command that installs the latest version, or for npx, how to run it
+ * The shell command that updates a global install to the latest version
  */
-export function installCommand(kind: InstallKind): string {
-  return kind === "npx" ? `${npxCommand} <command>` : "npm install --global @krelborn/markdown-review@latest";
-}
+export const globalInstallCommand = "npm install --global @krelborn/markdown-review@latest";

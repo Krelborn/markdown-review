@@ -50,7 +50,7 @@
 | npx | The commands say to run `npx @krelborn/markdown-review@latest` from now on | Treat it as a global install | Installing globally isn't what an npx user chose |
 | How the CLI tells npx from a global install | `_npx` in the real path of `dist/cli.js` | `npm_config_user_agent`; `npm_execpath` | The path is set by where npx unpacks packages. The environment variables also appear when a global install runs from an npm script |
 | Linked source checkouts | No special case | Detect the checkout and stay quiet | A checkout is at or ahead of the released version, so it hears nothing anyway |
-| Stale skill detection | Compare each installed `SKILL.md` with the bundled one, byte for byte | A version in the skill's frontmatter | `install-skill` already makes this comparison to report "Reinstalled" or "Updated". A version field would need bumping by hand |
+| Stale skill detection | `install-skill` ends the skill with `<!-- markdown-review <version> -->`, and a copy is stale when that version is older than the running one, or missing | Compare each installed `SKILL.md` with the bundled one, byte for byte; a version in the skill's frontmatter | A byte comparison calls a newer or edited copy stale, so the agent would overwrite a newer skill with an older one. The stamp comes from the package version, so nothing needs bumping by hand |
 | Browser notice | A dot on the About button, and a line in the About popover | A page alert under the top bar | Chosen by the user. It never gets in the way of reading |
 | When the browser learns of an update | It asks once when the page loads. The route waits for a check in progress | Push it over the event stream | The page usually loads just as the server starts, so the check is often in flight. Waiting up to its 3-second timeout covers that, and a later update can wait for the next load |
 
@@ -101,10 +101,10 @@ next_step: The user approved the review. Carry on with your task; ...
 - For npx, the commands are `npx @krelborn/markdown-review@latest stop` and `npx @krelborn/markdown-review@latest install-skill [--global]`, and the line says to use `npx @krelborn/markdown-review@latest` from now on.
 - The `install-skill` commands are one per installed copy: none when no copy is installed, `install-skill` for the repo's, `install-skill --global` for the home directory's.
 
-`skill_outdated`, when an installed copy differs from the bundled skill and no update is available:
+`skill_outdated`, when an installed copy is from an older version and no update is available:
 
 ```
-skill_outdated: The markdown-review skill at /repo/.claude/skills/markdown-review/SKILL.md is not this version's (0.3.0). Once the user approves the review, run `markdown-review install-skill`. The new skill loads in the next agent session.
+skill_outdated: The markdown-review skill at /repo/.claude/skills/markdown-review/SKILL.md is older than this version (0.3.0). Once the user approves the review, run `markdown-review install-skill`. The new skill loads in the next agent session.
 ```
 
 When an update is available, the `update_available` line's `install-skill` commands cover the stale copies, and no `skill_outdated` line appears.
@@ -118,15 +118,15 @@ A new section in `skills/markdown-review/SKILL.md`, after "Approval":
 
 - `open` may print `update_available` when a newer markdown-review is out. Tell the user, and carry on with the review.
 - Once the review is approved, `poll` and `inbox` print `update_available` again with the commands to run. Ask the user whether to update, and run them only if they agree. If they install packages another way, such as with pnpm or under `sudo`, adapt the install command and keep the rest.
-- `skill_outdated` means an installed copy of this skill is from another version. Once the review is approved, run the command it gives and tell the user.
+- `skill_outdated` means an installed copy of this skill is from an older version. Once the review is approved, run the command it gives and tell the user.
 ```
 
 ### Browser
 
-- `GET /api/update`, a browser route, answers `{ "availableVersion": "0.4.0" | null, "command": string | null }`, validated by `updateResponseSchema` in `src/shared/api/apiResponseSchemas.ts`. The server works it out from the cache and its own version, and waits for a check in progress. `command` is the global or npx command, as in the CLI.
+- `GET /api/update`, a browser route, answers `{ "availableVersion": "0.4.0" | null, "command": string | null }`, validated by `updateResponseSchema` in `src/shared/api/apiResponseSchemas.ts`. The server works it out from the cache and its own version, and waits for a check in progress. `command` is the global install command, or null when markdown-review runs through npx.
 - The web app fetches it once on load. When `availableVersion` isn't null:
   - The About button shows a small dot in the `primary` colour, and its label becomes "About Markdown Review, update available".
-  - The popover shows, under "Version 0.3.0": "Version 0.4.0 is available. Ask your agent to update it, or run" followed by the command in a `<code>`.
+  - The popover shows, under "Version 0.3.0": "Version 0.4.0 is available. Ask your agent to update it, or run" followed by the command in a `<code>`. With no command, for npx, it ends at "Ask your agent to update it."
 - When the fetch fails, the About button and popover look as they do now.
 
 ## 6. Commands
@@ -163,11 +163,12 @@ node dist/cli.js open README.md
 | `src/server/update/updateCheckSettings.ts` | The cache file's path, the registry's URL, and whether the environment opts out |
 | `src/server/update/fetchDistTags.ts`, `RegistryRequestError.ts` | The registry request, with its timeout and validation |
 | `src/server/update/UpdateChecker.ts` | Runs the daily check, writes the cache, and answers what is recorded, waiting for a check in progress |
-| `src/server/update/installCommands.ts` | `findInstallKind`, and the commands to run or install markdown-review for an install kind |
+| `src/server/update/installCommands.ts` | `findInstallKind`, the command to run markdown-review for an install kind, and the global install command |
 | `src/server/http/updateRoutes.ts` | `GET /api/update` |
 | `src/server/runtime/runServer.ts` | Starts the `UpdateChecker`; `RunServerOptions` gains it so tests can pass their own |
 | `src/cli/skillInstallPath.ts` | Where `install-skill` writes the skill under a repo or home directory |
-| `src/cli/findInstalledSkills.ts` | Installed skill copies, and whether each is the bundled one |
+| `src/cli/skillStamps.ts` | Stamps the skill with the version that installs it, and reads the stamp back |
+| `src/cli/findInstalledSkills.ts` | Installed skill copies, and whether each is from the running version or a newer one |
 | `src/cli/formatUpdateNotices.ts` | The `update_available` and `skill_outdated` lines |
 | `src/cli/readUpdateNotices.ts` | Reads the cache and the installed skills, and formats the notices |
 | `src/cli/commands/openCommand.ts`, `pollCommand.ts`, `inboxCommand.ts` | Print the notices |
