@@ -8,11 +8,10 @@ import type { AppDependencies } from "./AppDependencies";
 
 export function registerUpdateRoutes(app: Hono, { installKind, updateChecker, version }: AppDependencies): void {
   app.get("/api/update", async (context) => {
-    const availableVersion =
-      updateChecker === null ? null : findAvailableUpdate(version, await updateChecker.distTags());
+    const update = updateChecker === null ? null : findAvailableUpdate(version, await updateChecker.distTags());
     const response: UpdateResponse = {
-      availableVersion,
-      command: availableVersion !== null && installKind === "global" ? globalInstallCommand : null,
+      availableVersion: update?.version ?? null,
+      command: update !== null && installKind === "global" ? globalInstallCommand(update.distTag) : null,
     };
     return context.json(response);
   });

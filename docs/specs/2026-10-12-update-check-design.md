@@ -99,6 +99,7 @@ next_step: The user approved the review. Carry on with your task; ...
 ```
 
 - For npx, the commands are `npx @krelborn/markdown-review@latest stop` and `npx @krelborn/markdown-review@latest install-skill [--global]`, and the line says to use `npx @krelborn/markdown-review@latest` from now on.
+- The commands name the dist-tag the newer version came from: `@latest`, or `@next` when a pre-release install is offered a newer pre-release, so following them never installs an older version. `skill_outdated` for npx runs the running version, as `npx @krelborn/markdown-review@<version> install-skill`.
 - The `install-skill` commands are one per installed copy: none when no copy is installed, `install-skill` for the repo's, `install-skill --global` for the home directory's.
 
 `skill_outdated`, when an installed copy is from an older version and no update is available:

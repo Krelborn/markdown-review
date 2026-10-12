@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { cliCommand, findInstallKind } from "./installCommands";
+import { cliCommand, findInstallKind, globalInstallCommand } from "./installCommands";
 
 describe("installCommands", () => {
   test.each([
@@ -13,8 +13,12 @@ describe("installCommands", () => {
 
   test.each([
     { expected: "markdown-review stop", kind: "global" },
-    { expected: "npx @krelborn/markdown-review@latest stop", kind: "npx" },
+    { expected: "npx @krelborn/markdown-review@next stop", kind: "npx" },
   ] as const)("must run the command through $kind when installed that way", ({ expected, kind }) => {
-    expect(cliCommand(kind, "stop")).toBe(expected);
+    expect(cliCommand(kind, "stop", "next")).toBe(expected);
+  });
+
+  test("must install the given dist-tag when it updates a global install", () => {
+    expect(globalInstallCommand("next")).toBe("npm install --global @krelborn/markdown-review@next");
   });
 });

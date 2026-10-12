@@ -35,6 +35,22 @@ describe("updateRoutes", () => {
     expect(update.availableVersion).toBe("9.0.0");
   });
 
+  test("must install the next tag when the newer version is a pre-release from it", async () => {
+    const { cachePath, updateChecker } = setUpTest();
+    await writeFile(
+      cachePath,
+      JSON.stringify({ checkedAt: new Date().toISOString(), distTags: { latest: "0.0.0-test", next: "9.0.0-beta.1" } })
+    );
+    const { browser } = await setUpAppTest(getDirectory(), { updateChecker });
+
+    const update = updateResponseSchema.parse(await (await browser("GET", "/api/update")).json());
+
+    expect(update).toEqual({
+      availableVersion: "9.0.0-beta.1",
+      command: "npm install --global @krelborn/markdown-review@next",
+    });
+  });
+
   test("must offer the newer version without a command when markdown-review runs through npx", async () => {
     const { cachePath, updateChecker } = setUpTest();
     await writeFile(cachePath, JSON.stringify({ checkedAt: new Date().toISOString(), distTags: { latest: "9.0.0" } }));

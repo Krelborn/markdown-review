@@ -5,8 +5,6 @@ import path from "node:path";
  */
 export type InstallKind = "global" | "npx";
 
-const npxCommand = "npx @krelborn/markdown-review@latest";
-
 /**
  * @param cliPath the real path of the running `dist/cli.js`
  * @returns how that copy of markdown-review was installed
@@ -16,15 +14,27 @@ export function findInstallKind(cliPath: string): InstallKind {
 }
 
 /**
- * @param kind how markdown-review is installed
- * @param args the command and its arguments, e.g. "install-skill --global"
- * @returns the shell command that runs the latest markdown-review with those arguments
+ * @param versionOrTag the version or dist-tag to run, e.g. "latest" or "0.4.0"
+ * @returns the npx command that runs that markdown-review
  */
-export function cliCommand(kind: InstallKind, args: string): string {
-  return `${kind === "npx" ? npxCommand : "markdown-review"} ${args}`;
+export function npxCommand(versionOrTag: string): string {
+  return `npx @krelborn/markdown-review@${versionOrTag}`;
 }
 
 /**
- * The shell command that updates a global install to the latest version
+ * @param kind how markdown-review is installed
+ * @param args the command and its arguments, e.g. "install-skill --global"
+ * @param versionOrTag for npx, the version or dist-tag to run; a global install runs whichever is installed
+ * @returns the shell command that runs markdown-review with those arguments
  */
-export const globalInstallCommand = "npm install --global @krelborn/markdown-review@latest";
+export function cliCommand(kind: InstallKind, args: string, versionOrTag: string): string {
+  return `${kind === "npx" ? npxCommand(versionOrTag) : "markdown-review"} ${args}`;
+}
+
+/**
+ * @param distTag the dist-tag to install, e.g. "latest"
+ * @returns the shell command that updates a global install to that dist-tag's version
+ */
+export function globalInstallCommand(distTag: string): string {
+  return `npm install --global @krelborn/markdown-review@${distTag}`;
+}

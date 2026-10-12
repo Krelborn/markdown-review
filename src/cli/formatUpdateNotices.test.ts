@@ -24,7 +24,7 @@ describe("formatUpdateNotices", () => {
     expect(
       formatUpdateNotices({
         approved: false,
-        availableUpdate: "0.4.0",
+        availableUpdate: { distTag: "latest", version: "0.4.0" },
         currentVersion: "0.3.0",
         installKind: "global",
         skills: [{ ...globalSkill, isCurrent: false }],
@@ -38,7 +38,7 @@ describe("formatUpdateNotices", () => {
     expect(
       formatUpdateNotices({
         approved: true,
-        availableUpdate: "0.4.0",
+        availableUpdate: { distTag: "latest", version: "0.4.0" },
         currentVersion: "0.3.0",
         installKind: "global",
         skills: [repositorySkill, globalSkill],
@@ -54,7 +54,7 @@ describe("formatUpdateNotices", () => {
     expect(
       formatUpdateNotices({
         approved: true,
-        availableUpdate: "0.4.0",
+        availableUpdate: { distTag: "latest", version: "0.4.0" },
         currentVersion: "0.3.0",
         installKind: "npx",
         skills: [],
@@ -63,6 +63,48 @@ describe("formatUpdateNotices", () => {
       "update_available: markdown-review 0.4.0 is out; this is 0.3.0. Ask the user whether to update. If they agree, " +
         "run `npx @krelborn/markdown-review@latest stop`, " +
         "and from now on run markdown-review as `npx @krelborn/markdown-review@latest`.\n",
+    ]);
+  });
+
+  test.each([
+    {
+      expected: "run `npm install --global @krelborn/markdown-review@next`, then `markdown-review stop`.\n",
+      installKind: "global",
+    },
+    {
+      expected:
+        "run `npx @krelborn/markdown-review@next stop`, and from now on run markdown-review as " +
+        "`npx @krelborn/markdown-review@next`.\n",
+      installKind: "npx",
+    },
+  ] as const)(
+    "must install the next tag when the update is a $installKind pre-release from it",
+    ({ expected, installKind }) => {
+      const [notice] = formatUpdateNotices({
+        approved: true,
+        availableUpdate: { distTag: "next", version: "0.4.0-beta.2" },
+        currentVersion: "0.4.0-beta.1",
+        installKind,
+        skills: [],
+      });
+
+      expect(notice?.endsWith(`If they agree, ${expected}`)).toBe(true);
+    }
+  );
+
+  test("must refresh an outdated skill with the running version when markdown-review runs from npx", () => {
+    expect(
+      formatUpdateNotices({
+        approved: true,
+        availableUpdate: null,
+        currentVersion: "0.4.0-beta.1",
+        installKind: "npx",
+        skills: [{ ...globalSkill, isCurrent: false }],
+      })
+    ).toEqual([
+      "skill_outdated: The markdown-review skill at /home/.claude/skills/x/SKILL.md is older than this version " +
+        "(0.4.0-beta.1). Run `npx @krelborn/markdown-review@0.4.0-beta.1 install-skill --global`. The new skill loads " +
+        "in the next agent session.\n",
     ]);
   });
 
