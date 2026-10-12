@@ -100,7 +100,7 @@ next_step: The user approved the review. Carry on with your task; ...
 
 - For npx, the commands are `npx @krelborn/markdown-review@latest stop` and `npx @krelborn/markdown-review@latest install-skill [--global]`, and the line says to use `npx @krelborn/markdown-review@latest` from now on.
 - The commands name the dist-tag the newer version came from: `@latest`, or `@next` when a pre-release install is offered a newer pre-release, so following them never installs an older version. `skill_outdated` for npx runs the running version, as `npx @krelborn/markdown-review@<version> install-skill`.
-- The `install-skill` commands are one per installed copy: none when no copy is installed, `install-skill` for the repo's, `install-skill --global` for the home directory's.
+- The `install-skill` commands are one per installed copy older than the offered version: none when no such copy is installed, `install-skill` for the repo's, `install-skill --global` for the home directory's. A copy at least as new as the offered version is left alone.
 
 `skill_outdated`, when an installed copy is from an older version and no update is available:
 
@@ -169,7 +169,7 @@ node dist/cli.js open README.md
 | `src/server/runtime/runServer.ts` | Starts the `UpdateChecker`; `RunServerOptions` gains it so tests can pass their own |
 | `src/cli/skillInstallPath.ts` | Where `install-skill` writes the skill under a repo or home directory |
 | `src/cli/skillStamps.ts` | Writes the installing version to the skill's `metadata.version`, and reads it back |
-| `src/cli/findInstalledSkills.ts` | Installed skill copies, and whether each is from the running version or a newer one |
+| `src/cli/findInstalledSkills.ts` | Installed skill copies, and the version that installed each |
 | `src/cli/formatUpdateNotices.ts` | The `update_available` and `skill_outdated` lines |
 | `src/cli/readUpdateNotices.ts` | Reads the cache and the installed skills, and formats the notices |
 | `src/cli/commands/openCommand.ts`, `pollCommand.ts`, `inboxCommand.ts` | Print the notices |

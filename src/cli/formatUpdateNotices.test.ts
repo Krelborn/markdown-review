@@ -3,9 +3,9 @@ import { describe, expect, test } from "vitest";
 import type { InstalledSkill } from "./findInstalledSkills";
 import { formatUpdateNotices } from "./formatUpdateNotices";
 
-const repositorySkill: InstalledSkill = { isCurrent: true, isGlobal: false, path: "/repo/.claude/skills/x/SKILL.md" };
+const repositorySkill: InstalledSkill = { isGlobal: false, path: "/repo/.claude/skills/x/SKILL.md", version: "0.3.0" };
 
-const globalSkill: InstalledSkill = { isCurrent: true, isGlobal: true, path: "/home/.claude/skills/x/SKILL.md" };
+const globalSkill: InstalledSkill = { isGlobal: true, path: "/home/.claude/skills/x/SKILL.md", version: "0.3.0" };
 
 describe("formatUpdateNotices", () => {
   test("must say nothing when there is no update and every skill is current", () => {
@@ -27,7 +27,7 @@ describe("formatUpdateNotices", () => {
         availableUpdate: { distTag: "latest", version: "0.4.0" },
         currentVersion: "0.3.0",
         installKind: "global",
-        skills: [{ ...globalSkill, isCurrent: false }],
+        skills: [{ ...globalSkill, version: null }],
       })
     ).toEqual([
       "update_available: markdown-review 0.4.0 is out; this is 0.3.0. Tell the user, and offer to update once they approve the review.\n",
@@ -47,6 +47,22 @@ describe("formatUpdateNotices", () => {
       "update_available: markdown-review 0.4.0 is out; this is 0.3.0. Ask the user whether to update. If they agree, " +
         "run `npm install --global @krelborn/markdown-review@latest`, then `markdown-review stop`, " +
         "then `markdown-review install-skill`, then `markdown-review install-skill --global`.\n",
+    ]);
+  });
+
+  test("must leave out a skill that a version at least as new as the update installed", () => {
+    expect(
+      formatUpdateNotices({
+        approved: true,
+        availableUpdate: { distTag: "latest", version: "0.4.0" },
+        currentVersion: "0.3.0",
+        installKind: "global",
+        skills: [{ ...repositorySkill, version: "0.5.0-beta.1" }, globalSkill],
+      })
+    ).toEqual([
+      "update_available: markdown-review 0.4.0 is out; this is 0.3.0. Ask the user whether to update. If they agree, " +
+        "run `npm install --global @krelborn/markdown-review@latest`, then `markdown-review stop`, " +
+        "then `markdown-review install-skill --global`.\n",
     ]);
   });
 
@@ -99,13 +115,31 @@ describe("formatUpdateNotices", () => {
         availableUpdate: null,
         currentVersion: "0.4.0-beta.1",
         installKind: "npx",
-        skills: [{ ...globalSkill, isCurrent: false }],
+        skills: [{ ...globalSkill, version: null }],
       })
     ).toEqual([
       "skill_outdated: The markdown-review skill at /home/.claude/skills/x/SKILL.md is older than this version " +
         "(0.4.0-beta.1). Run `npx @krelborn/markdown-review@0.4.0-beta.1 install-skill --global`. The new skill loads " +
         "in the next agent session.\n",
     ]);
+  });
+
+  test.each([
+    { installedBy: "the running version", isOutdated: false, version: "0.3.0" },
+    { installedBy: "a newer version", isOutdated: false, version: "0.4.0" },
+    { installedBy: "an older version", isOutdated: true, version: "0.2.0" },
+    { installedBy: "a version that did not stamp it", isOutdated: true, version: null },
+    { installedBy: "an unreadable version", isOutdated: true, version: "not-a-version" },
+  ])("must call the skill outdated only when $installedBy installed it", ({ isOutdated, version }) => {
+    const notices = formatUpdateNotices({
+      approved: true,
+      availableUpdate: null,
+      currentVersion: "0.3.0",
+      installKind: "global",
+      skills: [{ ...repositorySkill, version }],
+    });
+
+    expect(notices.length > 0).toBe(isOutdated);
   });
 
   test.each([
@@ -118,7 +152,7 @@ describe("formatUpdateNotices", () => {
         availableUpdate: null,
         currentVersion: "0.3.0",
         installKind: "global",
-        skills: [{ ...repositorySkill, isCurrent: false }, globalSkill],
+        skills: [{ ...repositorySkill, version: null }, globalSkill],
       })
     ).toEqual([
       "skill_outdated: The markdown-review skill at /repo/.claude/skills/x/SKILL.md is older than this version (0.3.0). " +

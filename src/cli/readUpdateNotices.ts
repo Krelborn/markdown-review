@@ -33,6 +33,6 @@ export async function readUpdateNotices(
     availableUpdate: findAvailableUpdate(packageVersion, cached?.distTags ?? {}),
     currentVersion: packageVersion,
     installKind: findInstallKind(realCliPath),
-    skills: await findInstalledSkills(root, env.HOME ?? os.homedir(), packageVersion),
+    skills: await findInstalledSkills(root, env.HOME ?? os.homedir()),
   });
 }

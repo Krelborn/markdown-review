@@ -1,6 +1,7 @@
 import type { NewerRelease } from "../server/update/findAvailableUpdate";
 import type { InstallKind } from "../server/update/installCommands";
 import { cliCommand, globalInstallCommand, npxCommand } from "../server/update/installCommands";
+import { compareVersions } from "../server/update/semanticVersions";
 
 import type { InstalledSkill } from "./findInstalledSkills";
 
@@ -38,12 +39,12 @@ export function formatUpdateNotices({
       return [`${news} Tell the user, and offer to update once they approve the review.\n`];
     }
     return [
-      `${news} Ask the user whether to update. If they agree, ${describeUpdate(installKind, availableUpdate.distTag, skills)}\n`,
+      `${news} Ask the user whether to update. If they agree, ${describeUpdate(installKind, availableUpdate, skills)}\n`,
     ];
   }
   const when = approved ? "Run" : "Once the user approves the review, run";
   return skills
-    .filter((skill) => !skill.isCurrent)
+    .filter((skill) => isOlderThan(skill, currentVersion))
     .map(
       (skill) =>
         `skill_outdated: The markdown-review skill at ${skill.path} is older than this version (${currentVersion}). ` +
@@ -51,11 +52,17 @@ export function formatUpdateNotices({
     );
 }
 
-function describeUpdate(installKind: InstallKind, distTag: string, skills: readonly InstalledSkill[]): string {
+function describeUpdate(
+  installKind: InstallKind,
+  { distTag, version }: NewerRelease,
+  skills: readonly InstalledSkill[]
+): string {
   const commands = [
     ...(installKind === "global" ? [globalInstallCommand(distTag)] : []),
     cliCommand(installKind, "stop", distTag),
-    ...skills.map((skill) => installSkillCommand(installKind, distTag, skill)),
+    ...skills
+      .filter((skill) => isOlderThan(skill, version))
+      .map((skill) => installSkillCommand(installKind, distTag, skill)),
   ];
   const steps = `run ${commands.map((command) => `\`${command}\``).join(", then ")}`;
   return installKind === "npx"
@@ -65,4 +72,8 @@ function describeUpdate(installKind: InstallKind, distTag: string, skills: reado
 
 function installSkillCommand(installKind: InstallKind, versionOrTag: string, skill: InstalledSkill): string {
   return cliCommand(installKind, skill.isGlobal ? "install-skill --global" : "install-skill", versionOrTag);
+}
+
+function isOlderThan(skill: InstalledSkill, version: string): boolean {
+  return skill.version === null || (compareVersions(skill.version, version) ?? -1) < 0;
 }
