@@ -15,6 +15,8 @@ import { RecentDocuments } from "../http/RecentDocuments";
 import type { Logger } from "../logging/Logger";
 import { ReviewStore } from "../store/ReviewStore";
 import { serverFilePath } from "../store/storePaths";
+import { UpdateChecker } from "../update/UpdateChecker";
+import { registryUrl, updateCheckFilePath, updateChecksDisabled } from "../update/updateCheckSettings";
 
 import { ActivityMonitor } from "./ActivityMonitor";
 import { DocumentWatcher } from "./DocumentWatcher";
@@ -33,6 +35,12 @@ export interface RunServerOptions {
   idleMilliseconds?: number;
 
   pollKeepAliveMilliseconds?: number;
+
+  /**
+   * What checks npm for a newer markdown-review; by default one configured from the environment, or none when the
+   * environment opts out
+   */
+  updateChecker?: UpdateChecker | null;
 
   /**
    * The built web app the server shows in the browser
@@ -61,6 +69,7 @@ export async function runServer({
   logger,
   pollKeepAliveMilliseconds = 15_000,
   root,
+  updateChecker = createUpdateChecker(logger),
   webDirectory,
 }: RunServerOptions): Promise<RunningServer> {
   const store = new ReviewStore(root, logger);
@@ -123,10 +132,12 @@ export async function runServer({
       watcher.watch(thread.anchor.document);
     }
   }
+  updateChecker?.start();
   logger.info(`Serving ${root} on http://127.0.0.1:${port}`);
 
   async function stop(): Promise<void> {
     activity.stop();
+    updateChecker?.stop();
     await watcher.close();
     await closeServer(server);
     await removeServerFile(root);
@@ -135,6 +146,17 @@ export async function runServer({
   }
 
   return { close, closed, port };
+}
+
+function createUpdateChecker(logger: Logger): UpdateChecker | null {
+  if (updateChecksDisabled(process.env)) {
+    return null;
+  }
+  return new UpdateChecker({
+    cachePath: updateCheckFilePath(process.env),
+    logger,
+    registry: registryUrl(process.env),
+  });
 }
 
 async function listen(server: Server, port: number): Promise<number> {
