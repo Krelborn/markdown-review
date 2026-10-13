@@ -25,7 +25,8 @@ export interface GutterDrag {
    *
    * @param onEnd called with the blocks the drag covers when the user releases the button; not called when the user
    *   presses Escape or the doc renders again first
-   * @returns whether a drag started, which it does not for another button or where no block takes up any height
+   * @returns whether a drag started, which it does not for another button, with ⌥ held, or where no block takes up any
+   *   height
    */
   startDrag: (event: ReactPointerEvent<Element>, onEnd: (span: BlockSpan) => void) => boolean;
 }
@@ -116,7 +117,7 @@ export function useGutterDrag(
   useEffect(() => () => setDrag(null), [rendered]);
   const startDrag = useCallback(
     (event: ReactPointerEvent<Element>, onDragEnd: (span: BlockSpan) => void): boolean => {
-      const block = event.button === 0 ? blockIndexLevelWith(event.clientY) : null;
+      const block = event.button === 0 && !event.altKey ? blockIndexLevelWith(event.clientY) : null;
       if (block === null) {
         return false;
       }

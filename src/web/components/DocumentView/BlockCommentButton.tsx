@@ -1,6 +1,6 @@
 import { AddIcon, IconButton } from "@krelborn/stylesui";
 import { clsx } from "clsx";
-import type { JSX, PointerEvent } from "react";
+import type { JSX, MouseEvent, PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import type { BlockBox } from "./BlockBox";
@@ -25,7 +25,10 @@ export interface BlockCommentButtonProps {
    */
   isPointerInGutter: boolean;
 
-  onComment: () => void;
+  /**
+   * Called with the click when the user clicks the +, or presses it from the keyboard, unless the press started a drag
+   */
+  onComment: (event: MouseEvent<HTMLButtonElement>) => void;
 
   /**
    * Called when the user presses the +, to start a drag down the gutter from its block
@@ -64,9 +67,9 @@ export function BlockCommentButton({
         className={clsx(styles.blockButton, { [styles.pickingBlockButton ?? ""]: isPointerInGutter })}
         label="Comment on this block"
         onBlur={() => onFocusChange(false)}
-        onClick={() => {
+        onClick={(event) => {
           if (!isDragClickRef.current) {
-            onComment();
+            onComment(event);
           }
           isDragClickRef.current = false;
         }}

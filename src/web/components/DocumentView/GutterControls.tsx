@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import type { JSX, MouseEvent } from "react";
 
 import type { BlockSpan } from "../../../shared/markdown/BlockSpan";
 
@@ -8,6 +8,7 @@ import { BlockTarget } from "./BlockTarget";
 import { StructurePicker } from "./StructurePicker";
 import type { GutterDrag } from "./useGutterDrag";
 import type { HoveredBlock } from "./useHoveredBlock";
+import { useIsAltKeyDown } from "./useIsAltKeyDown";
 import type { OfferedStructure } from "./useOfferedStructure";
 import type { PendingSpan } from "./usePendingSpan";
 
@@ -47,7 +48,7 @@ export interface GutterControlsProps {
 
 /**
  * The gutter down the left of the doc: its outer lane picks the structure around a block, and the rest picks the
- * block, with the + beside it, or the blocks a drag covers
+ * block, with the + beside it, the blocks a drag covers, or with ⌥ held the structure
  */
 export function GutterControls({
   gutterDrag,
@@ -59,12 +60,29 @@ export function GutterControls({
   pendingSpan,
 }: GutterControlsProps): JSX.Element {
   const { box: draggedBox, span: draggedSpan, startDrag } = gutterDrag;
-  const isPickingStructure = hoveredBlock?.isPointerInBracketLane === true;
-  const isPickingBlock = hoveredBlock?.isPointerInGutter === true && !isPickingStructure;
-  const pointedBox = isPickingBlock ? hoveredBlock.box : null;
+  const isAltKeyDown = useIsAltKeyDown();
+  const { isPickingBlock, isPickingStructure } = pickingIn(hoveredBlock, {
+    isAltKeyDown,
+    isDragging: draggedSpan !== null,
+    isOffering: offeredStructure !== null,
+  });
+  const pointedBox = isPickingBlock && hoveredBlock !== null ? hoveredBlock.box : null;
+  // With ⌥ held, a click picks the structure around the block, or the block when no structure holds it
+  const commentOnClick = (event: MouseEvent, blockIndex: number): void => {
+    const blockSpan = { firstBlock: blockIndex, lastBlock: blockIndex };
+    onComment(event.altKey ? (offeredStructure?.structure ?? blockSpan) : blockSpan);
+  };
   return (
     <>
-      <BlockGutter onPointerDown={(event) => startDrag(event, onComment)} pickedBox={draggedBox ?? pointedBox} />
+      <BlockGutter
+        onClick={(event) => {
+          if (event.altKey && hoveredBlock !== null) {
+            commentOnClick(event, hoveredBlock.box.index);
+          }
+        }}
+        onPointerDown={(event) => startDrag(event, onComment)}
+        pickedBox={draggedBox ?? pointedBox}
+      />
       <StructurePicker isPicking={isPickingStructure} offeredStructure={offeredStructure} onComment={onComment} />
       {draggedSpan !== null && draggedBox !== null && <BlockTarget box={draggedBox} label={countLabel(draggedSpan)} />}
       {hoveredBlock !== null && (
@@ -73,13 +91,37 @@ export function GutterControls({
           isFocused={isBlockButtonFocused}
           isFramed={draggedSpan !== null || isSpanOf(pendingSpan, hoveredBlock.box.index)}
           isPointerInGutter={isPickingBlock}
-          onComment={() => onComment({ firstBlock: hoveredBlock.box.index, lastBlock: hoveredBlock.box.index })}
+          onComment={(event) => commentOnClick(event, hoveredBlock.box.index)}
           onDragStart={(event) => startDrag(event, onComment)}
           onFocusChange={onBlockButtonFocusChange}
         />
       )}
     </>
   );
+}
+
+interface PickingState {
+  isAltKeyDown: boolean;
+  isDragging: boolean;
+
+  /**
+   * Whether the gutter offers a structure around the block it picks
+   */
+  isOffering: boolean;
+}
+
+/**
+ * @returns whether the gutter picks the block level with the pointer, or the structure around it: in the bracket lane,
+ *   or elsewhere in the gutter with ⌥ held while it offers a structure and the user is not dragging
+ */
+function pickingIn(
+  hoveredBlock: HoveredBlock | null,
+  { isAltKeyDown, isDragging, isOffering }: PickingState
+): { isPickingBlock: boolean; isPickingStructure: boolean } {
+  const isInGutter = hoveredBlock?.isPointerInGutter === true;
+  const isPickingStructure =
+    hoveredBlock?.isPointerInBracketLane === true || (isInGutter && isAltKeyDown && isOffering && !isDragging);
+  return { isPickingBlock: isInGutter && !isPickingStructure, isPickingStructure };
 }
 
 /**

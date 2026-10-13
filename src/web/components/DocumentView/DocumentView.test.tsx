@@ -514,6 +514,44 @@ describe("DocumentView", () => {
     expect(screen.getByTestId("block-target")).toHaveTextContent("Comment on the section “Goals”");
   });
 
+  test.each([
+    { control: "the gutter beside its heading", target: () => elements.gutter() },
+    {
+      control: "the + beside its heading",
+      target: () => screen.getByRole("button", { name: "Comment on this block" }),
+    },
+  ])("must start a comment on the whole section when the user ⌥-clicks $control", async ({ target }) => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await moveInGutter(user, 110);
+    const coords = { clientX: 20, clientY: 110 };
+
+    await user.keyboard("{Alt>}");
+    await user.pointer({ coords, keys: "[MouseLeft]", target: target() });
+    await user.keyboard("{/Alt}");
+
+    expect(onComment).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ anchor: expect.objectContaining({ quote: "Goals\nRetries happen three times." }) })
+    );
+  });
+
+  test("must frame the structure while the user holds ⌥ with the pointer in the gutter, and the block once they let go", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await moveInGutter(user, 110);
+
+    await user.keyboard("{Alt>}");
+    const whileHeld = screen.getByTestId("block-target").textContent;
+    await user.keyboard("{/Alt}");
+
+    expect(whileHeld).toBe("Comment on the section “Goals”");
+    expect(screen.getByTestId("block-target")).toHaveTextContent("");
+  });
+
   test("must not bracket a structure while the pointer is over the doc", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();

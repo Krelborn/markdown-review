@@ -157,6 +157,33 @@ test("must start a comment quoting the whole table when the user clicks the brac
   await expect(quote).not.toContainText("After the table.");
 });
 
+test("must start a comment quoting the whole table when the user ⌥-clicks the gutter beside a row", async ({
+  page,
+  review,
+}) => {
+  await review.writeDocument(
+    "docs/plan.md",
+    "# Plan\n\n| Setting | Value |\n| --- | --- |\n| ttl | 24h |\n| retries | 3 |\n\nAfter the table.\n"
+  );
+  await review.open("docs/plan.md");
+  const beside = await pointInGutterBeside(
+    page,
+    page.getByRole("article", { name: "docs/plan.md" }).getByRole("row").nth(1)
+  );
+
+  await page.mouse.move(beside.x, beside.y);
+  await page.keyboard.down("Alt");
+  await expect(page.getByTestId("block-target")).toContainText("Comment on the table");
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.keyboard.up("Alt");
+
+  const quote = page.getByRole("region", { name: "New comment" }).getByRole("blockquote");
+  await expect(quote).toContainText("Setting");
+  await expect(quote).toContainText("retries");
+  await expect(quote).not.toContainText("After the table.");
+});
+
 test("must put the + beside a list item when the user points beside the item's text", async ({ page, review }) => {
   await review.writeDocument("docs/plan.md", "# Plan\n\n- First item\n- Second item\n");
   await review.open("docs/plan.md");
