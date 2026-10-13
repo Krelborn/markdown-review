@@ -15,8 +15,12 @@ export function waitForCommentsInRootStep(root: string): string {
   );
 }
 
-export const approvedStep =
-  "The user approved the review. Carry on with your task; do not run `markdown-review poll` again for this review.";
+export const wentAheadStep =
+  "The user said go ahead. Carry on with your task; do not run `markdown-review poll` again for this review.";
+
+export const handedBackStep =
+  "Stop here: do not edit the docs, run `markdown-review poll` or carry on with your task. " +
+  "Tell the user in the chat that you have stopped, and wait for their instructions.";
 
 /**
  * @param ids the threads that need the agent, at least one
@@ -30,15 +34,26 @@ export function addressThreadsStep(ids: readonly number[]): string {
 }
 
 /**
- * @param ids the threads the user commented on when approving, at least one
+ * @param ids the threads the user commented on when saying go ahead, at least one
  */
-export function approvedWithCommentsStep(ids: readonly number[]): string {
+export function wentAheadWithCommentsStep(ids: readonly number[]): string {
   const resolveCommand =
     ids.length === 1
       ? `\`markdown-review resolve ${ids[0]} "<what changed>"\``
       : '`markdown-review resolve <id> "<what changed>"` for each';
   return (
-    `The user approved the review with comments. Address ${formatIdList(ids)} and run ${resolveCommand}, ` +
+    `The user said go ahead, with comments. Address ${formatIdList(ids)} and run ${resolveCommand}, ` +
     "then carry on with your task; do not run `markdown-review poll` again for this review."
+  );
+}
+
+/**
+ * @param ids the threads the user commented on when handing the review back, at least one
+ */
+export function handedBackWithCommentsStep(ids: readonly number[]): string {
+  return (
+    `Stop here: do not edit the docs, resolve or reply to ${formatIdList(ids)}, run \`markdown-review poll\` or ` +
+    "carry on with your task. Tell the user in the chat that you have stopped and what their comments say, and wait " +
+    "for their instructions."
   );
 }

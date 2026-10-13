@@ -10,6 +10,8 @@ const roundGoingOn = buildRound();
 
 const roundWentAhead = buildRound({ verdict: { at: "2026-10-08T10:00:00.000Z", kind: "go-ahead" } });
 
+const roundHandedBack = buildRound({ verdict: { at: "2026-10-08T10:00:00.000Z", kind: "hand-back" } });
+
 const cacheThread = buildThread({
   anchor: buildPassageAnchor({
     anchoredText: "cache results for 24h",
@@ -54,40 +56,39 @@ describe("formatInbox", () => {
     const text = formatInbox(snapshot([], roundWentAhead), ["update_available: one\n", "skill_outdated: two\n"]);
 
     expect(text).toBe(
-      "Review approved. No threads need you.\n\nupdate_available: one\nskill_outdated: two\n\nnext_step: The user " +
-        "approved the review. Carry on with your task; do not run `markdown-review poll` again for this review.\n"
+      "The user said go ahead. No threads need you.\n\nupdate_available: one\nskill_outdated: two\n\nnext_step: The " +
+        "user said go ahead. Carry on with your task; do not run `markdown-review poll` again for this review.\n"
     );
   });
 
-  test("must tell the agent to carry on when the review is approved and nothing needs it", () => {
+  test("must tell the agent to carry on when the user said go ahead and nothing needs it", () => {
     expect(formatInbox(snapshot([], roundWentAhead))).toBe(
-      "Review approved. No threads need you.\n\nnext_step: The user approved the review. Carry on with your task; " +
-        "do not run `markdown-review poll` again for this review.\n"
+      [
+        "The user said go ahead. No threads need you.",
+        "",
+        "next_step: The user said go ahead. Carry on with your task; do not run `markdown-review poll` again for this " +
+          "review.",
+        "",
+      ].join("\n")
     );
   });
 
-  test("must ask for the comment to be resolved before carrying on when the review is approved with a comment", () => {
+  test("must ask for the comment to be resolved before carrying on when the user said go ahead with a comment", () => {
     const thread = buildThread({
-      anchor: buildPassageAnchor({
-        anchoredText: "retry three times",
-        document: "docs/plans/plan.md",
-        endLine: 40,
-        quote: "retry three times",
-        startLine: 40,
-      }),
+      anchor: buildPassageAnchor({ document: "docs/plan.md", endLine: 3, startLine: 3 }),
       id: 16,
-      messages: [{ at: testTime, author: "user", body: "Nit: make the retry count configurable." }],
+      messages: [{ at: testTime, author: "user", body: "Make it 12h." }],
     });
 
     expect(formatInbox(snapshot([thread], roundWentAhead))).toBe(
       [
-        "Review approved, 1 thread needs you (docs/plans/plan.md: 1)",
+        "The user said go ahead, 1 thread needs you (docs/plan.md: 1)",
         "",
-        "#16 docs/plans/plan.md:40",
-        '  quote: "retry three times"',
-        "  user: Nit: make the retry count configurable.",
+        "#16 docs/plan.md:3",
+        '  quote: "cache results for 24h"',
+        "  user: Make it 12h.",
         "",
-        "next_step: The user approved the review with comments. Address #16 and run " +
+        "next_step: The user said go ahead, with comments. Address #16 and run " +
           '`markdown-review resolve 16 "<what changed>"`, then carry on with your task; do not run ' +
           "`markdown-review poll` again for this review.",
         "",
@@ -95,7 +96,57 @@ describe("formatInbox", () => {
     );
   });
 
-  test("must tell the agent to wait for comments when nothing needs it and the review is not approved", () => {
+  test("must tell the agent to stop and pass on the comments when the user handed the review back with comments", () => {
+    const approachThread = buildThread({
+      anchor: buildPassageAnchor({ document: "docs/plan.md", endLine: 3, startLine: 3 }),
+      id: 3,
+      messages: [{ at: testTime, author: "user", body: "This whole approach is wrong; let's talk." }],
+    });
+    const retriesThread = buildThread({
+      anchor: buildPassageAnchor({
+        anchoredText: "Retries happen three times.",
+        document: "docs/plan.md",
+        endLine: 7,
+        quote: "Retries happen three times.",
+        startLine: 7,
+      }),
+      id: 4,
+      messages: [{ at: testTime, author: "user", body: "Why three?" }],
+    });
+
+    expect(formatInbox(snapshot([approachThread, retriesThread], roundHandedBack))).toBe(
+      [
+        "The user asked to hand back to you, with comments on 2 threads (docs/plan.md: 2)",
+        "",
+        "#3 docs/plan.md:3",
+        '  quote: "cache results for 24h"',
+        "  user: This whole approach is wrong; let's talk.",
+        "",
+        "#4 docs/plan.md:7",
+        '  quote: "Retries happen three times."',
+        "  user: Why three?",
+        "",
+        "next_step: Stop here: do not edit the docs, resolve or reply to #3 and #4, run `markdown-review poll` or " +
+          "carry on with your task. Tell the user in the chat that you have stopped and what their comments say, and " +
+          "wait for their instructions.",
+        "",
+      ].join("\n")
+    );
+  });
+
+  test("must tell the agent to stop when the user handed the review back and nothing needs it", () => {
+    expect(formatInbox(snapshot([], roundHandedBack))).toBe(
+      [
+        "The user asked to hand back to you. No threads need you.",
+        "",
+        "next_step: Stop here: do not edit the docs, run `markdown-review poll` or carry on with your task. Tell the " +
+          "user in the chat that you have stopped, and wait for their instructions.",
+        "",
+      ].join("\n")
+    );
+  });
+
+  test("must tell the agent to wait for comments when nothing needs it and the round goes on", () => {
     expect(formatInbox(snapshot([]))).toBe(
       "No threads need you.\n\nnext_step: Run `markdown-review poll` to wait for the user's comments. Give the shell " +
         "command a timeout of at least 600000 ms, or in Claude Code run it with run_in_background and `--timeout 7080`.\n"

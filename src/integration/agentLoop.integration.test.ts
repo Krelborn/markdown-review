@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { approvedStep, pollTimeoutAdvice, waitForCommentsStep } from "../cli/nextSteps";
+import { handedBackStep, pollTimeoutAdvice, waitForCommentsStep, wentAheadStep } from "../cli/nextSteps";
 
 import { plan, setUpReviewRepository } from "./testing/setUpReviewRepository";
 
@@ -70,19 +70,42 @@ describe("agent loop", () => {
     expect(stderr).toContain("Nothing was lost; run `markdown-review poll` again");
   });
 
-  test("must end the poll when the user approves, and start a new round on the next open", async () => {
+  test.each([
+    { verdict: "go-ahead", expected: `The user said go ahead. No threads need you.\n\nnext_step: ${wentAheadStep}\n` },
+    {
+      verdict: "hand-back",
+      expected: `The user asked to hand back to you. No threads need you.\n\nnext_step: ${handedBackStep}\n`,
+    },
+  ])(
+    "must end the poll when the user chooses $verdict, and start a new round on the next open",
+    async ({ verdict, expected }) => {
+      const repository = getRepository();
+      await repository.run(["open", "docs/plan.md"]);
+      const poll = repository.start(["poll", "--timeout", "20"]);
+      await poll.printedToStderr("Waiting up to 20s");
+
+      await repository.browser("POST", "/api/submit", { verdict });
+      const ended = await poll.result;
+      await repository.run(["open", "docs/plan.md"]);
+      const nextRound = await repository.run(["inbox"]);
+
+      expect(ended.stdout).toBe(expected);
+      expect(nextRound.stdout).toBe(`No threads need you.\n\nnext_step: ${waitForCommentsStep}\n`);
+    }
+  );
+
+  test("must pass the comments on when the user hands the review back with them", async () => {
     const repository = getRepository();
     await repository.run(["open", "docs/plan.md"]);
     const poll = repository.start(["poll", "--timeout", "20"]);
     await poll.printedToStderr("Waiting up to 20s");
 
-    await repository.browser("POST", "/api/submit", { verdict: "go-ahead" });
-    const approved = await poll.result;
-    await repository.run(["open", "docs/plan.md"]);
-    const nextRound = await repository.run(["inbox"]);
+    await repository.browser("POST", "/api/threads", cacheComment);
+    await repository.browser("POST", "/api/submit", { verdict: "hand-back" });
 
-    expect(approved.stdout).toBe(`Review approved. No threads need you.\n\nnext_step: ${approvedStep}\n`);
-    expect(nextRound.stdout).toBe(`No threads need you.\n\nnext_step: ${waitForCommentsStep}\n`);
+    const { stdout } = await poll.result;
+    expect(stdout).toContain("The user asked to hand back to you, with comments on 1 thread (docs/plan.md: 1)");
+    expect(stdout).toContain("next_step: Stop here: do not edit the docs, resolve or reply to #1,");
   });
 
   test("must say what is left after each reply and resolve", async () => {

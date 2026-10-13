@@ -62,7 +62,7 @@ test("must end the agent's poll when the user approves the review", async ({ pag
   await submitDrafts(page, 0, "Approve");
 
   const { stdout } = await poll.result;
-  expect(stdout.startsWith("Review approved. No threads need you.\n")).toBe(true);
+  expect(stdout.startsWith("The user said go ahead. No threads need you.\n")).toBe(true);
   await expect(page.getByText("Approved", { exact: true })).toBeVisible();
 });
 

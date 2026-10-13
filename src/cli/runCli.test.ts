@@ -95,7 +95,7 @@ describe("runCli", () => {
 
     expect(stdout).toContain(
       `\n\nupdate_available: markdown-review 99.0.0 is out; this is ${packageVersion}. Tell the user, and offer to ` +
-        `update once they approve the review.\n\nnext_step: ${waitForCommentsStep}\n`
+        `update once they say go ahead.\n\nnext_step: ${waitForCommentsStep}\n`
     );
   });
 
@@ -118,7 +118,7 @@ describe("runCli", () => {
 
     expect(stdout).toContain(
       `\n\nskill_outdated: The markdown-review skill at ${skillPath} is older than this version (${packageVersion}). ` +
-        "Once the user approves the review, run `markdown-review install-skill`. The new skill loads in the next " +
+        "Once the user says go ahead, run `markdown-review install-skill`. The new skill loads in the next " +
         `agent session.\n\nnext_step: ${waitForCommentsStep}\n`
     );
   });

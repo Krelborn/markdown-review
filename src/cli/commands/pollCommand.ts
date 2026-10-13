@@ -36,13 +36,13 @@ export async function pollCommand(args: string[], context: CliContext): Promise<
       `Waiting up to ${timeoutSeconds}s for review comments. If this is interrupted, run \`markdown-review poll\` again; nothing is lost.\n`
     );
     const result = await client.poll(document, timeoutSeconds, abort.signal);
-    const wentAhead = roundOutcome(result.round) === "go-ahead";
-    if (result.timedOut && result.threads.length === 0 && !wentAhead) {
+    const outcome = roundOutcome(result.round);
+    if (result.timedOut && result.threads.length === 0 && outcome === null) {
       terminal.stdout(
         `No comments yet.\n\nnext_step: Run \`markdown-review poll\` again to keep waiting. ${pollTimeoutAdvice}\n`
       );
     } else {
-      const notices = wentAhead ? await readUpdateNotices(context, root, true) : [];
+      const notices = outcome === "go-ahead" ? await readUpdateNotices(context, root, true) : [];
       terminal.stdout(formatInbox(result, notices));
     }
     return 0;

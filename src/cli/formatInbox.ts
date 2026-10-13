@@ -1,8 +1,16 @@
 import type { ThreadsSnapshot } from "../shared/api/apiResponseSchemas";
+import type { RoundOutcome } from "../shared/review/roundOutcome";
 import { roundOutcome } from "../shared/review/roundOutcome";
 import type { Thread } from "../shared/review/threadSchema";
 
-import { addressThreadsStep, approvedStep, approvedWithCommentsStep, waitForCommentsStep } from "./nextSteps";
+import {
+  addressThreadsStep,
+  handedBackStep,
+  handedBackWithCommentsStep,
+  waitForCommentsStep,
+  wentAheadStep,
+  wentAheadWithCommentsStep,
+} from "./nextSteps";
 
 const longQuoteLength = 200;
 
@@ -15,14 +23,14 @@ const quoteEndLength = 60;
  *
  * @param snapshot the review round and the threads that need the agent
  * @param notices lines to put just before `next_step`, each ending in a newline
- * @returns the summary, each thread grouped by doc with its messages, any store problems, the notices, and a final
- *   `next_step`
+ * @returns the summary, which says how the user ended the round if they have, each thread grouped by doc with its
+ *   messages, any store problems, the notices, and a final `next_step`
  */
 export function formatInbox({ problems, round, threads }: ThreadsSnapshot, notices: readonly string[] = []): string {
-  const approved = roundOutcome(round) === "go-ahead";
+  const outcome = roundOutcome(round);
   const ordered = orderByDocument(threads);
   const ids = ordered.map((thread) => thread.id);
-  const sections = [summaryLine(approved, ordered)];
+  const sections = [summaryLine(outcome, ordered)];
   if (ordered.length > 0) {
     sections.push(ordered.map(formatThread).join("\n\n"));
   }
@@ -32,7 +40,7 @@ export function formatInbox({ problems, round, threads }: ThreadsSnapshot, notic
   if (notices.length > 0) {
     sections.push(notices.join("").trimEnd());
   }
-  sections.push(`next_step: ${nextStep(approved, ids)}`);
+  sections.push(`next_step: ${nextStep(outcome, ids)}`);
   return `${sections.join("\n\n")}\n`;
 }
 
@@ -63,25 +71,55 @@ function describeAnchor({ anchor, id }: Thread): string[] {
   }
 }
 
-function summaryLine(approved: boolean, threads: readonly Thread[]): string {
+function summaryLine(outcome: RoundOutcome | null, threads: readonly Thread[]): string {
   if (threads.length === 0) {
-    return approved ? "Review approved. No threads need you." : "No threads need you.";
+    return `${outcomeSentence(outcome)}No threads need you.`;
   }
+  const breakdown = countByGroup(threads);
+  const needs = threads.length === 1 ? "1 thread needs you" : `${threads.length} threads need you`;
+  switch (outcome) {
+    case "go-ahead":
+      return `The user said go ahead, ${needs} (${breakdown})`;
+    case "hand-back":
+      return `The user asked to hand back to you, with comments on ${countThreads(threads.length)} (${breakdown})`;
+    case null:
+      return `${needs} (${breakdown})`;
+  }
+}
+
+function countByGroup(threads: readonly Thread[]): string {
   const counts = new Map<string, number>();
   for (const thread of threads) {
     const group = thread.anchor.kind === "review" ? "review" : thread.anchor.document;
     counts.set(group, (counts.get(group) ?? 0) + 1);
   }
-  const breakdown = [...counts].map(([group, count]) => `${group}: ${count}`).join(", ");
-  const needs = threads.length === 1 ? "1 thread needs you" : `${threads.length} threads need you`;
-  return approved ? `Review approved, ${needs} (${breakdown})` : `${needs} (${breakdown})`;
+  return [...counts].map(([group, count]) => `${group}: ${count}`).join(", ");
 }
 
-function nextStep(approved: boolean, ids: readonly number[]): string {
-  if (ids.length === 0) {
-    return approved ? approvedStep : waitForCommentsStep;
+function countThreads(count: number): string {
+  return count === 1 ? "1 thread" : `${count} threads`;
+}
+
+function outcomeSentence(outcome: RoundOutcome | null): string {
+  switch (outcome) {
+    case "go-ahead":
+      return "The user said go ahead. ";
+    case "hand-back":
+      return "The user asked to hand back to you. ";
+    case null:
+      return "";
   }
-  return approved ? approvedWithCommentsStep(ids) : addressThreadsStep(ids);
+}
+
+function nextStep(outcome: RoundOutcome | null, ids: readonly number[]): string {
+  switch (outcome) {
+    case "go-ahead":
+      return ids.length === 0 ? wentAheadStep : wentAheadWithCommentsStep(ids);
+    case "hand-back":
+      return ids.length === 0 ? handedBackStep : handedBackWithCommentsStep(ids);
+    case null:
+      return ids.length === 0 ? waitForCommentsStep : addressThreadsStep(ids);
+  }
 }
 
 function orderByDocument(threads: readonly Thread[]): Thread[] {
