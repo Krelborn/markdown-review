@@ -9,8 +9,10 @@ const commandHelp: Record<string, string> = {
     "  ~/.claude/skills. Claude Code and OpenCode both read skills from there.",
   ].join("\n"),
   open: [
-    "markdown-review open [path]",
-    "  Start a review round and show the doc (or the docs list) in the user's browser. Prints the URL.",
+    "markdown-review open [path] [--next-task <text>]",
+    "  Start a review round, or add the doc to the one in progress, and show the doc (or the docs list) in the",
+    "  user's browser. --next-task says what you will do once the user says go ahead; the user sees it. Prints the",
+    "  URL.",
   ].join("\n"),
   poll: [
     "markdown-review poll [--document <path>] [--timeout <seconds>]",

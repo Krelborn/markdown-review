@@ -31,10 +31,10 @@ describe("ServerClient", () => {
   test("must start a round and return the doc's URL when the agent opens a doc", async () => {
     const { client } = await setUpTest();
 
-    const opened = await client.open("docs/plan.md");
+    const opened = await client.open("docs/plan.md", "implement the plan");
 
     expect(opened).toMatchObject({ navigated: false, url: `http://127.0.0.1:${client.port}/document/docs/plan.md` });
-    expect(opened.round?.documents).toEqual(["docs/plan.md"]);
+    expect(opened.round).toMatchObject({ documents: ["docs/plan.md"], nextTask: "implement the plan" });
   });
 
   test("must return an empty, timed-out inbox when a poll's timeout passes with nothing to do", async () => {

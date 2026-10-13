@@ -94,15 +94,15 @@ Links between markdown docs in the repository open in the app. Docs render with 
 
 These are the commands the agent runs. You rarely need them yourself, but they are handy for trying the tool out.
 
-| Command                                                          | What it does                                                                                               |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `markdown-review open [path]`                                    | Start a review round and show the doc, or the docs list, in the browser. Prints the URL.                   |
-| `markdown-review poll [--document <path>] [--timeout <seconds>]` | Wait until you submit, then print the comments that need the agent. Gives up after 540 seconds by default. |
-| `markdown-review inbox [--document <path>]`                      | Print the same as `poll`, without waiting.                                                                 |
-| `markdown-review reply <id> <text>`                              | Answer a thread without resolving it, for example to ask you a question.                                   |
-| `markdown-review resolve <id> [text]`                            | Resolve a thread, optionally saying what changed.                                                          |
-| `markdown-review stop`                                           | Stop the review server for this repository.                                                                |
-| `markdown-review install-skill [--global]`                       | Install the skill that teaches agents this workflow.                                                       |
+| Command                                                          | What it does                                                                                                                                                                                      |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `markdown-review open [path] [--next-task <text>]`               | Start a review round, or add the doc to the one in progress, and show the doc, or the docs list, in the browser. `--next-task` says what the agent will do once you say go ahead. Prints the URL. |
+| `markdown-review poll [--document <path>] [--timeout <seconds>]` | Wait until you submit, then print the comments that need the agent. Gives up after 540 seconds by default.                                                                                        |
+| `markdown-review inbox [--document <path>]`                      | Print the same as `poll`, without waiting.                                                                                                                                                        |
+| `markdown-review reply <id> <text>`                              | Answer a thread without resolving it, for example to ask you a question.                                                                                                                          |
+| `markdown-review resolve <id> [text]`                            | Resolve a thread, optionally saying what changed.                                                                                                                                                 |
+| `markdown-review stop`                                           | Stop the review server for this repository.                                                                                                                                                       |
+| `markdown-review install-skill [--global]`                       | Install the skill that teaches agents this workflow.                                                                                                                                              |
 
 `reply` and `resolve` also take `--file <path>` for a long message, or `--file -` to read standard input. `markdown-review --help` lists the commands, and `markdown-review <command> --help` describes one. Every command ends with a `next_step` line that tells the agent what to do next.
 

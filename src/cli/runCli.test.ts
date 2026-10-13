@@ -53,6 +53,21 @@ describe("runCli", () => {
       args: ["poll", "--timeout", "soon"],
       message: "error: --timeout must be",
     },
+    {
+      condition: "the next task is blank",
+      args: ["open", "docs/plan.md", "--next-task", "  "],
+      message: "error: --next-task must be one line of at most 200 characters",
+    },
+    {
+      condition: "the next task is longer than 200 characters",
+      args: ["open", "docs/plan.md", "--next-task", "a".repeat(201)],
+      message: "error: --next-task must be one line of at most 200 characters",
+    },
+    {
+      condition: "the next task has more than one line",
+      args: ["open", "docs/plan.md", "--next-task", "implement the plan\nthen ship it"],
+      message: "error: --next-task must be one line of at most 200 characters",
+    },
   ])("must exit 2 with the error and a next_step when $condition", async ({ args, message }) => {
     const { run } = await setUpTest();
 

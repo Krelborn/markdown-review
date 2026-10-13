@@ -11,7 +11,7 @@ If the `markdown-review` command is not found, install it with `npm install --gl
 
 ## The review loop
 
-1. Run `markdown-review open <doc.md>`. It starts a review round and shows the doc in the user's browser.
+1. Run `markdown-review open <doc.md> --next-task "<what you will do once the user says go ahead>"`, for example `--next-task "implement the plan in src/server"`. It starts a review round and shows the doc in the user's browser, with your next task under Go ahead.
 2. Run `markdown-review poll`. It waits until the user submits, then prints each comment: its thread ID, file, line range, the quoted text and the user's words.
    - Give the shell command a timeout of at least 600000 ms. `poll` gives up after 540 seconds by default; run it again if it says there are no comments yet.
    - In Claude Code, run it with `run_in_background` and `--timeout 7080`, and a Bash timeout of 7200000 ms. A submit still ends it at once.
