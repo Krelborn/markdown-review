@@ -5,6 +5,7 @@ import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { HoveredThreadContext } from "../../review/HoveredThreadContext";
 
+import { useBlockIndexLevelWith } from "./useBlockIndexLevelWith";
 import type { HoveredBlock } from "./useHoveredBlock";
 import { useHoveredBlock } from "./useHoveredBlock";
 import { useHoveredThread } from "./useHoveredThread";
@@ -88,7 +89,11 @@ export function useDocumentOverlay(
   });
   const isPointingAtHighlight = useHoveredThread(viewRef, contentRef, rendered, highlightedThreads, onHoverThread);
   const selectionComment = useSelectionComment(viewRef, contentRef, rendered, documentPath);
-  const { blockIndexLevelWith, hoveredBlock } = useHoveredBlock(viewRef, contentRef, rendered, isBlockButtonFocused);
+  const blockIndexLevelWith = useBlockIndexLevelWith(viewRef, contentRef, rendered);
+  const hoveredBlock = useHoveredBlock(viewRef, contentRef, rendered, {
+    blockIndexLevelWith,
+    isHeld: isBlockButtonFocused,
+  });
   const pendingSpan = usePendingSpan(viewRef, contentRef, rendered, pendingPassage);
   return { blockIndexLevelWith, hoveredBlock, isPointingAtHighlight, markers, pendingSpan, selectionComment };
 }

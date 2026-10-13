@@ -1,10 +1,9 @@
 import type { RefObject } from "react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 
 import { blockElementAt } from "../../anchoring/blockElementAt";
 
 import type { BlockBox } from "./BlockBox";
-import { blockLevelWith } from "./blockLevelWith";
 import { measureBlock } from "./measureBlock";
 import { useLayoutRevision } from "./useLayoutRevision";
 import type { RenderedDocument } from "./useRenderedDocument";
@@ -21,7 +20,7 @@ export interface HoveredBlock {
   isPointerInGutter: boolean;
 }
 
-export interface BlockHover {
+export interface HoveredBlockOptions {
   /**
    * Finds the block level with a distance down the page, as the gutter picks it
    *
@@ -30,19 +29,9 @@ export interface BlockHover {
   blockIndexLevelWith: (clientY: number) => number | null;
 
   /**
-   * The block the + sits beside, or null when the pointer has left the view and the + is not held, or when the doc has
-   * rendered again since the pointer picked the block, as the block may have moved or be another block now
+   * Whether the + has the focus, which keeps it on its block after the pointer leaves the view
    */
-  hoveredBlock: HoveredBlock | null;
-}
-
-/**
- * The doc's blocks, as measured for a layout and a rendering of the doc
- */
-interface MeasuredBlocks {
-  boxes: BlockBox[];
-  layoutRevision: number;
-  rendered: RenderedDocument | null;
+  isHeld: boolean;
 }
 
 /**
@@ -51,35 +40,20 @@ interface MeasuredBlocks {
  * changes. The pointer picks the block it is over, and beside the doc, in the gutter or on the markers' side, or over
  * the doc between blocks, the block level with it.
  *
- * @param isHeld whether the + has the focus, which keeps it on its block after the pointer leaves the view
+ * @returns the block the + sits beside, or null when the pointer has left the view and the + is not held, or when the
+ *   doc has rendered again since the pointer picked the block, as the block may have moved or be another block now
  */
 export function useHoveredBlock(
   viewRef: RefObject<HTMLElement | null>,
   contentRef: RefObject<HTMLElement | null>,
   rendered: RenderedDocument | null,
-  isHeld: boolean
-): BlockHover {
+  { blockIndexLevelWith, isHeld }: HoveredBlockOptions
+): HoveredBlock | null {
   const [pointed, setPointed] = useState<{ index: number; rendered: RenderedDocument } | null>(null);
   const [isPointerInView, setIsPointerInView] = useState(false);
   const [isPointerInGutter, setIsPointerInGutter] = useState(false);
   const [box, setBox] = useState<BlockBox | null>(null);
   const layoutRevision = useLayoutRevision(viewRef, contentRef);
-  const measured = useRef<MeasuredBlocks | null>(null);
-  const blockIndexLevelWith = useCallback(
-    (clientY: number): number | null => {
-      const view = viewRef.current;
-      const content = contentRef.current;
-      if (view === null || content === null) {
-        return null;
-      }
-      if (measured.current?.layoutRevision !== layoutRevision || measured.current.rendered !== rendered) {
-        const boxes = [...content.querySelectorAll("[data-md-block]")].map((block) => measureBlock(view, block));
-        measured.current = { boxes, layoutRevision, rendered };
-      }
-      return blockLevelWith(measured.current.boxes, clientY - view.getBoundingClientRect().top)?.index ?? null;
-    },
-    [contentRef, layoutRevision, rendered, viewRef]
-  );
   useEffect(() => {
     const view = viewRef.current;
     const content = contentRef.current;
@@ -120,10 +94,7 @@ export function useHoveredBlock(
       blockIndex === null ? null : (contentRef.current?.querySelector(`[data-md-block="${blockIndex}"]`) ?? null);
     setBox(view === null || block === null ? null : measureBlock(view, block));
   }, [blockIndex, contentRef, layoutRevision, viewRef]);
-  return {
-    blockIndexLevelWith,
-    hoveredBlock: blockIndex === null || box === null ? null : { box, isPointerInGutter },
-  };
+  return blockIndex === null || box === null ? null : { box, isPointerInGutter };
 }
 
 /**

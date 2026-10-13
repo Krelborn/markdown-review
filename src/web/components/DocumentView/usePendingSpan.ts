@@ -1,13 +1,11 @@
 import type { RefObject } from "react";
-import { useLayoutEffect, useState } from "react";
 
 import type { BlockSpan } from "../../../shared/markdown/BlockSpan";
 import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import { wholeBlockSpan } from "../../anchoring/wholeBlockSpan";
 
-import { measureSpan } from "./measureSpan";
 import type { SpanBox } from "./SpanBox";
-import { useLayoutRevision } from "./useLayoutRevision";
+import { useMeasuredSpan } from "./useMeasuredSpan";
 import type { RenderedDocument } from "./useRenderedDocument";
 
 /**
@@ -29,17 +27,10 @@ export function usePendingSpan(
   rendered: RenderedDocument | null,
   pendingPassage: NewPassageAnchor | null
 ): PendingSpan | null {
-  const [pendingSpan, setPendingSpan] = useState<PendingSpan | null>(null);
-  const layoutRevision = useLayoutRevision(viewRef, contentRef);
-  useLayoutEffect(() => {
-    const view = viewRef.current;
-    const content = contentRef.current;
-    const span =
-      rendered === null || pendingPassage === null
-        ? null
-        : wholeBlockSpan(rendered.documentText, pendingPassage.startOffset, pendingPassage.endOffset);
-    const box = view === null || content === null || span === null ? null : measureSpan(view, content, span);
-    setPendingSpan(span === null || box === null ? null : { ...span, box });
-  }, [contentRef, layoutRevision, pendingPassage, rendered, viewRef]);
-  return pendingSpan;
+  const span =
+    rendered === null || pendingPassage === null
+      ? null
+      : wholeBlockSpan(rendered.documentText, pendingPassage.startOffset, pendingPassage.endOffset);
+  const box = useMeasuredSpan(viewRef, contentRef, rendered, span);
+  return span === null || box === null ? null : { ...span, box };
 }
