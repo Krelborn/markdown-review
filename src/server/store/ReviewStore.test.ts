@@ -203,6 +203,26 @@ describe("ReviewStore", () => {
     await expect(store.submit("revise")).rejects.toMatchObject({ reason: "invalid-state" });
   });
 
+  test("must keep a draft from before the round on a doc it has not opened when the user submits", async () => {
+    const { store } = await setUpTestWithStaleDraft();
+    await store.createDraftThread({ anchor: { document: "docs/plan.md", kind: "document" }, body: "Why?" });
+
+    const submitted = await store.submit("revise");
+
+    const { threads } = await store.readThreads(null);
+    expect(submitted.submittedThreadIds).toEqual([2]);
+    expect(threads.map(({ id, status }) => ({ id, status }))).toEqual([
+      { id: 1, status: "draft" },
+      { id: 2, status: "open" },
+    ]);
+  });
+
+  test("must refuse when the user asks for revisions and every draft is from before the round on another doc", async () => {
+    const { store } = await setUpTestWithStaleDraft();
+
+    await expect(store.submit("revise")).rejects.toMatchObject({ reason: "invalid-state" });
+  });
+
   test("must refuse a comment when its body is blank", async () => {
     const { store } = await setUpLoadedTest();
 
@@ -435,6 +455,18 @@ async function setUpLoadedTest() {
   const setUp = setUpTest();
   await setUp.store.initialize();
   await setUp.writeDocument("docs/plan.md", plan);
+  return setUp;
+}
+
+/**
+ * Leaves a draft on `docs/spec.md`, then opens a review round on `docs/plan.md`
+ */
+async function setUpTestWithStaleDraft() {
+  const setUp = await setUpLoadedTest();
+  await setUp.writeDocument("docs/spec.md", "# Spec\n");
+  await setUp.store.createDraftThread({ anchor: { document: "docs/spec.md", kind: "document" }, body: "Stale" });
+  setUp.advanceClock();
+  await setUp.store.openRound("docs/plan.md", null);
   return setUp;
 }
 

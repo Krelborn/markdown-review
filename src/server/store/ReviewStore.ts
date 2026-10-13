@@ -2,6 +2,7 @@ import type { ThreadsSnapshot } from "../../shared/api/apiResponseSchemas";
 import type { Anchor } from "../../shared/review/anchorSchema";
 import { documentPathSchema } from "../../shared/review/anchorSchema";
 import type { DocumentThreadsFile } from "../../shared/review/documentThreadsFileSchema";
+import { isDraftInRound } from "../../shared/review/isDraftInRound";
 import type { NewThread } from "../../shared/review/newThreadSchema";
 import { newThreadSchema } from "../../shared/review/newThreadSchema";
 import type { ReviewFile } from "../../shared/review/reviewFileSchema";
@@ -148,33 +149,35 @@ export class ReviewStore {
   }
 
   /**
-   * Submits every draft in the repo and records the user's verdict on the review round, starting one when no review
-   * was opened
+   * Submits the drafts that belong to the review round, leaving the rest as drafts, and records the user's verdict on
+   * the round, starting one when no review was opened
    *
-   * @param verdict "go-ahead" and "hand-back" end the round; "revise" needs at least one draft
+   * @param verdict "go-ahead" and "hand-back" end the round; "revise" needs at least one draft to submit
    * @returns the IDs of the threads that received a submitted message, and the round after the submit
-   * @throws StoreError "invalid-state" when asking for revisions with no drafts
+   * @throws StoreError "invalid-state" when asking for revisions with no drafts to submit
    */
   public submit(verdict: Verdict): Promise<SubmitResult> {
     return this.queue.enqueue(async () => {
       const at = new Date().toISOString();
       const review = requireValid(await this.files.readReviewFile());
-      const documentFiles = await this.readDocumentFilesWithDrafts();
+      const isSent = (thread: Thread): boolean => isDraftInRound(thread, review.round);
+      const send = (thread: Thread): Thread => (isSent(thread) ? submitDraft(thread, at) : thread);
+      const documentFiles = await this.readDocumentFilesToSubmit(isSent);
       const submittedThreadIds = [...review.threads, ...documentFiles.flatMap((file) => file.threads)]
-        .filter((thread) => thread.draft !== undefined)
+        .filter(isSent)
         .map((thread) => thread.id)
         .sort((left, right) => left - right);
       if (verdict === "revise" && submittedThreadIds.length === 0) {
         throw new StoreError("invalid-state", "There are no drafts to submit");
       }
       for (const file of documentFiles) {
-        await this.files.writeDocumentFile({ ...file, threads: file.threads.map((thread) => submitDraft(thread, at)) });
+        await this.files.writeDocumentFile({ ...file, threads: file.threads.map(send) });
       }
       const round = { ...(review.round ?? joinOrStartRound(null, null, null, at)), verdict: { at, kind: verdict } };
       await this.files.writeReviewFile({
         ...review,
         round,
-        threads: review.threads.map((thread) => submitDraft(thread, at)),
+        threads: review.threads.map(send),
       });
       return { round, submittedThreadIds };
     });
@@ -345,13 +348,13 @@ export class ReviewStore {
     return { files, problems };
   }
 
-  private async readDocumentFilesWithDrafts(): Promise<DocumentThreadsFile[]> {
+  private async readDocumentFilesToSubmit(isSent: (thread: Thread) => boolean): Promise<DocumentThreadsFile[]> {
     const files: DocumentThreadsFile[] = [];
     for (const document of await this.files.listDocuments()) {
       const result = await this.files.readDocumentFile(document);
       if (result.kind === "invalid") {
         this.logger.warn(`Drafts in ${document} were not submitted. ${result.problem}`);
-      } else if (result.value?.threads.some((thread) => thread.draft !== undefined)) {
+      } else if (result.value?.threads.some(isSent)) {
         files.push((await this.readCurrentDocumentFile(document)).file);
       }
     }
