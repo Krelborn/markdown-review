@@ -23,15 +23,18 @@ If the `markdown-review` command is not found, install it with `npm install --gl
 
 `markdown-review inbox` prints what `poll` would, without waiting, for picking comments up later.
 
-## Approval
+## How a review ends
 
-The review ends when the user approves it, and `poll` and `inbox` then start with "Review approved". Address any comments that came with the approval, then carry on with your task. Do not run `poll` again for that review.
+The user ends a review in one of two ways, and `poll` and `inbox` say which on their first line.
+
+- **Go ahead** ("The user said go ahead"): address any comments that came with it, then carry on with your task. Do not run `poll` again for that review.
+- **Hand back** ("The user asked to hand back to you"): stop. Do not edit the docs, answer the threads, run `poll` or carry on with your task. Tell the user in the chat that you have stopped and what their comments say, and wait for their instructions. If they ask you to continue the review, run `markdown-review open <doc.md>`, then `markdown-review poll`.
 
 ## Updates
 
 - `open` may print `update_available` when a newer markdown-review is out. Tell the user, and carry on with the review.
-- Once the review is approved, `poll` and `inbox` print `update_available` again with the commands to run. Ask the user whether to update, and run them only if they agree. If they install packages another way, such as with pnpm or under `sudo`, adapt the install command and keep the rest.
-- `skill_outdated` means an installed copy of this skill is from an older version. Once the review is approved, run the command it gives and tell the user.
+- Once the user says go ahead, `poll` and `inbox` print `update_available` again with the commands to run. Ask the user whether to update, and run them only if they agree. If they install packages another way, such as with pnpm or under `sudo`, adapt the install command and keep the rest.
+- `skill_outdated` means an installed copy of this skill is from an older version. Once the user says go ahead, run the command it gives and tell the user.
 
 ## Good to know
 

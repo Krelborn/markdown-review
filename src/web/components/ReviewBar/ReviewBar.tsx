@@ -1,7 +1,8 @@
 import { Badge, Button } from "@krelborn/stylesui";
 import type { JSX, RefObject } from "react";
 
-import type { ReviewState } from "../../../shared/review/ReviewState";
+import type { ReviewRound } from "../../../shared/review/reviewRoundSchema";
+import { roundOutcome } from "../../../shared/review/roundOutcome";
 import type { DraftCount } from "../../review/countDraftsByDocument";
 import { AgentStatus } from "../AgentStatus/AgentStatus";
 import { SubmitMenu } from "../SubmitMenu/SubmitMenu";
@@ -46,12 +47,15 @@ export interface ReviewBarProps {
    */
   panelToggleRef: RefObject<HTMLButtonElement | null>;
 
-  review: ReviewState;
+  /**
+   * The review round, or null before the agent first opened a review
+   */
+  round: ReviewRound | null;
 }
 
 /**
  * The bar beneath the comments, on one row: in a narrow window, a button that shows and hides them; then whether the
- * agent is listening, whether the review is approved, and Submit
+ * agent is listening, how the user ended the review round if they have, and Submit
  */
 export function ReviewBar({
   agentWaiting,
@@ -62,8 +66,9 @@ export function ReviewBar({
   onTogglePanel,
   panelId,
   panelToggleRef,
-  review,
+  round,
 }: ReviewBarProps): JSX.Element {
+  const outcome = roundOutcome(round);
   return (
     <section className={styles.reviewBar} aria-label="Review">
       <Button
@@ -78,9 +83,14 @@ export function ReviewBar({
       </Button>
       <div className={styles.status}>
         <AgentStatus agentWaiting={agentWaiting} />
-        {review.approved && (
+        {outcome === "go-ahead" && (
           <Badge tone="success" variant="solid">
-            Approved
+            Going ahead
+          </Badge>
+        )}
+        {outcome === "hand-back" && (
+          <Badge tone="neutral" variant="solid">
+            Handed back
           </Badge>
         )}
       </div>

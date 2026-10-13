@@ -2,7 +2,7 @@ import { Alert, Button, Cluster, Counter, Popover, Stack, Text, usePopover, Visu
 import type { JSX } from "react";
 import { useRef, useState } from "react";
 
-import type { Verdict } from "../../../shared/api/apiRequestSchemas";
+import type { Verdict } from "../../../shared/review/reviewRoundSchema";
 import { describeFailure } from "../../api/describeFailure";
 import { useReviewApi } from "../../api/useReviewApi";
 import type { DraftCount } from "../../review/countDraftsByDocument";
@@ -33,19 +33,19 @@ export interface SubmitMenuProps {
 }
 
 /**
- * Sends every draft to the agent with the verdict the user chooses: asking for changes, or approving the review
+ * Sends every draft to the agent with the verdict the user chooses: Revise, Go ahead or Hand back to agent
  */
 export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }: SubmitMenuProps): JSX.Element {
   const api = useReviewApi();
   const draftCount = drafts.reduce((sum, { count }) => sum + count, 0);
-  // Held while the popover is open, so drafts going then can't turn a request for changes into an approval. While it is
-  // shut, the verdict is the one it opens with, so the checked radio is the one it focuses
+  // Held while the popover is open, so drafts going then can't turn Revise into Go ahead. While it is shut, the verdict
+  // is the one it opens with, so the checked radio is the one it focuses
   const [heldVerdict, setHeldVerdict] = useState<Verdict | null>(null);
   const verdict = heldVerdict ?? openingVerdictOf(draftCount);
   const checkedVerdictRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const canSubmit = !hasUnsavedText && (verdict === "approve" || draftCount > 0);
+  const canSubmit = !hasUnsavedText && (verdict !== "revise" || draftCount > 0);
   const popover = usePopover({
     initialFocus: checkedVerdictRef,
     onOpenChange: (open) => {
@@ -117,8 +117,8 @@ export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }
  * Works out the verdict the submit popover opens with
  *
  * @param draftCount how many drafts a submit sends
- * @returns asking for changes when there are drafts, and approving otherwise
+ * @returns Revise when there are drafts, and Go ahead otherwise
  */
 function openingVerdictOf(draftCount: number): Verdict {
-  return draftCount > 0 ? "request-changes" : "approve";
+  return draftCount > 0 ? "revise" : "go-ahead";
 }

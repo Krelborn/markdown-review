@@ -39,6 +39,6 @@ function buildThreadsState({
   return {
     error,
     refresh: () => {},
-    snapshot: { problems, review: { approved: false, approvedAt: null, requestedAt: null }, threads: [] },
+    snapshot: { problems, round: null, threads: [] },
   };
 }

@@ -55,7 +55,7 @@ Claude Code and OpenCode both read skills from there. The skill loads when an ag
 
 ### Ask your agent for a review
 
-With the skill installed, ask in plain words, for example "I'd like to review the plan in markdown-review". The agent opens the doc, waits for your comments, edits the doc, answers each comment and waits again, until you approve.
+With the skill installed, ask in plain words, for example "I'd like to review the plan in markdown-review". The agent opens the doc, waits for your comments, edits the doc, answers each comment and waits again, until you say go ahead.
 
 You can also start a review yourself, then tell the agent to pick up the comments:
 
@@ -73,13 +73,14 @@ markdown-review open docs/plan.md
 
 Comments are saved as drafts until you submit them. Click **Edit** to change one, or **Discard** to throw one away; it asks first. When you are ready to hand over to your agent, click **Submit**. Choose:
 
-- **Request changes**, to send your drafts to the agent and wait for its answers.
-- **Approve**, to end the review. Any drafts are sent with the approval, and the agent addresses them before carrying on.
+- **Revise**, to send your drafts to the agent and wait for its answers.
+- **Go ahead**, to end the review and let the agent carry on with its task. Any drafts are sent too, and the agent addresses them first.
+- **Hand back to agent**, to end the review and have the agent stop and wait for you in the chat. Any drafts are sent too, and the agent tells you what they say. Use it when the direction is wrong, you want to talk it over, or you will take it from here.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/submit-dark.png">
-    <img src="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/submit-light.png" width="384" alt="The Submit review popover, offering Request changes or Approve for one draft, and saying the agent is listening and will hear at once.">
+    <img src="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/submit-light.png" width="384" alt="The Submit review popover, offering Revise, Go ahead or Hand back to agent for one draft, and saying the agent is listening and will hear at once.">
   </picture>
 </p>
 
@@ -93,15 +94,15 @@ Links between markdown docs in the repository open in the app. Docs render with 
 
 These are the commands the agent runs. You rarely need them yourself, but they are handy for trying the tool out.
 
-| Command                                                          | What it does                                                                                                          |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `markdown-review open [path]`                                    | Start a review round and show the doc, or the docs list, in the browser. Prints the URL.                              |
-| `markdown-review poll [--document <path>] [--timeout <seconds>]` | Wait until you submit or approve, then print the comments that need the agent. Gives up after 540 seconds by default. |
-| `markdown-review inbox [--document <path>]`                      | Print the same as `poll`, without waiting.                                                                            |
-| `markdown-review reply <id> <text>`                              | Answer a thread without resolving it, for example to ask you a question.                                              |
-| `markdown-review resolve <id> [text]`                            | Resolve a thread, optionally saying what changed.                                                                     |
-| `markdown-review stop`                                           | Stop the review server for this repository.                                                                           |
-| `markdown-review install-skill [--global]`                       | Install the skill that teaches agents this workflow.                                                                  |
+| Command                                                          | What it does                                                                                               |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `markdown-review open [path]`                                    | Start a review round and show the doc, or the docs list, in the browser. Prints the URL.                   |
+| `markdown-review poll [--document <path>] [--timeout <seconds>]` | Wait until you submit, then print the comments that need the agent. Gives up after 540 seconds by default. |
+| `markdown-review inbox [--document <path>]`                      | Print the same as `poll`, without waiting.                                                                 |
+| `markdown-review reply <id> <text>`                              | Answer a thread without resolving it, for example to ask you a question.                                   |
+| `markdown-review resolve <id> [text]`                            | Resolve a thread, optionally saying what changed.                                                          |
+| `markdown-review stop`                                           | Stop the review server for this repository.                                                                |
+| `markdown-review install-skill [--global]`                       | Install the skill that teaches agents this workflow.                                                       |
 
 `reply` and `resolve` also take `--file <path>` for a long message, or `--file -` to read standard input. `markdown-review --help` lists the commands, and `markdown-review <command> --help` describes one. Every command ends with a `next_step` line that tells the agent what to do next.
 
@@ -109,7 +110,7 @@ Set `MARKDOWN_REVIEW_NO_BROWSER=1` to stop `open` from launching a browser.
 
 ### Updates
 
-About once a day, the review server asks the npm registry for the latest version of `@krelborn/markdown-review`, and keeps the answer in `~/.cache/markdown-review/` (or under `$XDG_CACHE_HOME`). The request names only the package. When a newer version is out, the About button in the browser shows a dot, and `open` tells the agent, which offers to update once you approve the review and only updates if you agree. The agent is also told when an installed copy of the skill is from an older version.
+About once a day, the review server asks the npm registry for the latest version of `@krelborn/markdown-review`, and keeps the answer in `~/.cache/markdown-review/` (or under `$XDG_CACHE_HOME`). The request names only the package. When a newer version is out, the About button in the browser shows a dot, and `open` tells the agent, which offers to update once you say go ahead and only updates if you agree. The agent is also told when an installed copy of the skill is from an older version.
 
 Set `MARKDOWN_REVIEW_NO_UPDATE_CHECK=1` or `NO_UPDATE_NOTIFIER` to turn the check off. It is also off when `CI` is set.
 
@@ -123,7 +124,7 @@ Set `MARKDOWN_REVIEW_NO_UPDATE_CHECK=1` or `NO_UPDATE_NOTIFIER` to turn the chec
 2. You comment on passages, blocks, whole docs or the review as a whole, across as many linked docs as you like. Then you submit.
 3. The agent, waiting in `markdown-review poll`, receives each comment with its file, line range, quoted text and your words.
 4. The agent edits the docs and resolves or replies to each comment. Your browser re-renders the doc in place, and your comments follow the text they were made on.
-5. You read the answers, reply to any thread to reopen it, and submit again, until you approve the review. The agent then carries on with its task.
+5. You read the answers, reply to any thread to reopen it, and submit again. When you say go ahead, the agent carries on with its task. When you hand the review back, it stops and waits for you in the chat.
 
 This is what the agent receives in step 3 for the review in the screenshot above:
 

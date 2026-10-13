@@ -18,7 +18,7 @@ describe("agentRoutes", () => {
     );
 
     expect(response).toMatchObject({ navigated: false, url: "http://127.0.0.1:4321/document/docs/plan.md" });
-    expect(response.review.requestedAt).not.toBeNull();
+    expect(response.round?.documents).toEqual(["docs/plan.md"]);
     expect(recentDocuments.list()).toEqual(["docs/plan.md"]);
   });
 
@@ -56,7 +56,7 @@ describe("agentRoutes", () => {
   test("must list the threads that need the agent when the CLI reads the inbox", async () => {
     const { agent, browser } = await setUpAppTest(getDirectory());
     await browser("POST", "/api/threads", cacheComment);
-    await browser("POST", "/api/submit", { verdict: "request-changes" });
+    await browser("POST", "/api/submit", { verdict: "revise" });
 
     const response = await agent("GET", "/api/inbox");
 
@@ -67,7 +67,7 @@ describe("agentRoutes", () => {
     const { agent, browser } = await setUpAppTest(getDirectory());
     await browser("POST", "/api/threads", cacheComment);
     await browser("POST", "/api/threads", { anchor: { kind: "review" }, body: "Overall?" });
-    await browser("POST", "/api/submit", { verdict: "request-changes" });
+    await browser("POST", "/api/submit", { verdict: "revise" });
 
     const response = agentThreadResponseSchema.parse(
       await (await agent("POST", "/api/agent/threads/1/resolve", { body: "Changed to 1h" })).json()

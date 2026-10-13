@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
 
+import { roundOutcome } from "../../shared/review/roundOutcome";
 import type { CliContext } from "../CliContext";
 import { connectToServer } from "../connectToServer";
 import { findRoot } from "../findRoot";
@@ -14,7 +15,7 @@ export async function inboxCommand(args: string[], context: CliContext): Promise
   const document = await readDocumentOption(root, terminal.workingDirectory, values.document);
   const client = await connectToServer(root, cliPath);
   const inbox = await client.inbox(document);
-  const notices = inbox.review.approved ? await readUpdateNotices(context, root, true) : [];
+  const notices = roundOutcome(inbox.round) === "go-ahead" ? await readUpdateNotices(context, root, true) : [];
   terminal.stdout(formatInbox(inbox, notices));
   return 0;
 }

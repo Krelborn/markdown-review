@@ -39,7 +39,7 @@ describe("securityMiddleware", () => {
       "POST",
       "/api/submit",
       { "content-type": "application/json", origin: "http://evil.example" },
-      { verdict: "approve" }
+      { verdict: "go-ahead" }
     );
 
     expect(response.status).toBe(403);
@@ -80,7 +80,7 @@ describe("securityMiddleware", () => {
       "POST",
       "/api/submit",
       { "content-type": "application/x-www-form-urlencoded", origin: `http://127.0.0.1:${testPort}` },
-      { verdict: "approve" }
+      { verdict: "go-ahead" }
     );
 
     expect(response.status).toBe(415);

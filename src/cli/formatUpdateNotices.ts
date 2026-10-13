@@ -7,11 +7,6 @@ import type { InstalledSkill } from "./findInstalledSkills";
 
 export interface UpdateNoticesInput {
   /**
-   * Whether the review is approved, which is when the agent should act on the notices
-   */
-  approved: boolean;
-
-  /**
    * The newer version on npm and its dist-tag, or null when none is known
    */
   availableUpdate: NewerRelease | null;
@@ -19,6 +14,11 @@ export interface UpdateNoticesInput {
   currentVersion: string;
   installKind: InstallKind;
   skills: readonly InstalledSkill[];
+
+  /**
+   * Whether the user said go ahead, which is when the agent should act on the notices
+   */
+  wentAhead: boolean;
 }
 
 /**
@@ -27,22 +27,22 @@ export interface UpdateNoticesInput {
  * @returns the `update_available` and `skill_outdated` lines, each ending in a newline; empty when there is nothing to say
  */
 export function formatUpdateNotices({
-  approved,
   availableUpdate,
   currentVersion,
   installKind,
   skills,
+  wentAhead,
 }: UpdateNoticesInput): string[] {
   if (availableUpdate !== null) {
     const news = `update_available: markdown-review ${availableUpdate.version} is out; this is ${currentVersion}.`;
-    if (!approved) {
-      return [`${news} Tell the user, and offer to update once they approve the review.\n`];
+    if (!wentAhead) {
+      return [`${news} Tell the user, and offer to update once they say go ahead.\n`];
     }
     return [
       `${news} Ask the user whether to update. If they agree, ${describeUpdate(installKind, availableUpdate, skills)}\n`,
     ];
   }
-  const when = approved ? "Run" : "Once the user approves the review, run";
+  const when = wentAhead ? "Run" : "Once the user says go ahead, run";
   return skills
     .filter((skill) => isOlderThan(skill, currentVersion))
     .map(

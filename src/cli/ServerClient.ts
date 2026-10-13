@@ -51,7 +51,7 @@ export class ServerClient {
   }
 
   /**
-   * Waits for the review to be approved, a thread to need the agent, or the timeout
+   * Waits for the user to end the review round, a thread to need the agent, or the timeout
    */
   public poll(document: string | null, timeoutSeconds: number, signal: AbortSignal): Promise<PollResponse> {
     const query = new URLSearchParams({ timeout: String(timeoutSeconds) });

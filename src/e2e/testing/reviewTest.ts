@@ -153,7 +153,7 @@ export function submitButtonName(draftCount: number): string {
 export async function submitDrafts(
   page: Page,
   draftCount: number,
-  verdict: "Approve" | "Request changes"
+  verdict: "Go ahead" | "Hand back to agent" | "Revise"
 ): Promise<void> {
   await page.getByRole("button", { exact: true, name: submitButtonName(draftCount) }).click();
   const popover = page.getByRole("dialog", { name: "Submit review" });

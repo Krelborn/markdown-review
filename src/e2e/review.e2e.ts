@@ -17,7 +17,7 @@ test("must hand the user's comment to the agent's waiting poll when the user sub
   const poll = await review.startPoll();
 
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
-  await submitDrafts(page, 1, "Request changes");
+  await submitDrafts(page, 1, "Revise");
 
   const { exitCode, stdout } = await poll.result;
   expect(exitCode).toBe(0);
@@ -44,7 +44,7 @@ test("must move the thread to Resolved and show the agent's note when the agent 
 }) => {
   await review.open("docs/plan.md");
   await writeDraftComment(page, "Retries", "times.", "Make it configurable");
-  await submitDrafts(page, 1, "Request changes");
+  await submitDrafts(page, 1, "Revise");
   await expect(page.getByRole("region", { name: "Open" })).toBeVisible();
 
   await review.run(["resolve", "1", "Added a retries setting"]);
@@ -55,15 +55,30 @@ test("must move the thread to Resolved and show the agent's note when the agent 
   await expect(page.getByRole("region", { name: "Open" })).toBeHidden();
 });
 
-test("must end the agent's poll when the user approves the review", async ({ page, review }) => {
+test("must end the agent's poll when the user says go ahead", async ({ page, review }) => {
   await review.open("docs/plan.md");
   const poll = await review.startPoll();
 
-  await submitDrafts(page, 0, "Approve");
+  await submitDrafts(page, 0, "Go ahead");
 
   const { stdout } = await poll.result;
-  expect(stdout.startsWith("Review approved. No threads need you.\n")).toBe(true);
-  await expect(page.getByText("Approved", { exact: true })).toBeVisible();
+  expect(stdout.startsWith("The user said go ahead. No threads need you.\n")).toBe(true);
+  await expect(page.getByText("Going ahead", { exact: true })).toBeVisible();
+});
+
+test("must end the agent's poll and tell it to stop when the user hands the review back", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+  const poll = await review.startPoll();
+
+  await writeDraftComment(page, "cache", "24h", "This whole approach is wrong; let's talk.");
+  await submitDrafts(page, 1, "Hand back to agent");
+
+  const { stdout } = await poll.result;
+  expect(stdout.startsWith("The user asked to hand back to you, with comments on 1 thread (docs/plan.md: 1)\n")).toBe(
+    true
+  );
+  expect(stdout).toContain("next_step: Stop here:");
+  await expect(page.getByText("Handed back", { exact: true })).toBeVisible();
 });
 
 test("must focus the verdict Submit review opens with, then return focus to Submit when the user clicks Cancel", async ({
@@ -75,7 +90,7 @@ test("must focus the verdict Submit review opens with, then return focus to Subm
   const submit = page.getByRole("button", { exact: true, name: submitButtonName(1) });
   const popover = page.getByRole("dialog", { name: "Submit review" });
   await submit.click();
-  await expect(popover.getByRole("radio", { name: "Request changes" })).toBeFocused();
+  await expect(popover.getByRole("radio", { name: "Revise" })).toBeFocused();
 
   await popover.getByRole("button", { name: "Cancel" }).click();
 

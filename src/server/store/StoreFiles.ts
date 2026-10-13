@@ -13,6 +13,7 @@ import { writeTextFileUnlessExists } from "../files/writeTextFileUnlessExists";
 import { emptyReviewFile } from "./emptyReviewFile";
 import { parseStoreInput } from "./parseStoreInput";
 import { readStoreFile } from "./readStoreFile";
+import { storedReviewFileSchema } from "./storedReviewFileSchema";
 import type { StoreFileResult } from "./StoreFileResult";
 import {
   documentSourcePath,
@@ -44,7 +45,7 @@ export class StoreFiles {
    * @returns the review file, or an empty one when it does not exist yet
    */
   public async readReviewFile(): Promise<StoreFileResult<ReviewFile>> {
-    const result = await readStoreFile(reviewFilePath(this.root), reviewFileSchema);
+    const result = await readStoreFile(reviewFilePath(this.root), storedReviewFileSchema);
     return result.kind === "valid" ? { kind: "valid", value: result.value ?? emptyReviewFile } : result;
   }
 

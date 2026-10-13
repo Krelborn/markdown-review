@@ -19,7 +19,7 @@ afterEach(async () => {
 });
 
 describe("update check", () => {
-  test("must offer the registry's newer version once the user approves the review", async () => {
+  test("must offer the registry's newer version once the user says go ahead", async () => {
     const repository = getRepository();
     const env = {
       CI: "",
@@ -33,12 +33,12 @@ describe("update check", () => {
     });
 
     const opened = await startCli(repository.root, ["open", "docs/plan.md"], "", env).result;
-    await repository.browser("POST", "/api/submit", { verdict: "approve" });
+    await repository.browser("POST", "/api/submit", { verdict: "go-ahead" });
     const inbox = await startCli(repository.root, ["inbox"], "", env).result;
 
     expect(opened.stdout).toContain(
       `update_available: markdown-review 99.0.0 is out; this is ${packageVersion}. Tell the user, and offer to ` +
-        "update once they approve the review.\n"
+        "update once they say go ahead.\n"
     );
     expect(inbox.stdout).toContain(
       `update_available: markdown-review 99.0.0 is out; this is ${packageVersion}. Ask the user whether to update. ` +
@@ -46,28 +46,31 @@ describe("update check", () => {
     );
   });
 
-  test("must hold the update commands back from poll and inbox until the user approves", async () => {
-    const repository = getRepository();
-    const env = {
-      CI: "",
-      MARKDOWN_REVIEW_NO_UPDATE_CHECK: "",
-      MARKDOWN_REVIEW_REGISTRY_URL: await startRegistry(),
-      NO_UPDATE_NOTIFIER: "",
-    };
-    await startCli(repository.root, ["open", "docs/plan.md"], "", env).result;
-    await vi.waitFor(async () => {
-      expect(await readFile(cachePath(repository.root), "utf8")).toContain("99.0.0");
-    });
-    await repository.browser("POST", "/api/threads", { anchor: { kind: "review" }, body: "Overall?" });
-    await repository.browser("POST", "/api/submit", { verdict: "request-changes" });
+  test.each([{ verdict: "revise" }, { verdict: "hand-back" }])(
+    "must hold the update commands back from poll and inbox when the user chooses $verdict",
+    async ({ verdict }) => {
+      const repository = getRepository();
+      const env = {
+        CI: "",
+        MARKDOWN_REVIEW_NO_UPDATE_CHECK: "",
+        MARKDOWN_REVIEW_REGISTRY_URL: await startRegistry(),
+        NO_UPDATE_NOTIFIER: "",
+      };
+      await startCli(repository.root, ["open", "docs/plan.md"], "", env).result;
+      await vi.waitFor(async () => {
+        expect(await readFile(cachePath(repository.root), "utf8")).toContain("99.0.0");
+      });
+      await repository.browser("POST", "/api/threads", { anchor: { kind: "review" }, body: "Overall?" });
+      await repository.browser("POST", "/api/submit", { verdict });
 
-    const poll = await startCli(repository.root, ["poll", "--timeout", "5"], "", env).result;
-    const inbox = await startCli(repository.root, ["inbox"], "", env).result;
+      const poll = await startCli(repository.root, ["poll", "--timeout", "5"], "", env).result;
+      const inbox = await startCli(repository.root, ["inbox"], "", env).result;
 
-    expect(poll.stdout).toContain("user: Overall?");
-    expect(poll.stdout).not.toContain("update_available");
-    expect(inbox.stdout).not.toContain("update_available");
-  });
+      expect(poll.stdout).toContain("user: Overall?");
+      expect(poll.stdout).not.toContain("update_available");
+      expect(inbox.stdout).not.toContain("update_available");
+    }
+  );
 
   test("must not ask the registry when update checks are off", async () => {
     const repository = getRepository();
@@ -90,7 +93,7 @@ describe("update check", () => {
 
     expect(stdout).toContain(
       `skill_outdated: The markdown-review skill at ${skillPath} is older than this version (${packageVersion}). ` +
-        "Once the user approves the review, run `markdown-review install-skill`."
+        "Once the user says go ahead, run `markdown-review install-skill`."
     );
   });
 });

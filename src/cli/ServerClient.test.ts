@@ -34,7 +34,7 @@ describe("ServerClient", () => {
     const opened = await client.open("docs/plan.md");
 
     expect(opened).toMatchObject({ navigated: false, url: `http://127.0.0.1:${client.port}/document/docs/plan.md` });
-    expect(opened.review.requestedAt).not.toBeNull();
+    expect(opened.round?.documents).toEqual(["docs/plan.md"]);
   });
 
   test("must return an empty, timed-out inbox when a poll's timeout passes with nothing to do", async () => {

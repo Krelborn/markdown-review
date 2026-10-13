@@ -57,7 +57,7 @@ describe("createReviewApi", () => {
   test("must reject with an unknown reason when the server's refusal is not its usual error", async () => {
     stubFetch(502, "Bad Gateway");
 
-    await expect(createReviewApi().submit("approve")).rejects.toMatchObject({
+    await expect(createReviewApi().submit("go-ahead")).rejects.toMatchObject({
       message: "The review server answered 502",
       reason: "unknown",
     });

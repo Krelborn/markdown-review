@@ -17,22 +17,22 @@ import { formatUpdateNotices } from "./formatUpdateNotices";
  *
  * @param context the CLI's path and environment
  * @param root the repo root, where a repo copy of the skill lives
- * @param approved whether the review is approved
+ * @param wentAhead whether the user said go ahead
  * @returns the notice lines, each ending in a newline
  */
 export async function readUpdateNotices(
   { cliPath, terminal }: CliContext,
   root: string,
-  approved: boolean
+  wentAhead: boolean
 ): Promise<string[]> {
   const { env } = terminal;
   const cached = updateChecksDisabled(env) ? null : await readUpdateCheckFile(updateCheckFilePath(env));
   const realCliPath = await realpath(cliPath).catch(() => cliPath);
   return formatUpdateNotices({
-    approved,
     availableUpdate: findAvailableUpdate(packageVersion, cached?.distTags ?? {}),
     currentVersion: packageVersion,
     installKind: findInstallKind(realCliPath),
     skills: await findInstalledSkills(root, env.HOME ?? os.homedir()),
+    wentAhead,
   });
 }

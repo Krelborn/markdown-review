@@ -1,4 +1,3 @@
-import type { Verdict } from "../../shared/api/apiRequestSchemas";
 import type {
   DocumentList,
   DocumentSource,
@@ -6,6 +5,7 @@ import type {
   UpdateResponse,
 } from "../../shared/api/apiResponseSchemas";
 import type { NewThread } from "../../shared/review/newThreadSchema";
+import type { Verdict } from "../../shared/review/reviewRoundSchema";
 
 import type { ReviewEvent } from "./reviewEventSchema";
 
@@ -19,7 +19,7 @@ export interface ReviewApi {
   readDocuments(): Promise<DocumentList>;
 
   /**
-   * Reads every thread in the repo, with the review's state
+   * Reads every thread in the repo, with the review round
    */
   readThreads(): Promise<ThreadsSnapshot>;
 

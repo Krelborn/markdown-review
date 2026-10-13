@@ -1,4 +1,5 @@
 import type { PollResponse } from "../../shared/api/apiResponseSchemas";
+import { roundOutcome } from "../../shared/review/roundOutcome";
 import type { ServerEvents } from "../events/ServerEvents";
 import type { ReviewStore } from "../store/ReviewStore";
 
@@ -13,7 +14,7 @@ export interface WaitForInboxOptions {
 type WaitOutcome = "submitted" | "timed-out" | "aborted";
 
 /**
- * Waits until the review is approved or a thread needs the agent
+ * Waits until the user ends the review round or a thread needs the agent
  *
  * @returns the inbox as soon as it has something for the agent, or as it stands when the time runs out or the
  *   request is aborted, with `timedOut` set
@@ -29,7 +30,7 @@ export async function waitForInbox({
   for (;;) {
     const nextSubmit = waitForSubmit(events, deadline - Date.now(), signal);
     const inbox = await store.readInbox(document);
-    if (inbox.review.approved || inbox.threads.length > 0) {
+    if (roundOutcome(inbox.round) !== null || inbox.threads.length > 0) {
       nextSubmit.cancel();
       return { ...inbox, timedOut: false };
     }

@@ -1,7 +1,7 @@
 const commandHelp: Record<string, string> = {
   inbox: [
     "markdown-review inbox [--document <path>]",
-    "  Print whether the review is approved and the threads that need you, then return at once.",
+    "  Print how the user ended the review, if they have, and the threads that need you, then return at once.",
   ].join("\n"),
   "install-skill": [
     "markdown-review install-skill [--global]",
@@ -14,7 +14,7 @@ const commandHelp: Record<string, string> = {
   ].join("\n"),
   poll: [
     "markdown-review poll [--document <path>] [--timeout <seconds>]",
-    "  Wait until the user submits or approves, then print what needs you. The timeout defaults to 540 seconds.",
+    "  Wait until the user submits, then print what needs you. The timeout defaults to 540 seconds.",
     "  Give the shell command a timeout of at least 600000 ms, or in Claude Code run it with run_in_background",
     "  and --timeout 7080.",
   ].join("\n"),
