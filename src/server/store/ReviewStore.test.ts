@@ -217,6 +217,20 @@ describe("ReviewStore", () => {
     ]);
   });
 
+  test("must keep a draft from before the round when its doc also has a draft written since the round began", async () => {
+    const { store } = await setUpTestWithStaleDraft();
+    await store.createDraftThread({ anchor: { document: "docs/spec.md", kind: "document" }, body: "Fresh" });
+
+    const submitted = await store.submit("revise");
+
+    const { threads } = await store.readThreads(null);
+    expect(submitted.submittedThreadIds).toEqual([2]);
+    expect(threads.map(({ id, status }) => ({ id, status }))).toEqual([
+      { id: 1, status: "draft" },
+      { id: 2, status: "open" },
+    ]);
+  });
+
   test("must refuse when the user asks for revisions and every draft is from before the round on another doc", async () => {
     const { store } = await setUpTestWithStaleDraft();
 

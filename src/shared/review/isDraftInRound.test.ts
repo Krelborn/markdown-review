@@ -11,40 +11,40 @@ const roundStart = "2026-10-08T09:00:00.000Z";
 
 const afterRoundStart = "2026-10-08T10:00:00.000Z";
 
-const round = buildRound({ documents: ["docs/plan.md"], startedAt: roundStart });
+const roundOnPlan = buildRound({ documents: ["docs/plan.md"], startedAt: roundStart });
 
 describe("isDraftInRound", () => {
   test.each<{ condition: string; thread: Thread; round: ReviewRound | null; expected: boolean }>([
-    { condition: "the thread has no draft", thread: buildThread(), round, expected: false },
+    { condition: "the thread has no draft", thread: buildThread(), round: roundOnPlan, expected: false },
     { condition: "no review was opened", thread: draftOn("docs/other.md", beforeRound), round: null, expected: true },
     {
       condition: "the draft is on the whole review",
       thread: buildThread({ draft: { at: beforeRound, body: "Overall?" } }),
-      round,
+      round: roundOnPlan,
       expected: true,
     },
     {
       condition: "the draft predates the round but is on a doc opened this round",
       thread: draftOn("docs/plan.md", beforeRound),
-      round,
+      round: roundOnPlan,
       expected: true,
     },
     {
       condition: "the draft predates the round and is on another doc",
       thread: draftOn("docs/other.md", beforeRound),
-      round,
+      round: roundOnPlan,
       expected: false,
     },
     {
       condition: "the draft is on another doc and written since the round began",
       thread: draftOn("docs/other.md", afterRoundStart),
-      round,
+      round: roundOnPlan,
       expected: true,
     },
     {
       condition: "the draft is on another doc and written as the round began",
       thread: draftOn("docs/other.md", roundStart),
-      round,
+      round: roundOnPlan,
       expected: true,
     },
     {
@@ -56,11 +56,11 @@ describe("isDraftInRound", () => {
         messages: [],
         status: "draft",
       }),
-      round,
+      round: roundOnPlan,
       expected: true,
     },
-  ])("must return $expected when $condition", ({ thread, round: currentRound, expected }) => {
-    expect(isDraftInRound(thread, currentRound)).toBe(expected);
+  ])("must return $expected when $condition", ({ thread, round, expected }) => {
+    expect(isDraftInRound(thread, round)).toBe(expected);
   });
 });
 

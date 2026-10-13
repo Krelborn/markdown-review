@@ -116,6 +116,9 @@ export function createFakeReviewApi({
     readUpdate: () => Promise.resolve(update),
     resolveThread: (id) => change(id, (thread, at) => ({ ...thread, status: "resolved", updatedAt: at })),
     submit: (verdict) => {
+      if (verdict === "revise" && !snapshot.threads.some((thread) => isDraftInRound(thread, snapshot.round))) {
+        return Promise.reject(new ReviewApiError(409, "invalid-state", "There are no drafts to submit"));
+      }
       const at = new Date().toISOString();
       snapshot.threads = snapshot.threads.map((thread) => {
         if (thread.draft === undefined || !isDraftInRound(thread, snapshot.round)) {
