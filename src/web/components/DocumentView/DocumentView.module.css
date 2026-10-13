@@ -14,7 +14,7 @@
    Tables, code and diagrams that need more room reach into the margin to its right. */
 .view {
   --block-button-size: 1.75rem;
-  --gutter-size: 3rem;
+  --gutter-size: 4.5rem;
   --max-view-size: calc(72ch + var(--gutter-size) + 2.5rem);
 
   /* The middle of the +, where the gutter's track and bar run */
