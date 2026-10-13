@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { offsetAtPoint } from "../../anchoring/offsetAtPoint";
 import { threadAtOffset } from "../../review/threadAtOffset";
+import { threadsOnText } from "../../review/threadsOnText";
 import { useThreadReporter } from "../../review/useThreadReporter";
 
 import { useLayoutRevision } from "./useLayoutRevision";
@@ -15,7 +16,7 @@ interface Point {
 }
 
 /**
- * Reports the highlighted thread under the pointer as the pointer moves over the rendered doc
+ * Reports the thread highlighted in the text under the pointer as the pointer moves over the rendered doc
  *
  * @param highlightedThreads the threads whose passages are highlighted
  * @param onHoverThread called with the thread under the pointer whenever it changes, and with null when the pointer
@@ -47,14 +48,15 @@ export function useHoveredThread(
     if (content === null || rendered === null) {
       return;
     }
-    const hasHighlights = highlightedThreads.length > 0;
+    const threadsInText = threadsOnText(rendered.documentText, highlightedThreads);
+    const hasHighlights = threadsInText.length > 0;
     const threadAt = ({ clientX, clientY }: Point): number | null => {
       // With no highlights there is nothing to look up
       if (!hasHighlights) {
         return null;
       }
       const offset = offsetAtPoint(content, rendered.documentText, clientX, clientY);
-      return offset === null ? null : (threadAtOffset(highlightedThreads, offset)?.id ?? null);
+      return offset === null ? null : (threadAtOffset(threadsInText, offset)?.id ?? null);
     };
     // The doc, its highlights or its layout changed under a pointer that may not move again, so what it is over is
     // looked up now

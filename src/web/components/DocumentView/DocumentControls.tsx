@@ -16,7 +16,7 @@ import type { OfferedStructure } from "./useOfferedStructure";
 import type { PendingSpan } from "./usePendingSpan";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
-import type { ThreadBar } from "./useThreadBars";
+import type { ThreadBar } from "./measureThreadBars";
 import type { ThreadMarker } from "./useThreadHighlights";
 
 export interface DocumentControlsProps {

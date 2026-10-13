@@ -159,6 +159,26 @@ test("must start a comment quoting the whole table when the user ⌥-clicks the 
   await expectWholeTableQuoted(page);
 });
 
+test("must show a bar, and no highlight, beside a saved comment on a section", async ({ page, review }) => {
+  await openSectionsDocument(review);
+
+  await writeSectionComment(page, "Goals", "Rethink these goals.");
+
+  await expect(page.getByTestId("thread-bar")).toBeVisible();
+  await expect.poll(() => highlightedText(page)).toEqual([]);
+});
+
+test("must frame the section when the user points at the card of a comment on it", async ({ page, review }) => {
+  await openSectionsDocument(review);
+  await writeSectionComment(page, "Goals", "Rethink these goals.");
+
+  await page.getByRole("region", { name: "Drafts" }).getByRole("article").hover();
+
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+  await expect.poll(() => isFramed(page, article.getByText("Second goal."))).toBe(true);
+  await expect.poll(() => isFramed(page, article.getByText("None yet."))).toBe(false);
+});
+
 test("must put the + beside a list item when the user points beside the item's text", async ({ page, review }) => {
   await review.writeDocument("docs/plan.md", "# Plan\n\n- First item\n- Second item\n");
   await review.open("docs/plan.md");
@@ -496,6 +516,36 @@ async function expectWholeTableQuoted(page: Page): Promise<void> {
   await expect(newCommentQuote(page)).toContainText("Setting");
   await expect(newCommentQuote(page)).toContainText("backoff");
   await expect(newCommentQuote(page)).not.toContainText("After the table.");
+}
+
+/**
+ * Opens a doc of three sections: a title over an intro, and two headings over their paragraphs
+ */
+async function openSectionsDocument(review: ReviewFixture): Promise<void> {
+  await review.writeDocument(
+    "docs/plan.md",
+    "# Plan\n\nIntro.\n\n## Goals\n\nRetries happen three times.\n\nSecond goal.\n\n## Risks\n\nNone yet.\n"
+  );
+  await review.open("docs/plan.md");
+}
+
+/**
+ * Comments on the section under a heading from the bracket beside it, and saves the comment as a draft
+ */
+async function writeSectionComment(page: Page, heading: string, body: string): Promise<void> {
+  const lane = await boxOf(page.getByTestId("bracket-lane"));
+  const beside = await pointInGutterBeside(
+    page,
+    page.getByRole("article", { name: "docs/plan.md" }).getByRole("heading", { name: heading })
+  );
+  await page.mouse.move(lane.x + lane.width / 2, beside.y);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.keyboard.type(body);
+  await page.getByRole("region", { name: "New comment" }).getByRole("button", { exact: true, name: "Save" }).click();
+  await expect(page.getByRole("region", { name: "Drafts" })).toBeVisible();
+  // The draft's card can appear under the pointer, which WebKit then counts as pointing at it
+  await page.mouse.move(0, 0);
 }
 
 /**

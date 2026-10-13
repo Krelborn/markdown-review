@@ -988,6 +988,53 @@ describe("DocumentView", () => {
     }
   );
 
+  test("must not paint a comment on several whole blocks, but keep its marker", async () => {
+    const { render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+
+    await render();
+
+    expect(elements.highlighted(threadsHighlightName)).toEqual([]);
+    expect(elements.markers()).toEqual(["Thread #5"]);
+  });
+
+  test("must not deepen another comment's highlight inside a comment on several whole blocks", async () => {
+    const { render } = setUpTest({
+      threads: [buildThread({ anchor: goalsAnchor, id: 5 }), buildThread({ anchor: retriesAnchor, id: 2 })],
+    });
+
+    await render();
+
+    expect(elements.highlighted(threadsHighlightName)).toEqual(["Retries"]);
+    expect(elements.highlighted(overlapHighlightName)).toEqual([]);
+  });
+
+  test("must not select a comment on several whole blocks when the user clicks its text", async () => {
+    const { onSelectThread, render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+    const user = userEvent.setup();
+    await render();
+    const text = within(elements.article()).getByText("Retries happen three times.").firstChild;
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 3, offsetNode: text }) });
+
+    await user.click(within(elements.article()).getByText("Retries happen three times."));
+
+    expect(onSelectThread).not.toHaveBeenCalled();
+  });
+
+  test("must pick no block when the pointer moves from the gutter onto a comment's bar", async () => {
+    const resizes = standInForResizes();
+    const { render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    resizes.resize();
+    await moveInGutter(user, 60);
+
+    await user.pointer({ coords: { clientX: 30, clientY: 150 }, target: screen.getByTestId("thread-bar") });
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "66px" });
+    expect(screen.queryByTestId("structure-bracket")).not.toBeInTheDocument();
+  });
+
   test("must not frame the blocks of a comment on several whole blocks while nobody points at it or selects it", async () => {
     const { render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
 

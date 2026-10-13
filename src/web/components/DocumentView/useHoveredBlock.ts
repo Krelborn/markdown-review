@@ -91,9 +91,10 @@ export function useHoveredBlock(
     }
     const point = (event: MouseEvent): void => {
       const contentBox = content.getBoundingClientRect();
-      const isInGutter = event.clientX < contentBox.left;
+      const isOnBar = event.target instanceof Element && event.target.closest("[data-thread-bar]") !== null;
+      const isInGutter = event.clientX < contentBox.left && !isOnBar;
       const isBesideContent = isInGutter || event.clientX > contentBox.right;
-      const index = pickedBlockIndex(event, content, isBesideContent, blockIndexLevelWith);
+      const index = isOnBar ? null : pickedBlockIndex(event, content, isBesideContent, blockIndexLevelWith);
       setIsPointerInGutter(isInGutter);
       setIsPointerInBracketLane(
         event.target instanceof Element && event.target.closest("[data-bracket-lane]") !== null

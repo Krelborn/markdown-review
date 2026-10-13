@@ -18,8 +18,7 @@ import { usePendingSpan } from "./usePendingSpan";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
 import { useSelectionComment } from "./useSelectionComment";
-import type { ThreadBar } from "./useThreadBars";
-import { useThreadBars } from "./useThreadBars";
+import type { ThreadBar } from "./measureThreadBars";
 import type { ThreadMarker } from "./useThreadHighlights";
 import { useThreadHighlights } from "./useThreadHighlights";
 
@@ -93,7 +92,7 @@ export function useDocumentOverlay(
   { documentPath, highlightedThreads, isBlockButtonFocused, pendingPassage, selectedThreadId }: DocumentOverlayOptions
 ): DocumentOverlay {
   const { hoveredThreadId, onHoverThread } = useContext(HoveredThreadContext);
-  const markers = useThreadHighlights(viewRef, contentRef, rendered, {
+  const { bars: threadBars, markers } = useThreadHighlights(viewRef, contentRef, rendered, {
     hoveredThreadId,
     pendingPassage,
     selectedThreadId,
@@ -116,7 +115,6 @@ export function useDocumentOverlay(
     isPickingInGutter ? hoveredBlock.box.index : null
   );
   const pendingSpan = usePendingSpan(viewRef, contentRef, rendered, pendingPassage);
-  const threadBars = useThreadBars(viewRef, contentRef, rendered, highlightedThreads);
   return {
     gutterDrag,
     hoveredBlock,

@@ -7,7 +7,7 @@ import { useThreadReporter } from "../../review/useThreadReporter";
 
 import { BlockTarget, verticalOutset } from "./BlockTarget";
 import styles from "./DocumentView.module.css";
-import type { ThreadBar } from "./useThreadBars";
+import type { ThreadBar } from "./measureThreadBars";
 
 export interface ThreadBarsProps {
   bars: ThreadBar[];
@@ -50,6 +50,7 @@ export function ThreadBars({ bars, onSelectThread, selectedThreadId }: ThreadBar
           aria-hidden="true"
           data-md-ignore=""
           data-testid="thread-bar"
+          data-thread-bar=""
         />
       ))}
     </>
