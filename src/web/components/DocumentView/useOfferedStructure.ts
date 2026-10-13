@@ -2,6 +2,7 @@ import type { RefObject } from "react";
 
 import type { DocumentStructure } from "../../../shared/markdown/DocumentStructure";
 import { innermostStructure } from "../../anchoring/innermostStructure";
+import { describeStructure } from "../../review/describeStructure";
 
 import type { SpanBox } from "./SpanBox";
 import { useMeasuredSpan } from "./useMeasuredSpan";
@@ -12,6 +13,12 @@ import type { RenderedDocument } from "./useRenderedDocument";
  */
 export interface OfferedStructure {
   box: SpanBox;
+
+  /**
+   * What the user calls the structure, such as "the table"
+   */
+  description: string;
+
   structure: DocumentStructure;
 }
 
@@ -30,5 +37,7 @@ export function useOfferedStructure(
   const structure =
     rendered === null || blockIndex === null ? null : innermostStructure(rendered.documentText, blockIndex);
   const box = useMeasuredSpan(viewRef, contentRef, rendered, structure);
-  return structure === null || box === null ? null : { box, structure };
+  return rendered === null || structure === null || box === null
+    ? null
+    : { box, description: describeStructure(rendered.documentText, structure), structure };
 }

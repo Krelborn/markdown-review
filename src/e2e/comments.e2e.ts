@@ -133,6 +133,30 @@ test("must scroll the doc column, and take in the blocks it brings into view, wh
   await expect(quote).toContainText("Paragraph 20.");
 });
 
+test("must start a comment quoting the whole table when the user clicks the bracket beside it", async ({
+  page,
+  review,
+}) => {
+  await review.writeDocument(
+    "docs/plan.md",
+    "# Plan\n\n| Setting | Value |\n| --- | --- |\n| ttl | 24h |\n| retries | 3 |\n\nAfter the table.\n"
+  );
+  await review.open("docs/plan.md");
+  const row = page.getByRole("article", { name: "docs/plan.md" }).getByRole("row").nth(1);
+  const lane = await boxOf(page.getByTestId("bracket-lane"));
+  const beside = await pointInGutterBeside(page, row);
+
+  await page.mouse.move(lane.x + lane.width / 2, beside.y);
+  await expect(page.getByTestId("block-target")).toContainText("Comment on the table");
+  await page.mouse.down();
+  await page.mouse.up();
+
+  const quote = page.getByRole("region", { name: "New comment" }).getByRole("blockquote");
+  await expect(quote).toContainText("Setting");
+  await expect(quote).toContainText("retries");
+  await expect(quote).not.toContainText("After the table.");
+});
+
 test("must put the + beside a list item when the user points beside the item's text", async ({ page, review }) => {
   await review.writeDocument("docs/plan.md", "# Plan\n\n- First item\n- Second item\n");
   await review.open("docs/plan.md");
@@ -436,15 +460,13 @@ function overflowOf(element: Locator): Promise<number> {
 }
 
 /**
- * @returns the point in the gutter, near its left edge and clear of the +, that is level with the middle of the element
+ * @returns the point in the gutter, relative to it, just left of the prose and clear of the + and the bracket lane, that
+ *   is level with the middle of the element
  */
 async function gutterBeside(page: Page, element: Locator): Promise<{ x: number; y: number }> {
-  const gutter = await page.getByTestId("block-gutter").boundingBox();
-  const box = await element.boundingBox();
-  if (gutter === null || box === null) {
-    throw new Error("The gutter and the element must be on the page");
-  }
-  return { x: 2, y: box.y + box.height / 2 - gutter.y };
+  const gutter = await boxOf(page.getByTestId("block-gutter"));
+  const point = await pointInGutterBeside(page, element);
+  return { x: point.x - gutter.x, y: point.y - gutter.y };
 }
 
 /**

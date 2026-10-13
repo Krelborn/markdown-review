@@ -15,6 +15,11 @@ export interface HoveredBlock {
   box: BlockBox;
 
   /**
+   * Whether the pointer is in the gutter's outer lane, where it picks the structure around the block
+   */
+  isPointerInBracketLane: boolean;
+
+  /**
    * Whether the pointer is in the gutter left of the doc, where it picks the block level with it
    */
   isPointerInGutter: boolean;
@@ -67,6 +72,7 @@ export function useHoveredBlock(
   const lastPickedRef = useRef<PickedBlock | null>(null);
   const [isPointerInView, setIsPointerInView] = useState(false);
   const [isPointerInGutter, setIsPointerInGutter] = useState(false);
+  const [isPointerInBracketLane, setIsPointerInBracketLane] = useState(false);
   const [box, setBox] = useState<BlockBox | null>(null);
   const layoutRevision = useLayoutRevision(viewRef, contentRef);
   useEffect(() => {
@@ -89,6 +95,9 @@ export function useHoveredBlock(
       const isBesideContent = isInGutter || event.clientX > contentBox.right;
       const index = pickedBlockIndex(event, content, isBesideContent, blockIndexLevelWith);
       setIsPointerInGutter(isInGutter);
+      setIsPointerInBracketLane(
+        event.target instanceof Element && event.target.closest("[data-bracket-lane]") !== null
+      );
       if (index === null) {
         return;
       }
@@ -101,6 +110,7 @@ export function useHoveredBlock(
     const leave = (): void => {
       setIsPointerInView(false);
       setIsPointerInGutter(false);
+      setIsPointerInBracketLane(false);
     };
     view.addEventListener("mouseover", point);
     view.addEventListener("mousemove", point);
@@ -119,7 +129,7 @@ export function useHoveredBlock(
       blockIndex === null ? null : (contentRef.current?.querySelector(`[data-md-block="${blockIndex}"]`) ?? null);
     setBox(view === null || block === null ? null : measureBlock(view, block));
   }, [blockIndex, contentRef, layoutRevision, viewRef]);
-  return blockIndex === null || box === null ? null : { box, isPointerInGutter };
+  return blockIndex === null || box === null ? null : { box, isPointerInBracketLane, isPointerInGutter };
 }
 
 /**

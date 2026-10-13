@@ -474,6 +474,46 @@ describe("DocumentView", () => {
     }
   );
 
+  test.each([
+    { block: "its heading", clientY: 110, quote: "Goals\nRetries happen three times." },
+    {
+      block: "a paragraph under its heading",
+      clientY: 60,
+      quote: "Plan\nWe cache results for 24h today. See the spec.\nGoals\nRetries happen three times.",
+    },
+  ])(
+    "must start a comment on the whole section when the user clicks the bracket lane beside $block",
+    async ({ clientY, quote }) => {
+      const { onComment, render } = setUpTest();
+      const user = userEvent.setup();
+      await render();
+      layOutBlocks();
+      const coords = { clientX: 4, clientY };
+
+      await user.pointer([
+        { coords, target: elements.bracketLane() },
+        { coords, keys: "[MouseLeft]", target: elements.bracketLane() },
+      ]);
+
+      expect(onComment).toHaveBeenCalledExactlyOnceWith({
+        anchor: expect.objectContaining({ quote }),
+        renderedHash: "hash of the plan",
+      });
+    }
+  );
+
+  test("must frame the structure and name it when the pointer is in the bracket lane", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await user.pointer({ coords: { clientX: 4, clientY: 110 }, target: elements.bracketLane() });
+
+    expect(screen.getByTestId("block-target")).toHaveStyle({ height: "82px", top: "88px" });
+    expect(screen.getByTestId("block-target")).toHaveTextContent("Comment on the section “Goals”");
+  });
+
   test("must not bracket a structure while the pointer is over the doc", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
@@ -1220,6 +1260,7 @@ function selectText(from: string, through: string): void {
 
 const elements = {
   article: () => screen.getByRole("article", { name: "docs/plan.md" }),
+  bracketLane: () => screen.getByTestId("bracket-lane"),
   gutter: () => screen.getByTestId("block-gutter"),
   highlighted: (name: string): string[] => [...(CSS.highlights.get(name) ?? [])].map((range) => range.toString()),
   // NaN when no highlight has the name, as no comparison with NaN passes

@@ -5,7 +5,7 @@ import type { BlockSpan } from "../../../shared/markdown/BlockSpan";
 import { BlockCommentButton } from "./BlockCommentButton";
 import { BlockGutter } from "./BlockGutter";
 import { BlockTarget } from "./BlockTarget";
-import { StructureBracket } from "./StructureBracket";
+import { StructurePicker } from "./StructurePicker";
 import type { GutterDrag } from "./useGutterDrag";
 import type { HoveredBlock } from "./useHoveredBlock";
 import type { OfferedStructure } from "./useOfferedStructure";
@@ -46,8 +46,8 @@ export interface GutterControlsProps {
 }
 
 /**
- * The gutter down the left of the doc, with the bracket beside the structure it offers, the + beside the block it
- * picks, and a frame round the blocks a drag covers
+ * The gutter down the left of the doc: its outer lane picks the structure around a block, and the rest picks the
+ * block, with the + beside it, or the blocks a drag covers
  */
 export function GutterControls({
   gutterDrag,
@@ -59,18 +59,20 @@ export function GutterControls({
   pendingSpan,
 }: GutterControlsProps): JSX.Element {
   const { box: draggedBox, span: draggedSpan, startDrag } = gutterDrag;
-  const pointedBox = hoveredBlock?.isPointerInGutter === true ? hoveredBlock.box : null;
+  const isPickingStructure = hoveredBlock?.isPointerInBracketLane === true;
+  const isPickingBlock = hoveredBlock?.isPointerInGutter === true && !isPickingStructure;
+  const pointedBox = isPickingBlock ? hoveredBlock.box : null;
   return (
     <>
       <BlockGutter onPointerDown={(event) => startDrag(event, onComment)} pickedBox={draggedBox ?? pointedBox} />
-      {offeredStructure !== null && <StructureBracket box={offeredStructure.box} />}
+      <StructurePicker isPicking={isPickingStructure} offeredStructure={offeredStructure} onComment={onComment} />
       {draggedSpan !== null && draggedBox !== null && <BlockTarget box={draggedBox} label={countLabel(draggedSpan)} />}
       {hoveredBlock !== null && (
         <BlockCommentButton
           block={hoveredBlock.box}
           isFocused={isBlockButtonFocused}
           isFramed={draggedSpan !== null || isSpanOf(pendingSpan, hoveredBlock.box.index)}
-          isPointerInGutter={hoveredBlock.isPointerInGutter}
+          isPointerInGutter={isPickingBlock}
           onComment={() => onComment({ firstBlock: hoveredBlock.box.index, lastBlock: hoveredBlock.box.index })}
           onDragStart={(event) => startDrag(event, onComment)}
           onFocusChange={onBlockButtonFocusChange}

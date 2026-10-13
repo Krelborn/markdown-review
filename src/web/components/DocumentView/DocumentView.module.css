@@ -466,6 +466,18 @@
   translate: -50% 0;
 }
 
+.bracketLane {
+  inline-size: var(--bracket-lane-size);
+  inset-block: 0;
+  inset-inline-start: 0;
+  position: absolute;
+  user-select: none;
+}
+
+.offeringBracketLane {
+  cursor: pointer;
+}
+
 .structureBracket {
   border: 2px solid var(--sui-color-text-muted);
   border-end-start-radius: var(--sui-radius-sm);
@@ -476,6 +488,11 @@
   opacity: 0.45;
   pointer-events: none;
   position: absolute;
+}
+
+.pickedStructureBracket {
+  border-color: var(--sui-color-primary);
+  opacity: 1;
 }
 
 .hoveredMarker {
@@ -520,7 +537,10 @@
   inset-block-start: 0;
   inset-inline-end: var(--sui-space-3);
   line-height: 1;
+  max-inline-size: calc(100% - 2 * var(--sui-space-3));
+  overflow: hidden;
   padding: var(--sui-space-1) var(--sui-space-2);
+  text-overflow: ellipsis;
   position: absolute;
   translate: 0 -50%;
   white-space: nowrap;
