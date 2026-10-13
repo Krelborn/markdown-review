@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { blockElementAt } from "../../anchoring/blockElementAt";
 
@@ -18,6 +18,14 @@ export interface HoveredBlock {
    * Whether the pointer is in the gutter left of the doc, where it picks the block level with it
    */
   isPointerInGutter: boolean;
+}
+
+/**
+ * A block the pointer picked, in the rendering it picked it in
+ */
+interface PickedBlock {
+  index: number;
+  rendered: RenderedDocument;
 }
 
 export interface HoveredBlockOptions {
@@ -54,7 +62,9 @@ export function useHoveredBlock(
   rendered: RenderedDocument | null,
   { blockIndexLevelWith, isHeld, isPinned }: HoveredBlockOptions
 ): HoveredBlock | null {
-  const [pointed, setPointed] = useState<{ index: number; rendered: RenderedDocument } | null>(null);
+  const [pointed, setPointed] = useState<PickedBlock | null>(null);
+  // Kept while the + is pinned, so the + moves to the block under the pointer when the drag that pinned it ends
+  const lastPickedRef = useRef<PickedBlock | null>(null);
   const [isPointerInView, setIsPointerInView] = useState(false);
   const [isPointerInGutter, setIsPointerInGutter] = useState(false);
   const [box, setBox] = useState<BlockBox | null>(null);
@@ -65,19 +75,27 @@ export function useHoveredBlock(
     if (view === null || content === null || rendered === null) {
       return;
     }
+    const pick = (picked: PickedBlock): void =>
+      setPointed((current) =>
+        current?.index === picked.index && current.rendered === picked.rendered ? current : picked
+      );
+    const lastPicked = lastPickedRef.current;
+    if (!isPinned && lastPicked?.rendered === rendered) {
+      pick(lastPicked);
+    }
     const point = (event: MouseEvent): void => {
       const contentBox = content.getBoundingClientRect();
       const isInGutter = event.clientX < contentBox.left;
       const isBesideContent = isInGutter || event.clientX > contentBox.right;
       const index = pickedBlockIndex(event, content, isBesideContent, blockIndexLevelWith);
       setIsPointerInGutter(isInGutter);
-      if (index !== null) {
-        setIsPointerInView(true);
+      if (index === null) {
+        return;
       }
-      if (index !== null && !isPinned) {
-        setPointed((current) =>
-          current?.index === index && current.rendered === rendered ? current : { index, rendered }
-        );
+      setIsPointerInView(true);
+      lastPickedRef.current = { index, rendered };
+      if (!isPinned) {
+        pick({ index, rendered });
       }
     };
     const leave = (): void => {

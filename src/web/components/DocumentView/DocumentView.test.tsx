@@ -444,6 +444,19 @@ describe("DocumentView", () => {
     expect(screen.getByTestId("block-target")).toHaveTextContent("3 blocks");
   });
 
+  test("must put the + beside the block level with the pointer when the user ends a drag", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await pressGutter(user, 60);
+    await moveInGutter(user, 150);
+
+    await releaseGutter(user);
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "152px" });
+  });
+
   test("must start no comment when the user presses Escape during a drag", async () => {
     const { onComment, render } = setUpTest();
     const user = userEvent.setup();
