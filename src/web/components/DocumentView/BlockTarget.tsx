@@ -12,12 +12,17 @@ export const verticalOutset = 6;
 
 export interface BlockTargetProps {
   box: SpanBox;
+
+  /**
+   * Says what the frame holds, such as how many blocks, on its top edge; none when undefined
+   */
+  label?: string;
 }
 
 /**
  * Frames the blocks a comment on whole blocks is for
  */
-export function BlockTarget({ box }: BlockTargetProps): JSX.Element {
+export function BlockTarget({ box, label }: BlockTargetProps): JSX.Element {
   return (
     <div
       className={styles.blockTarget}
@@ -30,6 +35,8 @@ export function BlockTarget({ box }: BlockTargetProps): JSX.Element {
       aria-hidden="true"
       data-md-ignore=""
       data-testid="block-target"
-    />
+    >
+      {label !== undefined && <span className={styles.blockTargetLabel}>{label}</span>}
+    </div>
   );
 }

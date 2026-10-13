@@ -32,6 +32,11 @@ export interface HoveredBlockOptions {
    * Whether the + has the focus, which keeps it on its block after the pointer leaves the view
    */
   isHeld: boolean;
+
+  /**
+   * Whether the + stays on its block while the pointer moves, as during a drag down the gutter
+   */
+  isPinned: boolean;
 }
 
 /**
@@ -47,7 +52,7 @@ export function useHoveredBlock(
   viewRef: RefObject<HTMLElement | null>,
   contentRef: RefObject<HTMLElement | null>,
   rendered: RenderedDocument | null,
-  { blockIndexLevelWith, isHeld }: HoveredBlockOptions
+  { blockIndexLevelWith, isHeld, isPinned }: HoveredBlockOptions
 ): HoveredBlock | null {
   const [pointed, setPointed] = useState<{ index: number; rendered: RenderedDocument } | null>(null);
   const [isPointerInView, setIsPointerInView] = useState(false);
@@ -68,6 +73,8 @@ export function useHoveredBlock(
       setIsPointerInGutter(isInGutter);
       if (index !== null) {
         setIsPointerInView(true);
+      }
+      if (index !== null && !isPinned) {
         setPointed((current) =>
           current?.index === index && current.rendered === rendered ? current : { index, rendered }
         );
@@ -85,7 +92,7 @@ export function useHoveredBlock(
       view.removeEventListener("mousemove", point);
       view.removeEventListener("mouseleave", leave);
     };
-  }, [blockIndexLevelWith, contentRef, rendered, viewRef]);
+  }, [blockIndexLevelWith, contentRef, isPinned, rendered, viewRef]);
   const blockIndex =
     pointed !== null && pointed.rendered === rendered && (isPointerInView || isHeld) ? pointed.index : null;
   useLayoutEffect(() => {

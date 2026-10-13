@@ -2,6 +2,7 @@ import { Button } from "@krelborn/stylesui";
 import type { JSX } from "react";
 
 import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
+import type { BlockSpan } from "../../../shared/markdown/BlockSpan";
 import { blockPassage } from "../../anchoring/blockPassage";
 import type { NewComment } from "../../review/NewComment";
 
@@ -10,6 +11,7 @@ import { BlockGutter } from "./BlockGutter";
 import { BlockTarget } from "./BlockTarget";
 import styles from "./DocumentView.module.css";
 import { ThreadMarkers } from "./ThreadMarkers";
+import type { GutterDrag } from "./useGutterDrag";
 import type { HoveredBlock } from "./useHoveredBlock";
 import type { PendingSpan } from "./usePendingSpan";
 import type { RenderedDocument } from "./useRenderedDocument";
@@ -18,16 +20,11 @@ import type { ThreadMarker } from "./useThreadHighlights";
 
 export interface DocumentControlsProps {
   /**
-   * Finds the block level with a distance down the page, as the gutter picks it
-   *
-   * @returns the block's index, or null when no block takes up any height
-   */
-  blockIndexLevelWith: (clientY: number) => number | null;
-
-  /**
    * The doc as the server sent it
    */
   document: DocumentSource;
+
+  gutterDrag: GutterDrag;
 
   /**
    * The block the + sits beside, or null
@@ -69,8 +66,8 @@ export interface DocumentControlsProps {
  * text
  */
 export function DocumentControls({
-  blockIndexLevelWith,
   document: shown,
+  gutterDrag,
   hoveredBlock,
   isBlockButtonFocused,
   markers,
@@ -83,11 +80,8 @@ export function DocumentControls({
   selectionComment,
 }: DocumentControlsProps): JSX.Element {
   // A comment is sent with the hash of the rendering it was made on, which lags the source while a newer one renders
-  const commentOnBlock = (blockIndex: number | null): void => {
-    const anchor =
-      rendered === null || blockIndex === null
-        ? null
-        : blockPassage(rendered.documentText, shown.path, { firstBlock: blockIndex, lastBlock: blockIndex });
+  const commentOnSpan = (span: BlockSpan): void => {
+    const anchor = rendered === null ? null : blockPassage(rendered.documentText, shown.path, span);
     if (rendered !== null && anchor !== null) {
       onComment({ anchor, renderedHash: rendered.hash });
     }
@@ -98,17 +92,21 @@ export function DocumentControls({
   };
   return (
     <>
-      <BlockGutter hoveredBlock={hoveredBlock} onComment={(clientY) => commentOnBlock(blockIndexLevelWith(clientY))} />
+      <BlockGutter
+        onPointerDown={(event) => gutterDrag.startDrag(event, commentOnSpan)}
+        pickedBox={gutterDrag.box ?? (hoveredBlock?.isPointerInGutter === true ? hoveredBlock.box : null)}
+      />
       {pendingSpan !== null && <BlockTarget box={pendingSpan.box} />}
+      {gutterDrag.span !== null && gutterDrag.box !== null && (
+        <BlockTarget box={gutterDrag.box} label={countLabel(gutterDrag.span)} />
+      )}
       {hoveredBlock !== null && (
         <BlockCommentButton
           block={hoveredBlock.box}
           isFocused={isBlockButtonFocused}
-          isFramed={
-            pendingSpan?.firstBlock === hoveredBlock.box.index && pendingSpan.lastBlock === hoveredBlock.box.index
-          }
+          isFramed={gutterDrag.span !== null || isSpanOf(pendingSpan, hoveredBlock.box.index)}
           isPointerInGutter={hoveredBlock.isPointerInGutter}
-          onComment={() => commentOnBlock(hoveredBlock.box.index)}
+          onComment={() => commentOnSpan({ firstBlock: hoveredBlock.box.index, lastBlock: hoveredBlock.box.index })}
           onFocusChange={onBlockButtonFocusChange}
         />
       )}
@@ -130,4 +128,15 @@ export function DocumentControls({
       )}
     </>
   );
+}
+
+/**
+ * @returns how many blocks a drag covers, or nothing for one block
+ */
+function countLabel({ firstBlock, lastBlock }: BlockSpan): string | undefined {
+  return lastBlock > firstBlock ? `${lastBlock - firstBlock + 1} blocks` : undefined;
+}
+
+function isSpanOf(span: BlockSpan | null, blockIndex: number): boolean {
+  return span?.firstBlock === blockIndex && span.lastBlock === blockIndex;
 }

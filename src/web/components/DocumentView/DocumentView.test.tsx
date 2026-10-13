@@ -348,6 +348,89 @@ describe("DocumentView", () => {
     );
   });
 
+  test.each([
+    { direction: "down", from: 60, to: 150 },
+    { direction: "up", from: 150, to: 60 },
+  ])(
+    "must start a comment on every block from the first to the last when the user drags $direction the gutter",
+    async ({ from, to }) => {
+      const { onComment, render } = setUpTest();
+      const user = userEvent.setup();
+      await render();
+      layOutBlocks();
+
+      await pressGutter(user, from);
+      await moveInGutter(user, to);
+      await releaseGutter(user);
+
+      expect(onComment).toHaveBeenCalledExactlyOnceWith({
+        anchor: expect.objectContaining({
+          quote: "We cache results for 24h today. See the spec.\nGoals\nRetries happen three times.",
+        }),
+        renderedHash: "hash of the plan",
+      });
+    }
+  );
+
+  test("must start a comment on one block when the user releases a drag on the block it started on", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await pressGutter(user, 60);
+    await moveInGutter(user, 150);
+    await moveInGutter(user, 70);
+    await releaseGutter(user);
+
+    expect(onComment).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        anchor: expect.objectContaining({ quote: "We cache results for 24h today. See the spec." }),
+      })
+    );
+  });
+
+  test("must frame every block the drag covers, and say how many, while the user drags down the gutter", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await pressGutter(user, 60);
+    await moveInGutter(user, 150);
+
+    expect(screen.getByTestId("block-target")).toHaveStyle({ height: "122px", top: "48px" });
+    expect(screen.getByTestId("block-target")).toHaveTextContent("3 blocks");
+  });
+
+  test("must start no comment when the user presses Escape during a drag", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await pressGutter(user, 60);
+    await moveInGutter(user, 150);
+
+    await user.keyboard("{Escape}");
+    await releaseGutter(user);
+
+    expect(onComment).not.toHaveBeenCalled();
+    expect(screen.queryByText("3 blocks")).not.toBeInTheDocument();
+  });
+
+  test("must start no comment when the doc renders again during a drag", async () => {
+    const { onComment, render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await pressGutter(user, 60);
+
+    await rerender(revisedPlan);
+    await releaseGutter(user);
+
+    expect(onComment).not.toHaveBeenCalled();
+  });
+
   test("must move the + to the block level with the pointer when the pointer is over the doc but between blocks", async () => {
     const { onComment, render } = setUpTest();
     const user = userEvent.setup();
@@ -1015,6 +1098,21 @@ function layOutBlocks(): void {
       vi.spyOn(block, "getBoundingClientRect").mockReturnValue(new DOMRect(40, top, 600, height));
     }
   }
+}
+
+/**
+ * Presses the main button with the pointer in the gutter, at the given distance down the page
+ */
+async function pressGutter(user: UserEvent, clientY: number): Promise<void> {
+  await user.pointer({ coords: { clientX: 10, clientY }, keys: "[MouseLeft>]", target: elements.gutter() });
+}
+
+async function moveInGutter(user: UserEvent, clientY: number): Promise<void> {
+  await user.pointer({ coords: { clientX: 10, clientY }, target: elements.gutter() });
+}
+
+async function releaseGutter(user: UserEvent): Promise<void> {
+  await user.pointer({ keys: "[/MouseLeft]", target: elements.gutter() });
 }
 
 async function tabToBlockButton(user: UserEvent): Promise<void> {

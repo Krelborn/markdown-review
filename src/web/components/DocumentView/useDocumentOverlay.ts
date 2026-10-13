@@ -6,6 +6,8 @@ import type { Thread } from "../../../shared/review/threadSchema";
 import { HoveredThreadContext } from "../../review/HoveredThreadContext";
 
 import { useBlockIndexLevelWith } from "./useBlockIndexLevelWith";
+import type { GutterDrag } from "./useGutterDrag";
+import { useGutterDrag } from "./useGutterDrag";
 import type { HoveredBlock } from "./useHoveredBlock";
 import { useHoveredBlock } from "./useHoveredBlock";
 import { useHoveredThread } from "./useHoveredThread";
@@ -42,12 +44,7 @@ export interface DocumentOverlayOptions {
 }
 
 export interface DocumentOverlay {
-  /**
-   * Finds the block level with a distance down the page, as the gutter picks it
-   *
-   * @returns the block's index, or null when no block takes up any height
-   */
-  blockIndexLevelWith: (clientY: number) => number | null;
+  gutterDrag: GutterDrag;
 
   /**
    * The block the + sits beside: the block the pointer picks, or the + kept on its block while it has the focus; or
@@ -72,7 +69,7 @@ export interface DocumentOverlay {
 
 /**
  * Follows what is drawn over the rendered doc: the threads' highlights and markers, the thread and block under the
- * pointer, the blocks a comment is being written on, and the Comment button beside selected text
+ * pointer, a drag down the gutter, the blocks a comment is being written on, and the Comment button beside selected text
  */
 export function useDocumentOverlay(
   viewRef: RefObject<HTMLElement | null>,
@@ -90,10 +87,12 @@ export function useDocumentOverlay(
   const isPointingAtHighlight = useHoveredThread(viewRef, contentRef, rendered, highlightedThreads, onHoverThread);
   const selectionComment = useSelectionComment(viewRef, contentRef, rendered, documentPath);
   const blockIndexLevelWith = useBlockIndexLevelWith(viewRef, contentRef, rendered);
+  const gutterDrag = useGutterDrag(viewRef, contentRef, rendered, blockIndexLevelWith);
   const hoveredBlock = useHoveredBlock(viewRef, contentRef, rendered, {
     blockIndexLevelWith,
     isHeld: isBlockButtonFocused,
+    isPinned: gutterDrag.span !== null,
   });
   const pendingSpan = usePendingSpan(viewRef, contentRef, rendered, pendingPassage);
-  return { blockIndexLevelWith, hoveredBlock, isPointingAtHighlight, markers, pendingSpan, selectionComment };
+  return { gutterDrag, hoveredBlock, isPointingAtHighlight, markers, pendingSpan, selectionComment };
 }

@@ -497,6 +497,20 @@
   position: absolute;
 }
 
+.blockTargetLabel {
+  background-color: var(--sui-color-primary);
+  border-radius: var(--sui-radius-full);
+  color: var(--sui-color-on-primary);
+  font-size: var(--sui-font-size-xs);
+  inset-block-start: 0;
+  inset-inline-end: var(--sui-space-3);
+  line-height: 1;
+  padding: var(--sui-space-1) var(--sui-space-2);
+  position: absolute;
+  translate: 0 -50%;
+  white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .blockTarget {
     animation: fadeIn 120ms ease-out;

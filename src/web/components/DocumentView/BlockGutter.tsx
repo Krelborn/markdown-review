@@ -1,34 +1,33 @@
 import { clsx } from "clsx";
-import type { JSX } from "react";
+import type { JSX, PointerEvent } from "react";
 
 import { verticalOutset } from "./BlockTarget";
 import styles from "./DocumentView.module.css";
-import type { HoveredBlock } from "./useHoveredBlock";
+import type { SpanBox } from "./SpanBox";
 
 export interface BlockGutterProps {
   /**
-   * The block the + sits beside, or null
+   * Called when the user presses in the gutter, where a press picks the block level with it and a drag the blocks
+   * between
    */
-  hoveredBlock: HoveredBlock | null;
+  onPointerDown: (event: PointerEvent<HTMLDivElement>) => void;
 
   /**
-   * Called with the distance down the page the user clicks the gutter at, to start a comment on the block level with
-   * it
+   * The blocks the gutter picks, which its bar runs beside, or null
    */
-  onComment: (clientY: number) => void;
+  pickedBox: SpanBox | null;
 }
 
 /**
- * The strip down the left of the doc, where the pointer picks the block level with it: while the pointer is in it, it
- * shows a track and a bar beside that block, and a click in it starts a comment on the block
+ * The strip down the left of the doc, where the pointer picks the block level with it: while it picks blocks, it shows
+ * a track and a bar beside them
  */
-export function BlockGutter({ hoveredBlock, onComment }: BlockGutterProps): JSX.Element {
-  const pickedBox = hoveredBlock?.isPointerInGutter === true ? hoveredBlock.box : null;
+export function BlockGutter({ onPointerDown, pickedBox }: BlockGutterProps): JSX.Element {
   return (
-    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- the + is the control for keyboards and screen readers; the gutter only widens its target for the pointer
+    // oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- the + is the control for keyboards and screen readers; the gutter only widens its target for the pointer
     <div
       className={clsx(styles.gutter, { [styles.pickingGutter ?? ""]: pickedBox !== null })}
-      onClick={(event) => onComment(event.clientY)}
+      onPointerDown={onPointerDown}
       aria-hidden="true"
       data-md-ignore=""
       data-testid="block-gutter"
