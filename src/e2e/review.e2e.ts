@@ -71,6 +71,17 @@ test("must end the agent's poll when the user says go ahead", async ({ page, rev
   await expect(page.getByText("Going ahead", { exact: true })).toBeVisible();
 });
 
+test("must name the agent's next task under Go ahead when the agent gives one", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+
+  await review.run(["open", "docs/plan.md", "--next-task", "update the install section"]);
+  await page.getByRole("button", { exact: true, name: submitButtonName(0) }).click();
+
+  await expect(
+    page.getByRole("dialog", { name: "Submit review" }).getByRole("radio", { name: "Go ahead" })
+  ).toHaveAccessibleDescription("End the review. The agent carries on: update the install section");
+});
+
 test("must end the agent's poll and tell it to stop when the user hands the review back", async ({ page, review }) => {
   await review.open("docs/plan.md");
   const poll = await review.startPoll();

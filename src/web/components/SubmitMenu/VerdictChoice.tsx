@@ -17,6 +17,11 @@ export interface VerdictChoiceProps {
    */
   draftCount: number;
 
+  /**
+   * What the agent will do once the user says go ahead, or null when it has not said
+   */
+  nextTask: string | null;
+
   onVerdictChange: (verdict: Verdict) => void;
   verdict: Verdict;
 }
@@ -24,9 +29,16 @@ export interface VerdictChoiceProps {
 /**
  * The verdicts the user can submit with: Revise, which needs a draft, Go ahead, or Hand back to agent
  */
-export function VerdictChoice({ checkedRef, draftCount, onVerdictChange, verdict }: VerdictChoiceProps): JSX.Element {
+export function VerdictChoice({
+  checkedRef,
+  draftCount,
+  nextTask,
+  onVerdictChange,
+  verdict,
+}: VerdictChoiceProps): JSX.Element {
   const refFor = (value: Verdict): Ref<HTMLInputElement> | undefined => (value === verdict ? checkedRef : undefined);
   const hasDrafts = draftCount > 0;
+  const carriesOn = nextTask === null ? "carries on with its task." : `carries on: ${nextTask}`;
   return (
     <RadioGroup
       label={<VisuallyHidden>Verdict</VisuallyHidden>}
@@ -43,8 +55,8 @@ export function VerdictChoice({ checkedRef, draftCount, onVerdictChange, verdict
       <VerdictOption
         description={
           hasDrafts
-            ? "Send your comments and end the review. The agent addresses them, then carries on with its task."
-            : "End the review. The agent carries on with its task."
+            ? `Send your comments and end the review. The agent addresses them, then ${carriesOn}`
+            : `End the review. The agent ${carriesOn}`
         }
         isDisabled={false}
         label="Go ahead"
