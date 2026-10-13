@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { BlockSpan } from "../../../shared/markdown/BlockSpan";
 
+import { autoScrollStep } from "./autoScrollStep";
+import { scrollingAncestor } from "./scrollingAncestor";
 import type { SpanBox } from "./SpanBox";
 import { useMeasuredSpan } from "./useMeasuredSpan";
 import type { RenderedDocument } from "./useRenderedDocument";
@@ -23,8 +25,9 @@ export interface GutterDrag {
    *
    * @param onEnd called with the blocks the drag covers when the user releases the button; not called when the user
    *   presses Escape or the doc renders again first
+   * @returns whether a drag started, which it does not for another button or where no block takes up any height
    */
-  startDrag: (event: ReactPointerEvent<Element>, onEnd: (span: BlockSpan) => void) => void;
+  startDrag: (event: ReactPointerEvent<Element>, onEnd: (span: BlockSpan) => void) => boolean;
 }
 
 interface Drag {
@@ -35,7 +38,7 @@ interface Drag {
 
 /**
  * Follows a drag down the gutter, which picks every block from the one level with the press to the one level with the
- * pointer
+ * pointer, and scrolls the doc while the pointer is near the top or bottom of the box the doc scrolls in
  *
  * @param blockIndexLevelWith finds the block level with a distance down the page, as the gutter picks it
  */
@@ -56,12 +59,17 @@ export function useGutterDrag(
     if (startBlock === null || onEnd === null) {
       return;
     }
-    const move = (event: PointerEvent): void => {
-      const block = blockIndexLevelWith(event.clientY);
+    let pointerY: number | null = null;
+    const pickAt = (clientY: number): void => {
+      const block = blockIndexLevelWith(clientY);
       if (block !== null && block !== endBlockRef.current) {
         endBlockRef.current = block;
         setDrag((current) => (current === null ? null : { ...current, endBlock: block }));
       }
+    };
+    const move = (event: PointerEvent): void => {
+      pointerY = event.clientY;
+      pickAt(event.clientY);
     };
     const release = (event: PointerEvent): void => {
       move(event);
@@ -77,29 +85,45 @@ export function useGutterDrag(
         cancel();
       }
     };
+    const view = viewRef.current;
+    const scroller = view === null ? null : scrollingAncestor(view);
+    // Scrolls on each frame, so the doc keeps scrolling while the pointer rests near an edge
+    const scrollNearEdge = (): void => {
+      frame = requestAnimationFrame(scrollNearEdge);
+      const step =
+        pointerY === null
+          ? 0
+          : autoScrollStep(pointerY, scroller?.getBoundingClientRect() ?? { bottom: innerHeight, top: 0 });
+      if (pointerY !== null && step !== 0) {
+        (scroller ?? document.scrollingElement)?.scrollBy(0, step);
+        pickAt(pointerY);
+      }
+    };
+    let frame = requestAnimationFrame(scrollNearEdge);
     document.addEventListener("pointermove", move);
     document.addEventListener("pointerup", release);
     document.addEventListener("pointercancel", cancel);
     window.addEventListener("keydown", cancelOnEscape, { capture: true });
     return () => {
+      cancelAnimationFrame(frame);
       document.removeEventListener("pointermove", move);
       document.removeEventListener("pointerup", release);
       document.removeEventListener("pointercancel", cancel);
       window.removeEventListener("keydown", cancelOnEscape, { capture: true });
     };
-  }, [blockIndexLevelWith, onEnd, startBlock]);
+  }, [blockIndexLevelWith, onEnd, startBlock, viewRef]);
   // The blocks may have moved or be other blocks in a new rendering
   useEffect(() => () => setDrag(null), [rendered]);
   const startDrag = useCallback(
-    (event: ReactPointerEvent<Element>, onDragEnd: (span: BlockSpan) => void): void => {
+    (event: ReactPointerEvent<Element>, onDragEnd: (span: BlockSpan) => void): boolean => {
       const block = event.button === 0 ? blockIndexLevelWith(event.clientY) : null;
       if (block === null) {
-        return;
+        return false;
       }
-      event.preventDefault();
       event.currentTarget.setPointerCapture(event.pointerId);
       endBlockRef.current = block;
       setDrag({ endBlock: block, onEnd: onDragEnd, startBlock: block });
+      return true;
     },
     [blockIndexLevelWith]
   );

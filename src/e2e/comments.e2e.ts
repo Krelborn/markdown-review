@@ -2,7 +2,15 @@ import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
 import type { ReviewFixture } from "./testing/reviewTest";
-import { boxOf, highlightedText, selectText, submitDrafts, test, writeDraftComment } from "./testing/reviewTest";
+import {
+  boxOf,
+  highlightedText,
+  selectText,
+  submitDrafts,
+  test,
+  withParagraphs,
+  writeDraftComment,
+} from "./testing/reviewTest";
 
 test("must ask about the first comment's text, then save it and start the next, when the user starts another comment", async ({
   page,
@@ -77,6 +85,52 @@ test("must start a comment on a block when the user clicks the gutter beside it"
   await expect(
     page.getByRole("region", { name: "New comment" }).getByText("Retries happen three times.")
   ).toBeVisible();
+});
+
+test("must start a comment quoting the rows the user drags over in the gutter", async ({ page, review }) => {
+  await review.writeDocument(
+    "docs/plan.md",
+    "# Plan\n\n| Setting | Value |\n| --- | --- |\n| ttl | 24h |\n| retries | 3 |\n| backoff | 2s |\n"
+  );
+  await review.open("docs/plan.md");
+  const rows = page.getByRole("article", { name: "docs/plan.md" }).getByRole("row");
+  const from = await pointInGutterBeside(page, rows.nth(1));
+  const to = await pointInGutterBeside(page, rows.nth(3));
+
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 5 });
+  await page.mouse.up();
+
+  const quote = page.getByRole("region", { name: "New comment" }).getByRole("blockquote");
+  await expect(quote).toContainText("ttl");
+  await expect(quote).toContainText("backoff");
+  await expect(quote).not.toContainText("Setting");
+  await expect(page.getByRole("button", { exact: true, name: "Comment" })).toBeHidden();
+});
+
+test("must scroll the doc column, and take in the blocks it brings into view, when the user drags to the column's bottom edge", async ({
+  page,
+  review,
+}) => {
+  await review.writeDocument("docs/plan.md", withParagraphs("# Plan", 60));
+  await review.open("docs/plan.md");
+  const column = page.getByRole("main");
+  const columnBox = await boxOf(column);
+  const from = await pointInGutterBeside(
+    page,
+    page.getByRole("article", { name: "docs/plan.md" }).getByText("Paragraph 1.", { exact: true })
+  );
+
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(from.x, columnBox.y + columnBox.height - 4, { steps: 5 });
+  await expect.poll(() => column.evaluate((main) => main.scrollTop)).toBeGreaterThan(600);
+  await page.mouse.up();
+
+  const quote = page.getByRole("region", { name: "New comment" }).getByRole("blockquote");
+  await expect(quote).toContainText("Paragraph 1.");
+  await expect(quote).toContainText("Paragraph 20.");
 });
 
 test("must put the + beside a list item when the user points beside the item's text", async ({ page, review }) => {
@@ -391,6 +445,16 @@ async function gutterBeside(page: Page, element: Locator): Promise<{ x: number; 
     throw new Error("The gutter and the element must be on the page");
   }
   return { x: 2, y: box.y + box.height / 2 - gutter.y };
+}
+
+/**
+ * @returns the point on the page in the gutter, just left of the prose and clear of the +, that is level with the middle
+ *   of the element
+ */
+async function pointInGutterBeside(page: Page, element: Locator): Promise<{ x: number; y: number }> {
+  const gutter = await boxOf(page.getByTestId("block-gutter"));
+  const box = await boxOf(element);
+  return { x: gutter.x + gutter.width - 6, y: box.y + box.height / 2 };
 }
 
 /**

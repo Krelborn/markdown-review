@@ -1,7 +1,7 @@
 import { AddIcon, IconButton } from "@krelborn/stylesui";
 import { clsx } from "clsx";
-import type { JSX } from "react";
-import { useEffect, useState } from "react";
+import type { JSX, PointerEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { BlockBox } from "./BlockBox";
 import { BlockTarget } from "./BlockTarget";
@@ -28,6 +28,13 @@ export interface BlockCommentButtonProps {
   onComment: () => void;
 
   /**
+   * Called when the user presses the +, to start a drag down the gutter from its block
+   *
+   * @returns whether a drag started, which starts the comment when the user releases it, in place of the click
+   */
+  onDragStart: (event: PointerEvent<HTMLButtonElement>) => boolean;
+
+  /**
    * Called when the + gains or loses the keyboard focus
    */
   onFocusChange: (isFocused: boolean) => void;
@@ -43,9 +50,11 @@ export function BlockCommentButton({
   isFramed,
   isPointerInGutter,
   onComment,
+  onDragStart,
   onFocusChange,
 }: BlockCommentButtonProps): JSX.Element {
   const [isPointedAt, setIsPointedAt] = useState(false);
+  const isDragClickRef = useRef(false);
   // Removing the + while it has the focus fires no blur, so the focus is reported lost here
   useEffect(() => () => onFocusChange(false), [onFocusChange]);
   return (
@@ -55,8 +64,16 @@ export function BlockCommentButton({
         className={clsx(styles.blockButton, { [styles.pickingBlockButton ?? ""]: isPointerInGutter })}
         label="Comment on this block"
         onBlur={() => onFocusChange(false)}
-        onClick={onComment}
+        onClick={() => {
+          if (!isDragClickRef.current) {
+            onComment();
+          }
+          isDragClickRef.current = false;
+        }}
         onFocus={() => onFocusChange(true)}
+        onPointerDown={(event) => {
+          isDragClickRef.current = onDragStart(event);
+        }}
         onPointerEnter={() => setIsPointedAt(true)}
         onPointerLeave={() => setIsPointedAt(false)}
         placement="start"

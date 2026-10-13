@@ -107,6 +107,7 @@ export function DocumentControls({
           isFramed={gutterDrag.span !== null || isSpanOf(pendingSpan, hoveredBlock.box.index)}
           isPointerInGutter={hoveredBlock.isPointerInGutter}
           onComment={() => commentOnSpan({ firstBlock: hoveredBlock.box.index, lastBlock: hoveredBlock.box.index })}
+          onDragStart={(event) => gutterDrag.startDrag(event, commentOnSpan)}
           onFocusChange={onBlockButtonFocusChange}
         />
       )}

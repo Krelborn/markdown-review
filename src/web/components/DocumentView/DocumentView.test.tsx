@@ -390,6 +390,47 @@ describe("DocumentView", () => {
     );
   });
 
+  test("must start a comment on every block from the first to the last when the user drags from the +", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await moveInGutter(user, 60);
+    const button = screen.getByRole("button", { name: "Comment on this block" });
+
+    await user.pointer({ coords: { clientX: 20, clientY: 60 }, keys: "[MouseLeft>]", target: button });
+    await moveInGutter(user, 150);
+    await user.pointer({ coords: { clientX: 20, clientY: 150 }, keys: "[/MouseLeft]", target: button });
+
+    expect(onComment).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        anchor: expect.objectContaining({
+          quote: "We cache results for 24h today. See the spec.\nGoals\nRetries happen three times.",
+        }),
+      })
+    );
+  });
+
+  test("must start one comment on the block when the user clicks the + while the gutter picks the block", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await moveInGutter(user, 60);
+
+    await user.pointer({
+      coords: { clientX: 20, clientY: 60 },
+      keys: "[MouseLeft]",
+      target: screen.getByRole("button", { name: "Comment on this block" }),
+    });
+
+    expect(onComment).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        anchor: expect.objectContaining({ quote: "We cache results for 24h today. See the spec." }),
+      })
+    );
+  });
+
   test("must frame every block the drag covers, and say how many, while the user drags down the gutter", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();

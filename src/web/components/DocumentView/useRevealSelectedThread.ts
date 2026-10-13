@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { rangeForPassage } from "../../anchoring/rangeForPassage";
 
+import { scrollingAncestor } from "./scrollingAncestor";
 import type { RenderedDocument } from "./useRenderedDocument";
 
 /**
@@ -56,11 +57,5 @@ function isOnScreen(range: Range): boolean {
  * The box through which a node can be seen: that of its nearest ancestor that scrolls, or else the viewport
  */
 function visibleBox(node: Node): Pick<DOMRect, "bottom" | "top"> {
-  for (let ancestor = node.parentElement; ancestor !== null; ancestor = ancestor.parentElement) {
-    const { overflowY } = getComputedStyle(ancestor);
-    if (overflowY === "auto" || overflowY === "scroll") {
-      return ancestor.getBoundingClientRect();
-    }
-  }
-  return { bottom: innerHeight, top: 0 };
+  return scrollingAncestor(node)?.getBoundingClientRect() ?? { bottom: innerHeight, top: 0 };
 }
