@@ -80,7 +80,7 @@ The gutter, from the view's left edge to the prose:
 - **The bracket lane** is new, and outside the block lane. The bracket is a 2px line in the lane's middle, from 4px above the structure to 4px below, with 5px ends turned towards the prose. It is `--sui-color-text-muted` at 45% opacity beside the block lane, and `--sui-color-primary` while the bracket lane picks it.
 - **Comment bars** are 3px wide with round ends, centred 0.625rem (lane 1) and 1rem (lane 2) from the prose, from 6px above the first block to 6px below the last, as the frame is. They are `--sui-color-warning` at rest, 4px wide while hovered, and `--sui-color-primary` while selected.
 - **The structure's label** sits on the frame's top edge at its right end: `--sui-font-size-xs` text in `--sui-color-on-primary` on `--sui-color-primary`, with `--sui-radius-full` corners. It reads "Comment on the table", "Comment on the list", "Comment on the quote", "Comment on the note" (or tip, important, warning, caution), or "Comment on the section “Goals”". During a drag over more than one block it reads "3 blocks".
-- **The frame round a span** reaches from 4px left of the prose to 4px right of the prose or of the widest block, whichever is further, and from 6px above the first block to 6px below the last. When every block is a row of one table, it is the table's shown box instead. A frame round one block is as today.
+- **The frame round a span** reaches from 4px left of the prose to 4px right of the prose or of the widest block, whichever is further. Down the page it reaches 6px past the outermost elements at either end whose blocks all lie in the span, such as a whole alert with its title, or else 6px past the first and last blocks. When every block is a row of one table, it is the table's shown box across instead. A frame round one block is as today.
 - **Order, back to front:** the gutter, the bars, the frames, the **+**, the markers.
 
 ## 6. Behaviour
@@ -111,7 +111,7 @@ The gutter, from the view's left edge to the prose:
 
 ### ⌥-click
 
-- ⌥-click in the block lane or on the **+** starts a comment on the innermost structure of the block level with it.
+- ⌥-click in the block lane or on the **+** starts a comment on the innermost structure of the block level with it, or on the block when no structure holds it.
 - While ⌥ is held with the pointer in the block lane, the frame, the label and the bracket show that structure, as the bracket lane does.
 - A drag ignores ⌥ after it starts.
 
@@ -119,7 +119,7 @@ The gutter, from the view's left edge to the prose:
 
 - **Which.** A highlighted thread is on a span when its passage starts at one block's start and ends at a later block's end. `wholeBlockSpan` works this out from the offsets.
 - **Text.** `useThreadHighlights` paints no tint for such threads and leaves them out of the overlaps. It still finds their ranges, to place their markers and to scroll to them. `useHoveredThread` and `useDocumentClicks` leave them out, so their text is plain text to the pointer.
-- **Bars.** One per such thread, in lane 1 unless its blocks overlap those of a thread already in lane 1, then lane 2. Threads go in order of their passages' length, shortest first. Pointing at a bar reports its thread as hovered, as a marker does, and a click selects it. The bars are hidden from assistive technology: the marker is the control for keyboards and screen readers.
+- **Bars.** One per such thread, in lane 1 unless its blocks overlap those of a thread already in lane 1, then lane 2. Threads go in order of their passages' length, shortest first. Where two bars share lane 2, the shorter is drawn over the longer. Pointing at a bar reports its thread as hovered, as a marker does, and a click selects it. The bars are hidden from assistive technology: the marker is the control for keyboards and screen readers.
 - **Hovered.** While the thread is hovered, from its bar, its marker or its card, its bar widens and a frame in `--sui-color-warning`, with a 7% fill, surrounds its blocks.
 - **Selected.** While the thread is selected, its bar and its frame are `--sui-color-primary`, as the frame of a comment being written is.
 - **Picking over a bar.** With the pointer on a bar, the gutter picks no block, as with the pointer on **Comment** beside a selection.

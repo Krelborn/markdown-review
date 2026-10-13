@@ -68,7 +68,8 @@ markdown-review open docs/plan.md
 ### Review in the browser
 
 - **Comment on a passage:** select text, including across paragraphs, and click **Comment**.
-- **Comment on a block:** hover over a block and click the **+** in the left margin. Use this for code blocks, tables, diagrams and HTML.
+- **Comment on blocks:** hover over a block and click the **+** in the left margin, or drag down the margin to take in several blocks. Use this for code blocks, diagrams and HTML.
+- **Comment on a table, list or section:** click the bracket at the far left of the margin, or ⌥-click (Alt-click) the margin.
 - **Comment on a doc or on the whole review:** click **+ Comment** at the top of the comments and choose **On this doc** or **On the whole review**.
 
 Comments are saved as drafts until you submit them. Click **Edit** to change one, or **Discard** to throw one away; it asks first. When you are ready to hand over to your agent, click **Submit**. Choose:
