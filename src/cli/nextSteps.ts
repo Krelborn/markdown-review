@@ -23,8 +23,9 @@ export const handedBackStep =
   "Tell the user in the chat that you have stopped, and wait for their instructions.";
 
 export const handedBackFinishedStep =
-  "The user handed the review back. Tell them what you changed and wait for their instructions; run " +
-  "`markdown-review open <path>` and `markdown-review poll` only if they ask you to continue the review.";
+  "The user handed the review back. Tell them what you changed and wait for their instructions. Only if they ask " +
+  'you to continue the review, run `markdown-review open <path> --next-task "<what you will do once the user says ' +
+  'go ahead>"`, then `markdown-review poll`.';
 
 /**
  * @param ids the threads that need the agent, at least one

@@ -157,7 +157,7 @@ next_step: Stop here: do not edit the docs, run `markdown-review poll` or carry 
 - `poll` says "No comments yet" only when it timed out, no thread needs the agent and `roundOutcome` is null.
 - `formatAgentAction`, in a round the user handed back:
   - With threads left: "The user handed the review back, so act on #4 only as they ask in the chat."
-  - With none left: "The user handed the review back. Tell them what you changed and wait for their instructions; run `markdown-review open <path>` and `markdown-review poll` only if they ask you to continue the review."
+  - With none left: "The user handed the review back. Tell them what you changed and wait for their instructions. Only if they ask you to continue the review, run `markdown-review open <path> --next-task "<what you will do once the user says go ahead>"`, then `markdown-review poll`."
   - After Go ahead it says what it says after an approval today.
 - `poll` and `inbox` read update notices only when `roundOutcome` is `go-ahead`. `formatUpdateNotices` renames `approved` to `wentAhead`, and its not-yet line ends "offer to update once they say go ahead."
 - `helpText`:
@@ -179,7 +179,7 @@ In `skills/markdown-review/SKILL.md`:
 The user ends a review in one of two ways, and `poll` and `inbox` say which on their first line.
 
 - **Go ahead** ("The user said go ahead"): address any comments that came with it, then carry on with your task. Do not run `poll` again for that review.
-- **Hand back** ("The user asked to hand back to you"): stop. Do not edit the docs, answer the threads, run `poll` or carry on with your task. Tell the user in the chat that you have stopped and what their comments say, and wait for their instructions. If they ask you to continue the review, run `markdown-review open <doc.md>`, then `markdown-review poll`.
+- **Hand back** ("The user asked to hand back to you"): stop. Do not edit the docs, answer the threads, run `poll` or carry on with your task. Tell the user in the chat that you have stopped and what their comments say, and wait for their instructions. If they ask you to continue the review, run `markdown-review open <doc.md> --next-task "<what you will do once the user says go ahead>"`, then `markdown-review poll`.
 ```
 
 - **Updates:** "Once the user says go ahead" replaces "Once the review is approved".

@@ -42,7 +42,8 @@ export class ServerClient {
 
   /**
    * @param document the doc to show, or null for the docs list
-   * @param nextTask what the agent will do once the user says go ahead, or null to keep what the round has
+   * @param nextTask what the agent will do once the user says go ahead; null keeps a joined round's task and leaves a
+   *   new round without one
    */
   public open(document: string | null, nextTask: string | null): Promise<AgentOpenResponse> {
     return this.request("POST", "/api/agent/open", agentOpenResponseSchema, {

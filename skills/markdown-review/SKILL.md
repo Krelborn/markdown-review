@@ -28,7 +28,7 @@ If the `markdown-review` command is not found, install it with `npm install --gl
 The user ends a review in one of two ways, and `poll` and `inbox` say which on their first line.
 
 - **Go ahead** ("The user said go ahead"): address any comments that came with it, then carry on with your task. Do not run `poll` again for that review.
-- **Hand back** ("The user asked to hand back to you"): stop. Do not edit the docs, answer the threads, run `poll` or carry on with your task. Tell the user in the chat that you have stopped and what their comments say, and wait for their instructions. If they ask you to continue the review, run `markdown-review open <doc.md>`, then `markdown-review poll`.
+- **Hand back** ("The user asked to hand back to you"): stop. Do not edit the docs, answer the threads, run `poll` or carry on with your task. Tell the user in the chat that you have stopped and what their comments say, and wait for their instructions. If they ask you to continue the review, run `markdown-review open <doc.md> --next-task "<what you will do once the user says go ahead>"`, then `markdown-review poll`.
 
 ## Updates
 
