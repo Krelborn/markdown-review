@@ -91,9 +91,15 @@ export const test = base.extend<{ review: ReviewFixture }>({
  *
  * @param from the text the selection starts with
  * @param through the text it ends with, which may be in a later element
+ * @param documentPath the doc on the page
  */
-export async function selectText(page: Page, from: string, through: string): Promise<void> {
-  await page.getByRole("article", { name: "docs/plan.md" }).evaluate(
+export async function selectText(
+  page: Page,
+  from: string,
+  through: string,
+  documentPath = "docs/plan.md"
+): Promise<void> {
+  await page.getByRole("article", { name: documentPath }).evaluate(
     (article, { endText, startText }) => {
       const walker = document.createTreeWalker(article, NodeFilter.SHOW_TEXT);
       const range = document.createRange();
@@ -123,9 +129,16 @@ export async function selectText(page: Page, from: string, through: string): Pro
  * @param from the text the comment's passage starts with
  * @param through the text it ends with
  * @param body the comment
+ * @param documentPath the doc on the page
  */
-export async function writeDraftComment(page: Page, from: string, through: string, body: string): Promise<void> {
-  await selectText(page, from, through);
+export async function writeDraftComment(
+  page: Page,
+  from: string,
+  through: string,
+  body: string,
+  documentPath = "docs/plan.md"
+): Promise<void> {
+  await selectText(page, from, through, documentPath);
   await page.getByRole("button", { exact: true, name: "Comment" }).click();
   await page.keyboard.type(body);
   await page.getByRole("region", { name: "New comment" }).getByRole("button", { exact: true, name: "Save" }).click();

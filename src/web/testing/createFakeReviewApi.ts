@@ -5,6 +5,7 @@ import type { DocumentCount, ThreadsSnapshot, UpdateResponse } from "../../share
 import { createDocumentText } from "../../shared/markdown/createDocumentText";
 import { linesForRange } from "../../shared/markdown/linesForRange";
 import type { Anchor } from "../../shared/review/anchorSchema";
+import { isDraftInRound } from "../../shared/review/isDraftInRound";
 import type { NewThread } from "../../shared/review/newThreadSchema";
 import type { ReviewRound } from "../../shared/review/reviewRoundSchema";
 import { buildRound } from "../../shared/review/testing/reviewBuilders";
@@ -115,17 +116,22 @@ export function createFakeReviewApi({
     readUpdate: () => Promise.resolve(update),
     resolveThread: (id) => change(id, (thread, at) => ({ ...thread, status: "resolved", updatedAt: at })),
     submit: (verdict) => {
+      if (verdict === "revise" && !snapshot.threads.some((thread) => isDraftInRound(thread, snapshot.round))) {
+        return Promise.reject(new ReviewApiError(409, "invalid-state", "There are no drafts to submit"));
+      }
       const at = new Date().toISOString();
-      snapshot.threads = snapshot.threads.map(({ draft, ...thread }) =>
-        draft === undefined
-          ? { ...thread }
-          : {
-              ...thread,
-              messages: [...thread.messages, { at, author: "user", body: draft.body }],
-              status: "open",
-              updatedAt: at,
-            }
-      );
+      snapshot.threads = snapshot.threads.map((thread) => {
+        if (thread.draft === undefined || !isDraftInRound(thread, snapshot.round)) {
+          return thread;
+        }
+        const { draft, ...sent } = thread;
+        return {
+          ...sent,
+          messages: [...sent.messages, { at, author: "user", body: draft.body }],
+          status: "open",
+          updatedAt: at,
+        };
+      });
       snapshot.round = {
         ...(snapshot.round ?? { documents: [], lastOpenedAt: at, nextTask: null, startedAt: at }),
         verdict: { at, kind: verdict },

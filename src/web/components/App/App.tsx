@@ -59,6 +59,7 @@ export function App(): JSX.Element {
     onThreadsChanged: threads.refresh,
   });
   const allThreads = useMemo(() => threads.snapshot?.threads ?? [], [threads.snapshot]);
+  const round = threads.snapshot?.round ?? null;
   const documentThreads = useMemo(
     () => allThreads.filter(({ anchor }) => anchor.kind !== "review" && anchor.document === documentPath),
     [allThreads, documentPath]
@@ -124,14 +125,14 @@ export function App(): JSX.Element {
             <div className={styles.reviewBar}>
               <ReviewBar
                 agentWaiting={connection.agentWaiting}
-                drafts={countDraftsByDocument(allThreads)}
+                drafts={countDraftsByDocument(allThreads, round)}
                 hasUnsavedText={editor.hasUnsavedText}
                 isPanelOpen={isPanelOpen}
                 onSubmitted={threads.refresh}
                 onTogglePanel={togglePanel}
                 panelId={commentsPanelId}
                 panelToggleRef={panelToggleRef}
-                round={threads.snapshot?.round ?? null}
+                round={round}
               />
             </div>
           </div>

@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import type { Verdict } from "../../../shared/review/reviewRoundSchema";
 import { describeFailure } from "../../api/describeFailure";
 import { useReviewApi } from "../../api/useReviewApi";
-import type { DraftCount } from "../../review/countDraftsByDocument";
+import type { DraftCounts } from "../../review/countDraftsByDocument";
 
 import { DraftsSummary } from "./DraftsSummary";
 import { VerdictChoice } from "./VerdictChoice";
@@ -17,9 +17,9 @@ export interface SubmitMenuProps {
   agentWaiting: boolean;
 
   /**
-   * The user's drafts on each doc: new comments and replies
+   * The user's drafts on each doc, new comments and replies, split into those a submit sends and those it keeps
    */
-  drafts: DraftCount[];
+  drafts: DraftCounts;
 
   /**
    * Whether the comment editor holds text the user has not saved, which they must save or discard before submitting
@@ -33,11 +33,11 @@ export interface SubmitMenuProps {
 }
 
 /**
- * Sends every draft to the agent with the verdict the user chooses: Revise, Go ahead or Hand back to agent
+ * Sends the review's drafts to the agent with the verdict the user chooses: Revise, Go ahead or Hand back to agent
  */
 export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }: SubmitMenuProps): JSX.Element {
   const api = useReviewApi();
-  const draftCount = drafts.reduce((sum, { count }) => sum + count, 0);
+  const draftCount = drafts.sent.reduce((sum, { count }) => sum + count, 0);
   // Held while the popover is open, so drafts going then can't turn Revise into Go ahead. While it is shut, the verdict
   // is the one it opens with, so the checked radio is the one it focuses
   const [heldVerdict, setHeldVerdict] = useState<Verdict | null>(null);

@@ -3,7 +3,7 @@ import type { JSX, RefObject } from "react";
 
 import type { ReviewRound } from "../../../shared/review/reviewRoundSchema";
 import { roundOutcome } from "../../../shared/review/roundOutcome";
-import type { DraftCount } from "../../review/countDraftsByDocument";
+import type { DraftCounts } from "../../review/countDraftsByDocument";
 import { AgentStatus } from "../AgentStatus/AgentStatus";
 import { SubmitMenu } from "../SubmitMenu/SubmitMenu";
 
@@ -13,9 +13,9 @@ export interface ReviewBarProps {
   agentWaiting: boolean;
 
   /**
-   * The user's drafts on each doc
+   * The user's drafts on each doc, split into those a submit sends and those it keeps
    */
-  drafts: DraftCount[];
+  drafts: DraftCounts;
 
   /**
    * Whether the comment editor holds text the user has not saved

@@ -1,4 +1,4 @@
-import { render as renderBase, screen, within } from "@testing-library/react";
+import { render as renderBase, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
 
@@ -245,6 +245,44 @@ describe("App", () => {
     await render();
 
     expect(await screen.findByRole("button", { name: "Submit 2 drafts" })).toBeInTheDocument();
+  });
+
+  test("must list a draft from before the review as not sent when it is on a doc the review has not opened", async () => {
+    const { render } = setUpTest({
+      threads: [planThread, { ...specThread, draft: { at: "2026-10-01T09:00:00.000Z", body: "Cached where?" } }],
+    });
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+
+    const popover = within(screen.getByRole("dialog", { name: "Submit review" }));
+    expect(await popover.findByText("Not sent, from before this review:")).toBeInTheDocument();
+    expect(popover.getByText("You have no drafts for this review.")).toBeInTheDocument();
+  });
+
+  test("must keep a draft from before the review as a draft when the user submits the review's drafts", async () => {
+    const staleDraft = { at: "2026-10-01T09:00:00.000Z", body: "Cached where?" };
+    const { fake, render } = setUpTest({
+      threads: [
+        { ...planThread, draft: { at: testTime, body: "Make it 12h." } },
+        { ...specThread, draft: staleDraft },
+      ],
+    });
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(await screen.findByRole("button", { name: "Submit 1 draft" }));
+    await user.click(
+      within(screen.getByRole("dialog", { name: "Submit review" })).getByRole("button", { name: "Submit" })
+    );
+
+    await waitFor(() => {
+      expect(fake.snapshot.threads.map(({ draft, id }) => ({ draft, id }))).toEqual([
+        { draft: undefined, id: 1 },
+        { draft: staleDraft, id: 2 },
+      ]);
+    });
   });
 
   test("must save a comment on the selected text as a draft when the user writes one", async () => {
