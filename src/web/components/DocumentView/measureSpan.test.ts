@@ -47,6 +47,27 @@ describe("measureSpan", () => {
     });
   });
 
+  test("must reach round the whole of an element whose blocks all lie in the span when the element is taller than them", () => {
+    const { content, view } = setUpTest();
+    const alert = document.createElement("div");
+    const title = document.createElement("p");
+    const [first, second] = [document.createElement("p"), document.createElement("p")];
+    first.setAttribute("data-md-block", "5");
+    second.setAttribute("data-md-block", "6");
+    alert.append(title, first, second);
+    content.append(alert);
+    vi.spyOn(alert, "getBoundingClientRect").mockReturnValue(new DOMRect(140, 300, 600, 100));
+    vi.spyOn(first, "getBoundingClientRect").mockReturnValue(new DOMRect(156, 330, 568, 24));
+    vi.spyOn(second, "getBoundingClientRect").mockReturnValue(new DOMRect(156, 360, 568, 24));
+
+    expect(measureSpan(view, content, { firstBlock: 5, lastBlock: 6 })).toEqual({
+      height: 100,
+      left: 40,
+      top: 250,
+      width: 600,
+    });
+  });
+
   test("must return null when the doc has no such block", () => {
     const { content, view } = setUpTest();
 
