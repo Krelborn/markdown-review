@@ -2,7 +2,7 @@ import type { RefObject } from "react";
 import { useLayoutEffect, useState } from "react";
 
 import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
-import { wholeBlockIndex } from "../../anchoring/wholeBlockIndex";
+import { wholeBlockSpan } from "../../anchoring/wholeBlockSpan";
 
 import type { BlockBox } from "./BlockBox";
 import { measureBlock } from "./measureBlock";
@@ -25,10 +25,11 @@ export function usePendingBlock(
   const layoutRevision = useLayoutRevision(viewRef, contentRef);
   useLayoutEffect(() => {
     const view = viewRef.current;
-    const index =
+    const span =
       rendered === null || pendingPassage === null
         ? null
-        : wholeBlockIndex(rendered.documentText, pendingPassage.startOffset, pendingPassage.endOffset);
+        : wholeBlockSpan(rendered.documentText, pendingPassage.startOffset, pendingPassage.endOffset);
+    const index = span !== null && span.firstBlock === span.lastBlock ? span.firstBlock : null;
     const block = index === null ? null : (contentRef.current?.querySelector(`[data-md-block="${index}"]`) ?? null);
     setPendingBlock(view === null || block === null ? null : measureBlock(view, block));
   }, [contentRef, layoutRevision, pendingPassage, rendered, viewRef]);

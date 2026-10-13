@@ -85,7 +85,9 @@ export function DocumentControls({
   // A comment is sent with the hash of the rendering it was made on, which lags the source while a newer one renders
   const commentOnBlock = (blockIndex: number | null): void => {
     const anchor =
-      rendered === null || blockIndex === null ? null : blockPassage(rendered.documentText, shown.path, blockIndex);
+      rendered === null || blockIndex === null
+        ? null
+        : blockPassage(rendered.documentText, shown.path, { firstBlock: blockIndex, lastBlock: blockIndex });
     if (rendered !== null && anchor !== null) {
       onComment({ anchor, renderedHash: rendered.hash });
     }
