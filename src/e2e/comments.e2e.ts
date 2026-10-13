@@ -5,6 +5,7 @@ import type { ReviewFixture } from "./testing/reviewTest";
 import {
   boxOf,
   highlightedText,
+  saveNewComment,
   selectText,
   submitDrafts,
   test,
@@ -541,11 +542,7 @@ async function writeSectionComment(page: Page, heading: string, body: string): P
   await page.mouse.move(lane.x + lane.width / 2, beside.y);
   await page.mouse.down();
   await page.mouse.up();
-  await page.keyboard.type(body);
-  await page.getByRole("region", { name: "New comment" }).getByRole("button", { exact: true, name: "Save" }).click();
-  await expect(page.getByRole("region", { name: "Drafts" })).toBeVisible();
-  // The draft's card can appear under the pointer, which WebKit then counts as pointing at it
-  await page.mouse.move(0, 0);
+  await saveNewComment(page, body);
 }
 
 /**

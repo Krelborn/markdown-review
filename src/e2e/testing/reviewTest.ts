@@ -144,6 +144,15 @@ export async function writeDraftComment(
 ): Promise<void> {
   await selectText(page, from, through, documentPath);
   await page.getByRole("button", { exact: true, name: "Comment" }).click();
+  await saveNewComment(page, body);
+}
+
+/**
+ * Writes the comment the user has started, and saves it as a draft
+ *
+ * @param body the comment
+ */
+export async function saveNewComment(page: Page, body: string): Promise<void> {
   await page.keyboard.type(body);
   await page.getByRole("region", { name: "New comment" }).getByRole("button", { exact: true, name: "Save" }).click();
   await expect(page.getByRole("region", { name: "Drafts" })).toBeVisible();
