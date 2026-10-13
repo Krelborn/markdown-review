@@ -13,6 +13,6 @@ describe("createDocumentText", () => {
   test("must give empty text when the doc has no blocks", () => {
     const documentText = createDocumentText("");
 
-    expect(documentText).toEqual({ blockStartOffsets: [], blocks: [], text: "" });
+    expect(documentText).toEqual({ blockStartOffsets: [], blocks: [], structures: [], text: "" });
   });
 });
