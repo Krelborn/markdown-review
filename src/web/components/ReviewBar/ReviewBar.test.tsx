@@ -146,6 +146,31 @@ describe("ReviewBar", () => {
     }
   );
 
+  test.each([
+    {
+      drafts: oneDraft,
+      submit: "Submit 1 draft",
+      description:
+        "Send your comments and end the review. The agent addresses them, then carries on: implement the plan in src/server",
+    },
+    {
+      drafts: noDrafts,
+      submit: "Submit",
+      description: "End the review. The agent carries on: implement the plan in src/server",
+    },
+  ])(
+    "must name the agent's next task under Go ahead when the user opens the popover with $submit",
+    async ({ description, drafts, submit }) => {
+      const { render } = setUpTest();
+      const user = userEvent.setup();
+      render({ drafts, round: buildRound({ nextTask: "implement the plan in src/server" }) });
+
+      await user.click(screen.getByRole("button", { name: submit }));
+
+      expect(elements.submitDialog().getByRole("radio", { name: "Go ahead" })).toHaveAccessibleDescription(description);
+    }
+  );
+
   test("must say how many drafts a submit sends, and which docs they are on", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();

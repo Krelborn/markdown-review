@@ -27,6 +27,11 @@ export interface SubmitMenuProps {
   hasUnsavedText: boolean;
 
   /**
+   * What the agent will do once the user says go ahead, or null when it has not said
+   */
+  nextTask: string | null;
+
+  /**
    * Called after the drafts are submitted
    */
   onSubmitted: () => void;
@@ -35,7 +40,13 @@ export interface SubmitMenuProps {
 /**
  * Sends the review's drafts to the agent with the verdict the user chooses: Revise, Go ahead or Hand back to agent
  */
-export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }: SubmitMenuProps): JSX.Element {
+export function SubmitMenu({
+  agentWaiting,
+  drafts,
+  hasUnsavedText,
+  nextTask,
+  onSubmitted,
+}: SubmitMenuProps): JSX.Element {
   const api = useReviewApi();
   const draftCount = drafts.sent.reduce((sum, { count }) => sum + count, 0);
   // Held while the popover is open, so drafts going then can't turn Revise into Go ahead. While it is shut, the verdict
@@ -72,7 +83,7 @@ export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }
         Submit{" "}
         {draftCount > 0 && (
           <>
-            <Counter count={draftCount} /> <VisuallyHidden>{draftCount === 1 ? "draft" : "drafts"}</VisuallyHidden>
+            <Counter count={draftCount} /> <VisuallyHidden>{draftNoun(draftCount)}</VisuallyHidden>
           </>
         )}
       </Button>
@@ -83,13 +94,12 @@ export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }
           <VerdictChoice
             checkedRef={checkedVerdictRef}
             draftCount={draftCount}
+            nextTask={nextTask}
             onVerdictChange={setHeldVerdict}
             verdict={verdict}
           />
           <Text as="p" size="sm" tone="muted">
-            {agentWaiting
-              ? "The agent is listening and will hear at once."
-              : "The agent isn't listening. It will find this in its inbox when it next looks."}
+            {describeListening(agentWaiting)}
           </Text>
           {hasUnsavedText && (
             <Alert tone="warning">Save or discard the comment you're writing before you submit.</Alert>
@@ -121,4 +131,14 @@ export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }
  */
 function openingVerdictOf(draftCount: number): Verdict {
   return draftCount > 0 ? "revise" : "go-ahead";
+}
+
+function draftNoun(count: number): string {
+  return count === 1 ? "draft" : "drafts";
+}
+
+function describeListening(agentWaiting: boolean): string {
+  return agentWaiting
+    ? "The agent is listening and will hear at once."
+    : "The agent isn't listening. It will find this in its inbox when it next looks.";
 }

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { handedBackStep, pollTimeoutAdvice, waitForCommentsStep, wentAheadStep } from "../cli/nextSteps";
+import { threadsSnapshotSchema } from "../shared/api/apiResponseSchemas";
 
 import { plan, setUpReviewRepository } from "./testing/setUpReviewRepository";
 
@@ -106,6 +107,15 @@ describe("agent loop", () => {
     const { stdout } = await poll.result;
     expect(stdout).toContain("The user asked to hand back to you, with comments on 1 thread (docs/plan.md: 1)");
     expect(stdout).toContain("next_step: Stop here: do not edit the docs, resolve or reply to #1,");
+  });
+
+  test("must show the browser the agent's next task when the agent opens a doc with one", async () => {
+    const repository = getRepository();
+
+    await repository.run(["open", "docs/plan.md", "--next-task", "implement the plan in src/server"]);
+
+    const snapshot = threadsSnapshotSchema.parse(await (await repository.browser("GET", "/api/threads?all=1")).json());
+    expect(snapshot.round?.nextTask).toBe("implement the plan in src/server");
   });
 
   test("must say what is left after each reply and resolve", async () => {

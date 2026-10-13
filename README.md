@@ -80,7 +80,7 @@ Comments are saved as drafts until you submit them. Click **Edit** to change one
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/submit-dark.png">
-    <img src="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/submit-light.png" width="384" alt="The Submit review popover, offering Revise, Go ahead or Hand back to agent for one draft, and saying the agent is listening and will hear at once.">
+    <img src="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/submit-light.png" width="384" alt="The Submit review popover for one draft, offering Revise, Go ahead with the agent's next task, or Hand back to agent, and saying the agent is listening and will hear at once.">
   </picture>
 </p>
 
@@ -94,15 +94,15 @@ Links between markdown docs in the repository open in the app. Docs render with 
 
 These are the commands the agent runs. You rarely need them yourself, but they are handy for trying the tool out.
 
-| Command                                                          | What it does                                                                                               |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `markdown-review open [path]`                                    | Start a review round and show the doc, or the docs list, in the browser. Prints the URL.                   |
-| `markdown-review poll [--document <path>] [--timeout <seconds>]` | Wait until you submit, then print the comments that need the agent. Gives up after 540 seconds by default. |
-| `markdown-review inbox [--document <path>]`                      | Print the same as `poll`, without waiting.                                                                 |
-| `markdown-review reply <id> <text>`                              | Answer a thread without resolving it, for example to ask you a question.                                   |
-| `markdown-review resolve <id> [text]`                            | Resolve a thread, optionally saying what changed.                                                          |
-| `markdown-review stop`                                           | Stop the review server for this repository.                                                                |
-| `markdown-review install-skill [--global]`                       | Install the skill that teaches agents this workflow.                                                       |
+| Command                                                          | What it does                                                                                                                                                                                      |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `markdown-review open [path] [--next-task <text>]`               | Start a review round, or add the doc to the one in progress, and show the doc, or the docs list, in the browser. `--next-task` says what the agent will do once you say go ahead. Prints the URL. |
+| `markdown-review poll [--document <path>] [--timeout <seconds>]` | Wait until you submit, then print the comments that need the agent. Gives up after 540 seconds by default.                                                                                        |
+| `markdown-review inbox [--document <path>]`                      | Print the same as `poll`, without waiting.                                                                                                                                                        |
+| `markdown-review reply <id> <text>`                              | Answer a thread without resolving it, for example to ask you a question.                                                                                                                          |
+| `markdown-review resolve <id> [text]`                            | Resolve a thread, optionally saying what changed.                                                                                                                                                 |
+| `markdown-review stop`                                           | Stop the review server for this repository.                                                                                                                                                       |
+| `markdown-review install-skill [--global]`                       | Install the skill that teaches agents this workflow.                                                                                                                                              |
 
 `reply` and `resolve` also take `--file <path>` for a long message, or `--file -` to read standard input. `markdown-review --help` lists the commands, and `markdown-review <command> --help` describes one. Every command ends with a `next_step` line that tells the agent what to do next.
 

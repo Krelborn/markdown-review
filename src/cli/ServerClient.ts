@@ -40,9 +40,14 @@ export class ServerClient {
     return this.request("GET", "/api/health", healthSchema, { signal: AbortSignal.timeout(healthTimeoutMilliseconds) });
   }
 
-  public open(document: string | null): Promise<AgentOpenResponse> {
+  /**
+   * @param document the doc to show, or null for the docs list
+   * @param nextTask what the agent will do once the user says go ahead; null keeps a joined round's task and leaves a
+   *   new round without one
+   */
+  public open(document: string | null, nextTask: string | null): Promise<AgentOpenResponse> {
     return this.request("POST", "/api/agent/open", agentOpenResponseSchema, {
-      body: document === null ? {} : { path: document },
+      body: { ...(document === null ? {} : { path: document }), ...(nextTask === null ? {} : { nextTask }) },
     });
   }
 

@@ -74,8 +74,9 @@ describe("formatAgentAction", () => {
 
     expect(text).toBe(
       "Resolved #4. No threads need you now.\n\nnext_step: The user handed the review back. Tell them what you " +
-        "changed and wait for their instructions; run `markdown-review open <path>` and `markdown-review poll` only " +
-        "if they ask you to continue the review.\n"
+        "changed and wait for their instructions. Only if they ask you to continue the review, run " +
+        '`markdown-review open <path> --next-task "<what you will do once the user says go ahead>"`, then ' +
+        "`markdown-review poll`.\n"
     );
   });
 });

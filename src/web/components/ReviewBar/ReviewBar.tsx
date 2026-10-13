@@ -98,6 +98,7 @@ export function ReviewBar({
         agentWaiting={agentWaiting}
         drafts={drafts}
         hasUnsavedText={hasUnsavedText}
+        nextTask={round?.nextTask ?? null}
         onSubmitted={onSubmitted}
       />
     </section>
