@@ -59,15 +59,27 @@ describe("ReviewBar", () => {
     }
   );
 
-  test("must show the review as approved when the user approved this round", () => {
+  test.each([
+    { badge: "Going ahead", kind: "go-ahead" as const },
+    { badge: "Handed back", kind: "hand-back" as const },
+  ])("must show $badge when the user ended the round with $kind", ({ badge, kind }) => {
     const { render } = setUpTest();
 
-    render({ round: buildRound({ verdict: { at: testTime, kind: "go-ahead" } }) });
+    render({ round: buildRound({ verdict: { at: testTime, kind } }) });
 
-    expect(screen.getByText("Approved")).toBeInTheDocument();
+    expect(screen.getByText(badge)).toBeInTheDocument();
   });
 
-  test("must offer only approval when the user has no drafts", async () => {
+  test("must show no outcome when the user asked for revisions", () => {
+    const { render } = setUpTest();
+
+    render({ round: buildRound({ verdict: { at: testTime, kind: "revise" } }) });
+
+    expect(screen.queryByText("Going ahead")).not.toBeInTheDocument();
+    expect(screen.queryByText("Handed back")).not.toBeInTheDocument();
+  });
+
+  test("must offer Go ahead and Hand back to agent but not Revise when the user has no drafts", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
     render();
@@ -75,9 +87,60 @@ describe("ReviewBar", () => {
     await user.click(screen.getByRole("button", { name: "Submit" }));
 
     expect(elements.submitDialog().getByText("You have no drafts.")).toBeInTheDocument();
-    expect(elements.submitDialog().getByRole("radio", { name: "Request changes" })).toBeDisabled();
-    expect(elements.submitDialog().getByRole("radio", { name: "Approve" })).toBeChecked();
+    expect(elements.submitDialog().getByRole("radio", { name: "Revise" })).toBeDisabled();
+    expect(elements.submitDialog().getByRole("radio", { name: "Go ahead" })).toBeChecked();
+    expect(elements.submitDialog().getByRole("radio", { name: "Hand back to agent" })).toBeEnabled();
   });
+
+  test.each([
+    {
+      drafts: oneDraft,
+      submit: "Submit 1 draft",
+      verdict: "Revise",
+      description: "Send your comments. The agent revises the docs, answers each one, and waits for you.",
+    },
+    {
+      drafts: [],
+      submit: "Submit",
+      verdict: "Revise",
+      description: "Send your comments. The agent revises the docs, answers each one, and waits for you.",
+    },
+    {
+      drafts: oneDraft,
+      submit: "Submit 1 draft",
+      verdict: "Go ahead",
+      description: "Send your comments and end the review. The agent addresses them, then carries on with its task.",
+    },
+    {
+      drafts: [],
+      submit: "Submit",
+      verdict: "Go ahead",
+      description: "End the review. The agent carries on with its task.",
+    },
+    {
+      drafts: oneDraft,
+      submit: "Submit 1 draft",
+      verdict: "Hand back to agent",
+      description: "Send your comments and end the review. The agent stops and waits for you in the chat.",
+    },
+    {
+      drafts: [],
+      submit: "Submit",
+      verdict: "Hand back to agent",
+      description: "End the review. The agent stops and waits for you in the chat.",
+    },
+  ])(
+    "must say what $verdict does when the user opens the popover with $submit",
+    async ({ description, drafts, submit, verdict }) => {
+      const { render } = setUpTest();
+      const user = userEvent.setup();
+      render({ drafts });
+
+      await user.click(screen.getByRole("button", { name: submit }));
+
+      expect(elements.submitDialog().getByRole("radio", { name: verdict })).toHaveAccessibleDescription(description);
+    }
+  );
 
   test("must say how many drafts a submit sends, and which docs they are on", async () => {
     const { render } = setUpTest();
@@ -96,13 +159,13 @@ describe("ReviewBar", () => {
     expect(elements.submitDialog().getByText("plan.md 2")).toHaveAttribute("title", "docs/plan.md");
   });
 
-  test("must send the drafts to the agent when the user requests changes", async () => {
+  test("must send the drafts to the agent when the user chooses Revise", async () => {
     const { fake, onSubmitted, render } = setUpTest();
     const user = userEvent.setup();
     render({ drafts: oneDraft });
 
     await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
-    expect(elements.submitDialog().getByRole("radio", { name: "Request changes" })).toBeChecked();
+    expect(elements.submitDialog().getByRole("radio", { name: "Revise" })).toBeChecked();
     await user.click(elements.submitDialog().getByRole("button", { name: "Submit" }));
 
     expect(fake.snapshot.threads).toMatchObject([{ messages: [{ author: "user", body: "Why 24h?" }], status: "open" }]);
@@ -111,16 +174,20 @@ describe("ReviewBar", () => {
     expect(screen.queryByRole("dialog", { name: "Submit review" })).not.toBeInTheDocument();
   });
 
-  test("must approve the review when the user chooses Approve", async () => {
+  test.each([
+    { verdict: "Go ahead", outcome: "go-ahead" },
+    { verdict: "Hand back to agent", outcome: "hand-back" },
+  ])("must end the round with $outcome when the user chooses $verdict", async ({ outcome, verdict }) => {
     const { fake, render } = setUpTest();
     const user = userEvent.setup();
     render({ drafts: oneDraft });
 
     await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
-    await user.click(elements.submitDialog().getByRole("radio", { name: "Approve" }));
+    await user.click(elements.submitDialog().getByRole("radio", { name: verdict }));
     await user.click(elements.submitDialog().getByRole("button", { name: "Submit" }));
 
-    expect(roundOutcome(fake.snapshot.round)).toBe("go-ahead");
+    expect(fake.snapshot.threads).toMatchObject([{ status: "open" }]);
+    expect(roundOutcome(fake.snapshot.round)).toBe(outcome);
   });
 
   test("must show why when the server refuses the submit", async () => {
@@ -148,7 +215,7 @@ describe("ReviewBar", () => {
     expect(elements.submitDialog().getByRole("button", { name: "Submit" })).toBeDisabled();
   });
 
-  test("must not submit a request for changes when the drafts go while the user has it chosen", async () => {
+  test("must not submit Revise when the drafts go while the user has it chosen", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
     const { rerender } = render({ drafts: oneDraft });
@@ -160,8 +227,8 @@ describe("ReviewBar", () => {
   });
 
   test.each([
-    { drafts: oneDraft, submit: "Submit 1 draft", verdict: "Request changes" },
-    { drafts: [], submit: "Submit", verdict: "Approve" },
+    { drafts: oneDraft, submit: "Submit 1 draft", verdict: "Revise" },
+    { drafts: [], submit: "Submit", verdict: "Go ahead" },
   ])("must focus $verdict when the user opens the popover with $submit", async ({ drafts, submit, verdict }) => {
     const { render } = setUpTest();
     const user = userEvent.setup();
@@ -172,20 +239,20 @@ describe("ReviewBar", () => {
     expect(elements.submitDialog().getByRole("radio", { name: verdict })).toHaveFocus();
   });
 
-  test("must focus Request changes when the user opens the popover again after choosing Approve", async () => {
+  test("must focus Revise when the user opens the popover again after choosing Hand back to agent", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
     render({ drafts: oneDraft });
     await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
-    await user.click(elements.submitDialog().getByRole("radio", { name: "Approve" }));
+    await user.click(elements.submitDialog().getByRole("radio", { name: "Hand back to agent" }));
     await user.click(elements.submitDialog().getByRole("button", { name: "Cancel" }));
 
     await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
 
-    expect(elements.submitDialog().getByRole("radio", { name: "Request changes" })).toHaveFocus();
+    expect(elements.submitDialog().getByRole("radio", { name: "Revise" })).toHaveFocus();
   });
 
-  test("must focus Request changes when the user opens the popover again after writing a draft", async () => {
+  test("must focus Revise when the user opens the popover again after writing a draft", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
     const { rerender } = render();
@@ -195,7 +262,7 @@ describe("ReviewBar", () => {
 
     await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
 
-    expect(elements.submitDialog().getByRole("radio", { name: "Request changes" })).toHaveFocus();
+    expect(elements.submitDialog().getByRole("radio", { name: "Revise" })).toHaveFocus();
   });
 
   test.each([

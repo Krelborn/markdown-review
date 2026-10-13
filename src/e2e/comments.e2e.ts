@@ -141,7 +141,7 @@ test("must leave a comment's location as it is while the user points at its card
 test("must keep a half-written reply when the user goes to another doc and back", async ({ page, review }) => {
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
-  await submitDrafts(page, 1, "Request changes");
+  await submitDrafts(page, 1, "Revise");
   await page.getByRole("article", { name: "Thread #1" }).getByRole("button", { name: "Reply" }).click();
   await page.keyboard.type("Half written");
 
@@ -157,7 +157,7 @@ test("must keep a half-written reply when the user goes to another doc and back"
 test("must close a draft reply's editor when the user discards the draft", async ({ page, review }) => {
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
-  await submitDrafts(page, 1, "Request changes");
+  await submitDrafts(page, 1, "Revise");
   const thread = page.getByRole("article", { name: "Thread #1" });
   await thread.getByRole("button", { name: "Reply" }).click();
   await page.keyboard.type("Hourly");
@@ -327,7 +327,7 @@ test("must centre each avatar on its name line when a thread has messages and a 
 }) => {
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
-  await submitDrafts(page, 1, "Request changes");
+  await submitDrafts(page, 1, "Revise");
   await review.run(["reply", "1", "The upstream data changes daily."]);
   const thread = page.getByRole("article", { name: "Thread #1" });
   await thread.getByRole("button", { name: "Reply" }).click();

@@ -55,7 +55,7 @@ export interface ReviewBarProps {
 
 /**
  * The bar beneath the comments, on one row: in a narrow window, a button that shows and hides them; then whether the
- * agent is listening, whether the review is approved, and Submit
+ * agent is listening, how the user ended the review round if they have, and Submit
  */
 export function ReviewBar({
   agentWaiting,
@@ -68,6 +68,7 @@ export function ReviewBar({
   panelToggleRef,
   round,
 }: ReviewBarProps): JSX.Element {
+  const outcome = roundOutcome(round);
   return (
     <section className={styles.reviewBar} aria-label="Review">
       <Button
@@ -82,9 +83,14 @@ export function ReviewBar({
       </Button>
       <div className={styles.status}>
         <AgentStatus agentWaiting={agentWaiting} />
-        {roundOutcome(round) === "go-ahead" && (
+        {outcome === "go-ahead" && (
           <Badge tone="success" variant="solid">
-            Approved
+            Going ahead
+          </Badge>
+        )}
+        {outcome === "hand-back" && (
+          <Badge tone="neutral" variant="solid">
+            Handed back
           </Badge>
         )}
       </div>
