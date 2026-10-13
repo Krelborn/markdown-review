@@ -29,12 +29,14 @@ export function ThreadBars({ bars, onSelectThread, selectedThreadId }: ThreadBar
     }
   }, [bars, report, reported]);
   const framed = bars.filter(({ threadId }) => threadId === hoveredThreadId || threadId === selectedThreadId);
+  // Longest first, so that a shorter bar sharing a lane is drawn over a longer one and takes the clicks along its length
+  const stacked = [...bars].sort((left, right) => right.box.height - left.box.height);
   return (
     <>
       {framed.map(({ box, threadId }) => (
         <BlockTarget box={box} key={threadId} tone={threadId === selectedThreadId ? "primary" : "warning"} />
       ))}
-      {bars.map(({ box, lane, threadId }) => (
+      {stacked.map(({ box, lane, threadId }) => (
         // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- the thread's marker is the control for keyboards and screen readers; the bar only shows where the comment is to the pointer
         <div
           className={clsx(styles.threadBar, {

@@ -947,6 +947,35 @@ describe("DocumentView", () => {
     expect(screen.getByTestId("thread-bar")).toHaveStyle({ height: "82px", top: "88px" });
   });
 
+  test("must draw each bar over the longer bars when three comments on whole blocks share a block", async () => {
+    const resizes = standInForResizes();
+    const wholePlan = "Plan\nWe cache results for 24h today. See the spec.\nGoals\nRetries happen three times.";
+    const { render } = setUpTest({
+      threads: [
+        buildThread({ anchor: goalsAnchor, id: 5 }),
+        buildThread({
+          anchor: buildPassageAnchor({ anchoredText: wholePlan, endOffset: 84, quote: wholePlan, startOffset: 0 }),
+          id: 6,
+        }),
+        buildThread({
+          anchor: buildPassageAnchor({
+            anchoredText: wholePlan.slice(5, 56),
+            endOffset: 56,
+            quote: wholePlan.slice(5, 56),
+            startOffset: 5,
+          }),
+          id: 7,
+        }),
+      ],
+    });
+    await render();
+    layOutBlocks();
+
+    resizes.resize();
+
+    expect(screen.getAllByTestId("thread-bar").map((bar) => bar.style.height)).toEqual(["176px", "90px", "82px"]);
+  });
+
   test("must select a comment on several whole blocks when the user clicks its bar", async () => {
     const { onSelectThread, render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
     const user = userEvent.setup();
