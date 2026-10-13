@@ -18,6 +18,8 @@ import { usePendingSpan } from "./usePendingSpan";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
 import { useSelectionComment } from "./useSelectionComment";
+import type { ThreadBar } from "./useThreadBars";
+import { useThreadBars } from "./useThreadBars";
 import type { ThreadMarker } from "./useThreadHighlights";
 import { useThreadHighlights } from "./useThreadHighlights";
 
@@ -73,10 +75,15 @@ export interface DocumentOverlay {
   pendingSpan: PendingSpan | null;
 
   selectionComment: SelectionComment | null;
+
+  /**
+   * A bar beside the blocks of each highlighted comment on two or more whole blocks
+   */
+  threadBars: ThreadBar[];
 }
 
 /**
- * Follows what is drawn over the rendered doc: the threads' highlights and markers, the thread and block under the
+ * Follows what is drawn over the rendered doc: the threads' highlights, markers and bars, the thread and block under the
  * pointer, a drag down the gutter, the blocks a comment is being written on, and the Comment button beside selected text
  */
 export function useDocumentOverlay(
@@ -109,6 +116,7 @@ export function useDocumentOverlay(
     isPickingInGutter ? hoveredBlock.box.index : null
   );
   const pendingSpan = usePendingSpan(viewRef, contentRef, rendered, pendingPassage);
+  const threadBars = useThreadBars(viewRef, contentRef, rendered, highlightedThreads);
   return {
     gutterDrag,
     hoveredBlock,
@@ -117,5 +125,6 @@ export function useDocumentOverlay(
     offeredStructure,
     pendingSpan,
     selectionComment,
+    threadBars,
   };
 }

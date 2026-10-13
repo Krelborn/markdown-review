@@ -128,6 +128,7 @@ export function DocumentView({
           rendered={rendered}
           selectedThreadId={selectedThreadId}
           selectionComment={overlay.selectionComment}
+          threadBars={overlay.threadBars}
         />
       </div>
     </Stack>

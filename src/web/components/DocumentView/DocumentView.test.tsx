@@ -61,6 +61,19 @@ const todayAnchor = buildPassageAnchor({
 });
 
 /**
+ * The plan's Goals heading and the paragraph under it, as a saved comment on both whole blocks has them
+ */
+const goalsAnchor = buildPassageAnchor({
+  anchoredText: "Goals\nRetries happen three times.",
+  endLine: 7,
+  endOffset: 84,
+  prefix: "ts for 24h today. See the spec.\n",
+  quote: "Goals\nRetries happen three times.",
+  startLine: 5,
+  startOffset: 51,
+});
+
+/**
  * The plan's Goals heading and the paragraph under it, as a comment on both whole blocks has them
  */
 const goalsPassage: NewPassageAnchor = {
@@ -921,6 +934,66 @@ describe("DocumentView", () => {
     await new Promise(requestAnimationFrame);
 
     expect(caretPositionFromPoint).not.toHaveBeenCalled();
+  });
+
+  test("must draw a bar beside the blocks of a comment on several whole blocks", async () => {
+    const resizes = standInForResizes();
+    const { render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+    await render();
+    layOutBlocks();
+
+    resizes.resize();
+
+    expect(screen.getByTestId("thread-bar")).toHaveStyle({ height: "82px", top: "88px" });
+  });
+
+  test("must select a comment on several whole blocks when the user clicks its bar", async () => {
+    const { onSelectThread, render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(screen.getByTestId("thread-bar"));
+
+    expect(onSelectThread).toHaveBeenCalledWith(5);
+  });
+
+  test("must report a comment on several whole blocks as hovered when the pointer is on its bar", async () => {
+    const { onHoverThread, render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+    const user = userEvent.setup();
+    await render();
+
+    await user.hover(screen.getByTestId("thread-bar"));
+
+    expect(onHoverThread).toHaveBeenLastCalledWith(5);
+  });
+
+  test.each([
+    { condition: "the user points at it in the comments", hoveredThreadId: 5, selectedThreadId: null },
+    { condition: "the user selects it", hoveredThreadId: null, selectedThreadId: 5 },
+  ])(
+    "must frame the blocks of a comment on several whole blocks when $condition",
+    async ({ hoveredThreadId, selectedThreadId }) => {
+      const resizes = standInForResizes();
+      const { render } = setUpTest({
+        hoveredThreadId,
+        selectedThreadId,
+        threads: [buildThread({ anchor: goalsAnchor, id: 5 })],
+      });
+      await render();
+      layOutBlocks();
+
+      resizes.resize();
+
+      expect(screen.getByTestId("block-target")).toHaveStyle({ height: "82px", top: "88px" });
+    }
+  );
+
+  test("must not frame the blocks of a comment on several whole blocks while nobody points at it or selects it", async () => {
+    const { render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+
+    await render();
+
+    expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
   });
 
   test("must emphasise the passage of a thread when the user points at it in the comments", async () => {

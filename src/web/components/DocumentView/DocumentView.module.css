@@ -20,8 +20,11 @@
   --gutter-size: 4.5rem;
   --max-view-size: calc(72ch + var(--gutter-size) + 2.5rem);
 
+  /* How far the +'s right edge is from the prose, clear of the frame round its block and the lanes of the comment bars */
+  --block-button-gap: 1.25rem;
+
   /* The middle of the +, where the gutter's track and bar run */
-  --gutter-lane: calc(var(--gutter-size) - var(--sui-space-3) - var(--block-button-size) / 2);
+  --gutter-lane: calc(var(--gutter-size) - var(--block-button-gap) - var(--block-button-size) / 2);
 
   /* How far a wide block may reach past the prose: the view's margin, but no further than 28ch */
   --wide-room: clamp(0px, (100cqi - var(--max-view-size)) / 2, 28ch);
@@ -418,7 +421,7 @@
 .blockButton {
   block-size: var(--block-button-size);
   inline-size: var(--block-button-size);
-  inset-inline-start: calc(var(--gutter-size) - var(--sui-space-3));
+  inset-inline-start: calc(var(--gutter-size) - var(--block-button-gap));
   translate: -100% -50%;
 }
 
@@ -495,6 +498,39 @@
   opacity: 1;
 }
 
+/* The bar of a comment on whole blocks, in the lane 0.625rem from the prose, or 1rem in the outer lane. The element is
+   wider than the line it draws, which gives the pointer more to hit. */
+.threadBar {
+  cursor: pointer;
+  inline-size: 6px;
+  inset-inline-start: calc(var(--gutter-size) - 0.625rem);
+  position: absolute;
+  translate: -50% 0;
+}
+
+.threadBar::before {
+  background-color: var(--sui-color-warning);
+  border-radius: var(--sui-radius-full);
+  content: "";
+  inline-size: 3px;
+  inset-block: 0;
+  inset-inline-start: 50%;
+  position: absolute;
+  translate: -50% 0;
+}
+
+.outerThreadBar {
+  inset-inline-start: calc(var(--gutter-size) - 1rem);
+}
+
+.hoveredThreadBar::before {
+  inline-size: 4px;
+}
+
+.selectedThreadBar::before {
+  background-color: var(--sui-color-primary);
+}
+
 .hoveredMarker {
   outline: 2px solid var(--sui-color-primary);
   outline-offset: 2px;
@@ -527,6 +563,11 @@
   border-radius: var(--sui-radius-lg);
   pointer-events: none;
   position: absolute;
+}
+
+.warningBlockTarget {
+  background-color: color-mix(in srgb, var(--sui-color-warning) 7%, transparent);
+  border-color: var(--sui-color-warning);
 }
 
 .blockTargetLabel {

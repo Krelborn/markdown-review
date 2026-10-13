@@ -8,6 +8,7 @@ import type { NewComment } from "../../review/NewComment";
 import { BlockTarget } from "./BlockTarget";
 import { GutterControls } from "./GutterControls";
 import { SelectionCommentButton } from "./SelectionCommentButton";
+import { ThreadBars } from "./ThreadBars";
 import { ThreadMarkers } from "./ThreadMarkers";
 import type { GutterDrag } from "./useGutterDrag";
 import type { HoveredBlock } from "./useHoveredBlock";
@@ -15,6 +16,7 @@ import type { OfferedStructure } from "./useOfferedStructure";
 import type { PendingSpan } from "./usePendingSpan";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
+import type { ThreadBar } from "./useThreadBars";
 import type { ThreadMarker } from "./useThreadHighlights";
 
 export interface DocumentControlsProps {
@@ -62,12 +64,17 @@ export interface DocumentControlsProps {
 
   selectedThreadId: number | null;
   selectionComment: SelectionComment | null;
+
+  /**
+   * A bar beside the blocks of each highlighted comment on two or more whole blocks
+   */
+  threadBars: ThreadBar[];
 }
 
 /**
  * The controls laid over the rendered doc: the gutter down its left, with a bracket beside the structure it offers, +
- * beside the block the pointer picks, a frame around the blocks a comment is for, a numbered marker beside each
- * thread's passage, and Comment beside the selected text
+ * beside the block the pointer picks, a frame around the blocks a comment is for, a bar beside the blocks of each
+ * comment on several whole blocks, a numbered marker beside each thread's passage, and Comment beside the selected text
  */
 export function DocumentControls({
   document: shown,
@@ -83,6 +90,7 @@ export function DocumentControls({
   rendered,
   selectedThreadId,
   selectionComment,
+  threadBars,
 }: DocumentControlsProps): JSX.Element {
   // A comment is sent with the hash of the rendering it was made on, which lags the source while a newer one renders
   const commentOnSpan = (span: BlockSpan): void => {
@@ -106,6 +114,7 @@ export function DocumentControls({
         onComment={commentOnSpan}
         pendingSpan={pendingSpan}
       />
+      <ThreadBars bars={threadBars} onSelectThread={onSelectThread} selectedThreadId={selectedThreadId} />
       {pendingSpan !== null && <BlockTarget box={pendingSpan.box} />}
       <ThreadMarkers markers={markers} onSelectThread={onSelectThread} selectedThreadId={selectedThreadId} />
       <SelectionCommentButton onComment={commentOnSelection} selectionComment={selectionComment} />
