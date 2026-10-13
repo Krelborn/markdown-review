@@ -1,5 +1,10 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 import type { Locator } from "@playwright/test";
 import { expect } from "@playwright/test";
+
+import { serverFileSchema } from "../server/runtime/serverFileSchema";
 
 import {
   highlightedText,
@@ -79,6 +84,31 @@ test("must end the agent's poll and tell it to stop when the user hands the revi
   );
   expect(stdout).toContain("next_step: Stop here:");
   await expect(page.getByText("Handed back", { exact: true })).toBeVisible();
+});
+
+test("must keep a draft from before the review as a draft, and say so, when the user submits", async ({
+  page,
+  review,
+}) => {
+  await review.run(["inbox"]);
+  const { port } = serverFileSchema.parse(
+    JSON.parse(await readFile(path.join(review.root, ".markdown-review", "server.json"), "utf8"))
+  );
+  await page.goto(`http://127.0.0.1:${port}/document/docs/spec.md`);
+  await writeDraftComment(page, "Results", "cached.", "Cached where?", "docs/spec.md");
+  await review.open("docs/plan.md");
+  await writeDraftComment(page, "cache", "24h", "Why 24h?");
+  const poll = await review.startPoll();
+
+  await page.getByRole("button", { exact: true, name: submitButtonName(1) }).click();
+  const popover = page.getByRole("dialog", { name: "Submit review" });
+  await expect(popover.getByText("Not sent, from before this review:")).toBeVisible();
+  await expect(popover.getByText("spec.md 1")).toBeVisible();
+  await popover.getByRole("button", { exact: true, name: "Submit" }).click();
+
+  const { stdout } = await poll.result;
+  expect(stdout.startsWith("1 thread needs you (docs/plan.md: 1)\n")).toBe(true);
+  await expect(page.getByRole("button", { exact: true, name: submitButtonName(0) })).toBeVisible();
 });
 
 test("must focus the verdict Submit review opens with, then return focus to Submit when the user clicks Cancel", async ({

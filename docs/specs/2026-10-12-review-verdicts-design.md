@@ -381,7 +381,7 @@ export function isDraftInRound(thread: Thread, round: ReviewRound | null): boole
   The existing tests move to the new verdict names and wording.
 - **End-to-end (`review.e2e.ts`):**
   - Hand back to agent ends the agent's poll and shows "Handed back".
-  - A stale draft: draft on `docs/spec.md`, Go ahead, `open docs/plan.md`, draft on `docs/plan.md`. The popover lists `spec.md` under "Not sent", and Revise hands the agent only the `plan.md` thread.
+  - A stale draft: a draft on `docs/spec.md` before any review is opened, then `open docs/plan.md` and a draft on `docs/plan.md`. The popover lists `spec.md` under "Not sent", and Revise hands the agent only the `plan.md` thread. (Go ahead would send a draft written during a round, so a stale draft needs one from before the round.)
   - The next task shows under Go ahead.
   - The approval test becomes Go ahead with "Going ahead".
 

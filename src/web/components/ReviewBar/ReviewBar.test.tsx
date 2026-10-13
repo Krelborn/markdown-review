@@ -9,7 +9,7 @@ import { roundOutcome } from "../../../shared/review/roundOutcome";
 import { buildPassageAnchor, buildRound, buildThread, testTime } from "../../../shared/review/testing/reviewBuilders";
 import { ReviewApiContext } from "../../api/ReviewApiContext";
 import { ReviewApiError } from "../../api/ReviewApiError";
-import type { DraftCount } from "../../review/countDraftsByDocument";
+import type { DraftCounts } from "../../review/countDraftsByDocument";
 import { createFakeReviewApi } from "../../testing/createFakeReviewApi";
 
 import { ReviewBar } from "./ReviewBar";
@@ -21,7 +21,11 @@ const draftThread = buildThread({
   status: "draft",
 });
 
-const oneDraft: DraftCount[] = [{ count: 1, document: "docs/plan.md" }];
+const oneDraft: DraftCounts = { kept: [], sent: [{ count: 1, document: "docs/plan.md" }] };
+
+const noDrafts: DraftCounts = { kept: [], sent: [] };
+
+const onlyKeptDrafts: DraftCounts = { kept: [{ count: 2, document: "docs/spec.md" }], sent: [] };
 
 describe("ReviewBar", () => {
   test("must say the agent is listening when the agent has a poll open", () => {
@@ -86,7 +90,7 @@ describe("ReviewBar", () => {
 
     await user.click(screen.getByRole("button", { name: "Submit" }));
 
-    expect(elements.submitDialog().getByText("You have no drafts.")).toBeInTheDocument();
+    expect(elements.submitDialog().getByText("You have no drafts for this review.")).toBeInTheDocument();
     expect(elements.submitDialog().getByRole("radio", { name: "Revise" })).toBeDisabled();
     expect(elements.submitDialog().getByRole("radio", { name: "Go ahead" })).toBeChecked();
     expect(elements.submitDialog().getByRole("radio", { name: "Hand back to agent" })).toBeEnabled();
@@ -100,7 +104,7 @@ describe("ReviewBar", () => {
       description: "Send your comments. The agent revises the docs, answers each one, and waits for you.",
     },
     {
-      drafts: [],
+      drafts: noDrafts,
       submit: "Submit",
       verdict: "Revise",
       description: "Send your comments. The agent revises the docs, answers each one, and waits for you.",
@@ -112,7 +116,7 @@ describe("ReviewBar", () => {
       description: "Send your comments and end the review. The agent addresses them, then carries on with its task.",
     },
     {
-      drafts: [],
+      drafts: noDrafts,
       submit: "Submit",
       verdict: "Go ahead",
       description: "End the review. The agent carries on with its task.",
@@ -124,7 +128,7 @@ describe("ReviewBar", () => {
       description: "Send your comments and end the review. The agent stops and waits for you in the chat.",
     },
     {
-      drafts: [],
+      drafts: noDrafts,
       submit: "Submit",
       verdict: "Hand back to agent",
       description: "End the review. The agent stops and waits for you in the chat.",
@@ -146,10 +150,13 @@ describe("ReviewBar", () => {
     const { render } = setUpTest();
     const user = userEvent.setup();
     render({
-      drafts: [
-        { count: 1, document: null },
-        { count: 2, document: "docs/plan.md" },
-      ],
+      drafts: {
+        kept: [],
+        sent: [
+          { count: 1, document: null },
+          { count: 2, document: "docs/plan.md" },
+        ],
+      },
     });
 
     await user.click(screen.getByRole("button", { name: "Submit 3 drafts" }));
@@ -157,6 +164,32 @@ describe("ReviewBar", () => {
     expect(elements.submitDialog().getByText("Sends 3 drafts:")).toBeInTheDocument();
     expect(elements.submitDialog().getByText("Whole review 1")).toBeInTheDocument();
     expect(elements.submitDialog().getByText("plan.md 2")).toHaveAttribute("title", "docs/plan.md");
+    expect(elements.submitDialog().queryByText("Not sent, from before this review:")).not.toBeInTheDocument();
+  });
+
+  test("must list the drafts a submit keeps, and count only the ones it sends, when some are from before the review", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render({ drafts: { ...onlyKeptDrafts, sent: [{ count: 1, document: "docs/plan.md" }] } });
+
+    await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
+
+    expect(elements.submitDialog().getByText("Sends 1 draft:")).toBeInTheDocument();
+    expect(elements.submitDialog().getByText("Not sent, from before this review:")).toBeInTheDocument();
+    expect(elements.submitDialog().getByText("spec.md 2")).toHaveAttribute("title", "docs/spec.md");
+  });
+
+  test("must offer Go ahead but not Revise when every draft is from before the review", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    render({ drafts: onlyKeptDrafts });
+
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+
+    expect(elements.submitDialog().getByText("You have no drafts for this review.")).toBeInTheDocument();
+    expect(elements.submitDialog().getByText("Not sent, from before this review:")).toBeInTheDocument();
+    expect(elements.submitDialog().getByRole("radio", { name: "Revise" })).toBeDisabled();
+    expect(elements.submitDialog().getByRole("radio", { name: "Go ahead" })).toBeChecked();
   });
 
   test("must send the drafts to the agent when the user chooses Revise", async () => {
@@ -221,14 +254,14 @@ describe("ReviewBar", () => {
     const { rerender } = render({ drafts: oneDraft });
     await user.click(screen.getByRole("button", { name: "Submit 1 draft" }));
 
-    rerender({ drafts: [] });
+    rerender({ drafts: noDrafts });
 
     expect(elements.submitDialog().getByRole("button", { name: "Submit" })).toBeDisabled();
   });
 
   test.each([
     { drafts: oneDraft, submit: "Submit 1 draft", verdict: "Revise" },
-    { drafts: [], submit: "Submit", verdict: "Go ahead" },
+    { drafts: noDrafts, submit: "Submit", verdict: "Go ahead" },
   ])("must focus $verdict when the user opens the popover with $submit", async ({ drafts, submit, verdict }) => {
     const { render } = setUpTest();
     const user = userEvent.setup();
@@ -292,7 +325,7 @@ describe("ReviewBar", () => {
 
 interface RenderOptions {
   agentWaiting?: boolean;
-  drafts?: DraftCount[];
+  drafts?: DraftCounts;
   hasUnsavedText?: boolean;
   isPanelOpen?: boolean;
   round?: ReviewRound | null;
@@ -304,7 +337,7 @@ function setUpTest() {
   const onTogglePanel = vi.fn();
   const view = ({
     agentWaiting = false,
-    drafts = [],
+    drafts = noDrafts,
     hasUnsavedText = false,
     isPanelOpen = false,
     round = fake.snapshot.round,

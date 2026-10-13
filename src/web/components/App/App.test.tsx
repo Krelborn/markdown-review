@@ -247,6 +247,20 @@ describe("App", () => {
     expect(await screen.findByRole("button", { name: "Submit 2 drafts" })).toBeInTheDocument();
   });
 
+  test("must list a draft from before the review as not sent when it is on a doc the review has not opened", async () => {
+    const { render } = setUpTest({
+      threads: [planThread, { ...specThread, draft: { at: "2026-10-01T09:00:00.000Z", body: "Cached where?" } }],
+    });
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+
+    const popover = within(screen.getByRole("dialog", { name: "Submit review" }));
+    expect(await popover.findByText("Not sent, from before this review:")).toBeInTheDocument();
+    expect(popover.getByText("You have no drafts for this review.")).toBeInTheDocument();
+  });
+
   test("must save a comment on the selected text as a draft when the user writes one", async () => {
     const { render } = setUpTest({ threads: [] });
     const user = userEvent.setup();
