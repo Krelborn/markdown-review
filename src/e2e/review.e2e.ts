@@ -106,6 +106,7 @@ test("must keep a draft from before the review as a draft, and say so, when the 
     JSON.parse(await readFile(path.join(review.root, ".markdown-review", "server.json"), "utf8"))
   );
   await page.goto(`http://127.0.0.1:${port}/document/docs/spec.md`);
+  await expect(page.getByRole("article", { name: "docs/spec.md" })).not.toBeEmpty();
   await writeDraftComment(page, "Results", "cached.", "Cached where?", "docs/spec.md");
   await review.open("docs/plan.md");
   await writeDraftComment(page, "cache", "24h", "Why 24h?");
