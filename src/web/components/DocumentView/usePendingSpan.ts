@@ -1,37 +1,45 @@
 import type { RefObject } from "react";
 import { useLayoutEffect, useState } from "react";
 
+import type { BlockSpan } from "../../../shared/markdown/BlockSpan";
 import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import { wholeBlockSpan } from "../../anchoring/wholeBlockSpan";
 
-import type { BlockBox } from "./BlockBox";
-import { measureBlock } from "./measureBlock";
+import { measureSpan } from "./measureSpan";
+import type { SpanBox } from "./SpanBox";
 import { useLayoutRevision } from "./useLayoutRevision";
 import type { RenderedDocument } from "./useRenderedDocument";
 
 /**
- * Measures the block a whole-block comment is being written on, so the view can keep it framed
+ * The blocks a comment on whole blocks is being written on, and where they are
+ */
+export interface PendingSpan extends BlockSpan {
+  box: SpanBox;
+}
+
+/**
+ * Measures the blocks a comment on whole blocks is being written on, so the view can keep them framed
  *
  * @param pendingPassage the passage of the comment the user is writing on this doc, or null
- * @returns where the block is, or null when the comment is not on exactly one block's whole text
+ * @returns the blocks and where they are, or null when the comment is not on the whole text of one or more blocks
  */
-export function usePendingBlock(
+export function usePendingSpan(
   viewRef: RefObject<HTMLElement | null>,
   contentRef: RefObject<HTMLElement | null>,
   rendered: RenderedDocument | null,
   pendingPassage: NewPassageAnchor | null
-): BlockBox | null {
-  const [pendingBlock, setPendingBlock] = useState<BlockBox | null>(null);
+): PendingSpan | null {
+  const [pendingSpan, setPendingSpan] = useState<PendingSpan | null>(null);
   const layoutRevision = useLayoutRevision(viewRef, contentRef);
   useLayoutEffect(() => {
     const view = viewRef.current;
+    const content = contentRef.current;
     const span =
       rendered === null || pendingPassage === null
         ? null
         : wholeBlockSpan(rendered.documentText, pendingPassage.startOffset, pendingPassage.endOffset);
-    const index = span !== null && span.firstBlock === span.lastBlock ? span.firstBlock : null;
-    const block = index === null ? null : (contentRef.current?.querySelector(`[data-md-block="${index}"]`) ?? null);
-    setPendingBlock(view === null || block === null ? null : measureBlock(view, block));
+    const box = view === null || content === null || span === null ? null : measureSpan(view, content, span);
+    setPendingSpan(span === null || box === null ? null : { ...span, box });
   }, [contentRef, layoutRevision, pendingPassage, rendered, viewRef]);
-  return pendingBlock;
+  return pendingSpan;
 }

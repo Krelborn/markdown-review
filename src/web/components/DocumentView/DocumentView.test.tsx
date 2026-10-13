@@ -60,6 +60,19 @@ const todayAnchor = buildPassageAnchor({
   startOffset: 26,
 });
 
+/**
+ * The plan's Goals heading and the paragraph under it, as a comment on both whole blocks has them
+ */
+const goalsPassage: NewPassageAnchor = {
+  document: "docs/plan.md",
+  endOffset: 84,
+  kind: "passage",
+  prefix: "ts for 24h today. See the spec.\n",
+  quote: "Goals\nRetries happen three times.",
+  startOffset: 51,
+  suffix: "",
+};
+
 afterEach(() => {
   Reflect.deleteProperty(document, "caretPositionFromPoint");
   vi.restoreAllMocks();
@@ -406,6 +419,30 @@ describe("DocumentView", () => {
     await render();
 
     expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
+  });
+
+  test("must keep the blocks framed when the user writes a comment on several whole blocks", async () => {
+    const resizes = standInForResizes();
+    const { render } = setUpTest({ pendingPassage: goalsPassage });
+    await render();
+    layOutBlocks();
+
+    resizes.resize();
+
+    expect(screen.getByTestId("block-target")).toHaveStyle({
+      height: "82px",
+      left: "36px",
+      top: "88px",
+      width: "608px",
+    });
+  });
+
+  test("must not paint the pending highlight when the user writes a comment on several whole blocks", async () => {
+    const { render } = setUpTest({ pendingPassage: goalsPassage });
+
+    await render();
+
+    expect(elements.highlighted(pendingHighlightName)).toEqual([]);
   });
 
   test("must highlight open and draft passages, and the selected thread's apart, but not resolved or outdated ones", async () => {

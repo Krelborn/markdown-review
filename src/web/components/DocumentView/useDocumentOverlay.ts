@@ -5,11 +5,11 @@ import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { HoveredThreadContext } from "../../review/HoveredThreadContext";
 
-import type { BlockBox } from "./BlockBox";
 import type { HoveredBlock } from "./useHoveredBlock";
 import { useHoveredBlock } from "./useHoveredBlock";
 import { useHoveredThread } from "./useHoveredThread";
-import { usePendingBlock } from "./usePendingBlock";
+import type { PendingSpan } from "./usePendingSpan";
+import { usePendingSpan } from "./usePendingSpan";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
 import { useSelectionComment } from "./useSelectionComment";
@@ -62,16 +62,16 @@ export interface DocumentOverlay {
   markers: ThreadMarker[];
 
   /**
-   * The block a whole-block comment is being written on, or null
+   * The blocks a comment on whole blocks is being written on, or null
    */
-  pendingBlock: BlockBox | null;
+  pendingSpan: PendingSpan | null;
 
   selectionComment: SelectionComment | null;
 }
 
 /**
  * Follows what is drawn over the rendered doc: the threads' highlights and markers, the thread and block under the
- * pointer, the block a comment is being written on, and the Comment button beside selected text
+ * pointer, the blocks a comment is being written on, and the Comment button beside selected text
  */
 export function useDocumentOverlay(
   viewRef: RefObject<HTMLElement | null>,
@@ -89,6 +89,6 @@ export function useDocumentOverlay(
   const isPointingAtHighlight = useHoveredThread(viewRef, contentRef, rendered, highlightedThreads, onHoverThread);
   const selectionComment = useSelectionComment(viewRef, contentRef, rendered, documentPath);
   const { blockIndexLevelWith, hoveredBlock } = useHoveredBlock(viewRef, contentRef, rendered, isBlockButtonFocused);
-  const pendingBlock = usePendingBlock(viewRef, contentRef, rendered, pendingPassage);
-  return { blockIndexLevelWith, hoveredBlock, isPointingAtHighlight, markers, pendingBlock, selectionComment };
+  const pendingSpan = usePendingSpan(viewRef, contentRef, rendered, pendingPassage);
+  return { blockIndexLevelWith, hoveredBlock, isPointingAtHighlight, markers, pendingSpan, selectionComment };
 }

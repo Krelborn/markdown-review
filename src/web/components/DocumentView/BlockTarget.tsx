@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 
-import type { BlockBox } from "./BlockBox";
 import styles from "./DocumentView.module.css";
+import type { SpanBox } from "./SpanBox";
 
 const horizontalOutset = 4;
 
@@ -11,11 +11,11 @@ const horizontalOutset = 4;
 export const verticalOutset = 6;
 
 export interface BlockTargetProps {
-  box: BlockBox;
+  box: SpanBox;
 }
 
 /**
- * Frames the block a whole-block comment is for
+ * Frames the blocks a comment on whole blocks is for
  */
 export function BlockTarget({ box }: BlockTargetProps): JSX.Element {
   return (

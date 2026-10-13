@@ -3,6 +3,7 @@ import { useLayoutEffect, useState } from "react";
 
 import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import type { Thread } from "../../../shared/review/threadSchema";
+import { coversSeveralBlocks } from "../../anchoring/coversSeveralBlocks";
 import { findOverlaps } from "../../anchoring/findOverlaps";
 import { rangeForPassage } from "../../anchoring/rangeForPassage";
 
@@ -45,7 +46,8 @@ export interface ThreadHighlightOptions {
   hoveredThreadId: number | null;
 
   /**
-   * The passage of the comment the user is writing on this doc, or null
+   * The passage of the comment the user is writing on this doc, or null; it is not highlighted when it is the whole
+   * text of several blocks, which the view frames instead
    */
   pendingPassage: NewPassageAnchor | null;
 
@@ -95,10 +97,11 @@ export function useThreadHighlights(
         .filter(({ thread }) => highlightOf(thread.id, selectedThreadId, hoveredThreadId) === name)
         .map(({ range }) => range);
     const unselected = ranges.filter(({ thread }) => thread.id !== selectedThreadId).map(({ range }) => range);
+    const { documentText } = rendered;
     const pendingRange =
-      pendingPassage === null
+      pendingPassage === null || coversSeveralBlocks(documentText, pendingPassage.startOffset, pendingPassage.endOffset)
         ? null
-        : rangeForPassage(content, rendered.documentText, pendingPassage.startOffset, pendingPassage.endOffset);
+        : rangeForPassage(content, documentText, pendingPassage.startOffset, pendingPassage.endOffset);
     const names = paintHighlights([
       { name: threadsHighlightName, ranges: rangesIn(threadsHighlightName) },
       { name: overlapHighlightName, ranges: findOverlaps(unselected) },

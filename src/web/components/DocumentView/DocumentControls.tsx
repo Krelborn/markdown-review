@@ -5,13 +5,13 @@ import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
 import { blockPassage } from "../../anchoring/blockPassage";
 import type { NewComment } from "../../review/NewComment";
 
-import type { BlockBox } from "./BlockBox";
 import { BlockCommentButton } from "./BlockCommentButton";
 import { BlockGutter } from "./BlockGutter";
 import { BlockTarget } from "./BlockTarget";
 import styles from "./DocumentView.module.css";
 import { ThreadMarkers } from "./ThreadMarkers";
 import type { HoveredBlock } from "./useHoveredBlock";
+import type { PendingSpan } from "./usePendingSpan";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
 import type { ThreadMarker } from "./useThreadHighlights";
@@ -50,9 +50,9 @@ export interface DocumentControlsProps {
   onSelectThread: (threadId: number) => void;
 
   /**
-   * The block a whole-block comment is being written on, or null
+   * The blocks a comment on whole blocks is being written on, or null
    */
-  pendingBlock: BlockBox | null;
+  pendingSpan: PendingSpan | null;
 
   /**
    * The doc on the page, or null until it has rendered
@@ -65,7 +65,7 @@ export interface DocumentControlsProps {
 
 /**
  * The controls laid over the rendered doc: the gutter down its left, + beside the block the pointer picks, a frame
- * around the block a comment is for, a numbered marker beside each thread's passage, and Comment beside the selected
+ * around the blocks a comment is for, a numbered marker beside each thread's passage, and Comment beside the selected
  * text
  */
 export function DocumentControls({
@@ -77,7 +77,7 @@ export function DocumentControls({
   onBlockButtonFocusChange,
   onComment,
   onSelectThread,
-  pendingBlock,
+  pendingSpan,
   rendered,
   selectedThreadId,
   selectionComment,
@@ -99,12 +99,14 @@ export function DocumentControls({
   return (
     <>
       <BlockGutter hoveredBlock={hoveredBlock} onComment={(clientY) => commentOnBlock(blockIndexLevelWith(clientY))} />
-      {pendingBlock !== null && <BlockTarget box={pendingBlock} />}
+      {pendingSpan !== null && <BlockTarget box={pendingSpan.box} />}
       {hoveredBlock !== null && (
         <BlockCommentButton
           block={hoveredBlock.box}
           isFocused={isBlockButtonFocused}
-          isFramed={pendingBlock?.index === hoveredBlock.box.index}
+          isFramed={
+            pendingSpan?.firstBlock === hoveredBlock.box.index && pendingSpan.lastBlock === hoveredBlock.box.index
+          }
           isPointerInGutter={hoveredBlock.isPointerInGutter}
           onComment={() => commentOnBlock(hoveredBlock.box.index)}
           onFocusChange={onBlockButtonFocusChange}

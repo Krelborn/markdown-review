@@ -123,7 +123,7 @@ export function DocumentView({
           onBlockButtonFocusChange={setIsBlockButtonFocused}
           onComment={onComment}
           onSelectThread={onSelectThread}
-          pendingBlock={overlay.pendingBlock}
+          pendingSpan={overlay.pendingSpan}
           rendered={rendered}
           selectedThreadId={selectedThreadId}
           selectionComment={overlay.selectionComment}
