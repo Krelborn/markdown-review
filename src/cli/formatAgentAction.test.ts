@@ -41,6 +41,19 @@ describe("formatAgentAction", () => {
     expect(text).toContain("next_step: The user said go ahead. Carry on with your task;");
   });
 
+  test("must tell the agent to address the threads left when the user said go ahead with comments", () => {
+    const text = formatAgentAction("resolved", {
+      inbox: {
+        problems: [],
+        round: { ...roundGoingOn, verdict: { at: testTime, kind: "go-ahead" } },
+        threads: [buildThread({ id: 5 })],
+      },
+      thread: buildThread({ id: 4, status: "resolved" }),
+    });
+
+    expect(text).toContain('next_step: Address #5, then run `markdown-review resolve <id> "<what changed>"`');
+  });
+
   test("must tell the agent to act only as the user asks when threads are left after a hand-back", () => {
     const text = formatAgentAction("replied", {
       inbox: { problems: [], round: roundHandedBack, threads: [buildThread({ id: 4 })] },

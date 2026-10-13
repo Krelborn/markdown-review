@@ -22,6 +22,10 @@ export const handedBackStep =
   "Stop here: do not edit the docs, run `markdown-review poll` or carry on with your task. " +
   "Tell the user in the chat that you have stopped, and wait for their instructions.";
 
+export const handedBackFinishedStep =
+  "The user handed the review back. Tell them what you changed and wait for their instructions; run " +
+  "`markdown-review open <path>` and `markdown-review poll` only if they ask you to continue the review.";
+
 /**
  * @param ids the threads that need the agent, at least one
  */
@@ -45,6 +49,13 @@ export function wentAheadWithCommentsStep(ids: readonly number[]): string {
     `The user said go ahead, with comments. Address ${formatIdList(ids)} and run ${resolveCommand}, ` +
     "then carry on with your task; do not run `markdown-review poll` again for this review."
   );
+}
+
+/**
+ * @param ids the threads still needing the agent after the user handed the review back, at least one
+ */
+export function handedBackThreadsLeftStep(ids: readonly number[]): string {
+  return `The user handed the review back, so act on ${formatIdList(ids)} only as they ask in the chat.`;
 }
 
 /**

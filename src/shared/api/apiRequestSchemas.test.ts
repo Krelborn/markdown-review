@@ -33,6 +33,14 @@ describe("apiRequestSchemas", () => {
     );
   });
 
+  test.each([
+    { condition: "it is blank", nextTask: " " },
+    { condition: "it has more than one line", nextTask: "implement the plan\nthen ship it" },
+    { condition: "it is longer than 200 characters", nextTask: "a".repeat(201) },
+  ])("must refuse an open request when its next task $condition", ({ nextTask }) => {
+    expect(agentOpenRequestSchema.safeParse({ nextTask, path: "docs/plan.md" }).success).toBe(false);
+  });
+
   test.each<{ verdict: Verdict }>([{ verdict: "go-ahead" }, { verdict: "hand-back" }, { verdict: "revise" }])(
     "must accept a submit when the verdict is $verdict",
     ({ verdict }) => {

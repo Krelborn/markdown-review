@@ -13,6 +13,8 @@ describe("reviewRoundSchema", () => {
   test.each([
     { condition: "it is blank", nextTask: "  " },
     { condition: "it has more than one line", nextTask: "implement the plan\nthen ship it" },
+    { condition: "it has a carriage return", nextTask: "implement the plan\rthen ship it" },
+    { condition: "it has a line separator", nextTask: "implement the plan\u2028then ship it" },
     { condition: "it is longer than 200 characters", nextTask: "a".repeat(201) },
   ])("must reject the next task when $condition", ({ nextTask }) => {
     expect(reviewRoundSchema.safeParse(buildRound({ nextTask })).success).toBe(false);

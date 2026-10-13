@@ -73,7 +73,7 @@ function describeAnchor({ anchor, id }: Thread): string[] {
 
 function summaryLine(outcome: RoundOutcome | null, threads: readonly Thread[]): string {
   if (threads.length === 0) {
-    return `${outcomeSentence(outcome)}No threads need you.`;
+    return noThreadsSummary(outcome);
   }
   const breakdown = countByGroup(threads);
   const needs = threads.length === 1 ? "1 thread needs you" : `${threads.length} threads need you`;
@@ -100,14 +100,14 @@ function countThreads(count: number): string {
   return count === 1 ? "1 thread" : `${count} threads`;
 }
 
-function outcomeSentence(outcome: RoundOutcome | null): string {
+function noThreadsSummary(outcome: RoundOutcome | null): string {
   switch (outcome) {
     case "go-ahead":
-      return "The user said go ahead. ";
+      return "The user said go ahead. No threads need you.";
     case "hand-back":
-      return "The user asked to hand back to you. ";
+      return "The user asked to hand back to you. No threads need you.";
     case null:
-      return "";
+      return "No threads need you.";
   }
 }
 

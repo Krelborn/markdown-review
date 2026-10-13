@@ -13,7 +13,7 @@ export interface ThreadsState {
   refresh: () => void;
 
   /**
-   * Every thread in the repo and the review's state, or null until they are first read
+   * Every thread in the repo and the review round, or null until they are first read
    */
   snapshot: ThreadsSnapshot | null;
 }

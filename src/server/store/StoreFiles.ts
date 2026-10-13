@@ -1,8 +1,6 @@
 import { mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 
-import { z } from "zod";
-
 import type { DocumentThreadsFile } from "../../shared/review/documentThreadsFileSchema";
 import { documentThreadsFileSchema } from "../../shared/review/documentThreadsFileSchema";
 import type { ReviewFile } from "../../shared/review/reviewFileSchema";
@@ -15,6 +13,7 @@ import { writeTextFileUnlessExists } from "../files/writeTextFileUnlessExists";
 import { emptyReviewFile } from "./emptyReviewFile";
 import { parseStoreInput } from "./parseStoreInput";
 import { readStoreFile } from "./readStoreFile";
+import { storedReviewFileSchema } from "./storedReviewFileSchema";
 import type { StoreFileResult } from "./StoreFileResult";
 import {
   documentSourcePath,
@@ -23,11 +22,6 @@ import {
   reviewFilePath,
   storeDirectory,
 } from "./storePaths";
-import { reviewFileVersion1Schema, upgradeReviewFile } from "./upgradeReviewFile";
-
-const storedReviewFileSchema = z
-  .discriminatedUnion("version", [reviewFileSchema, reviewFileVersion1Schema])
-  .transform((file) => (file.version === 1 ? upgradeReviewFile(file) : file));
 
 /**
  * Reads and writes the files of one root's `.markdown-review/` directory and the docs they refer to

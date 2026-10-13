@@ -1,11 +1,12 @@
 import { describe, expect, test } from "vitest";
 
 import type { ReviewRound } from "./reviewRoundSchema";
+import type { RoundOutcome } from "./roundOutcome";
 import { roundOutcome } from "./roundOutcome";
 import { buildRound, testTime } from "./testing/reviewBuilders";
 
 describe("roundOutcome", () => {
-  test.each<{ condition: string; round: ReviewRound | null; expected: string | null }>([
+  test.each<{ condition: string; round: ReviewRound | null; expected: RoundOutcome | null }>([
     { condition: "no review was opened", round: null, expected: null },
     { condition: "the user has not submitted", round: buildRound(), expected: null },
     {

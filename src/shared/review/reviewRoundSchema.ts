@@ -9,7 +9,7 @@ export const nextTaskSchema = z
   .trim()
   .min(1)
   .max(200)
-  .refine((text) => !text.includes("\n"), "must be one line");
+  .refine((text) => !/[\n\r\u2028\u2029]/.test(text), "must be one line");
 
 export const reviewRoundSchema = z.strictObject({
   documents: z.array(documentPathSchema),
