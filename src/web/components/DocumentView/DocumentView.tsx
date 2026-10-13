@@ -120,6 +120,7 @@ export function DocumentView({
           hoveredBlock={overlay.hoveredBlock}
           isBlockButtonFocused={isBlockButtonFocused}
           markers={overlay.markers}
+          offeredStructure={overlay.offeredStructure}
           onBlockButtonFocusChange={setIsBlockButtonFocused}
           onComment={onComment}
           onSelectThread={onSelectThread}

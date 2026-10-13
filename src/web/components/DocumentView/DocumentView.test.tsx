@@ -457,6 +457,37 @@ describe("DocumentView", () => {
     expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "152px" });
   });
 
+  test.each([
+    { block: "a heading", clientY: 110, height: "78px", top: "90px" },
+    { block: "a paragraph under a heading", clientY: 60, height: "172px", top: "-4px" },
+  ])(
+    "must bracket the heading's section beside the gutter when the pointer is level with $block",
+    async ({ clientY, height, top }) => {
+      const { render } = setUpTest();
+      const user = userEvent.setup();
+      await render();
+      layOutBlocks();
+
+      await moveInGutter(user, clientY);
+
+      expect(screen.getByTestId("structure-bracket")).toHaveStyle({ height, top });
+    }
+  );
+
+  test("must not bracket a structure while the pointer is over the doc", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await user.pointer({
+      coords: { clientX: 100, clientY: 150 },
+      target: within(elements.article()).getByText("Retries happen three times."),
+    });
+
+    expect(screen.queryByTestId("structure-bracket")).not.toBeInTheDocument();
+  });
+
   test("must start no comment when the user presses Escape during a drag", async () => {
     const { onComment, render } = setUpTest();
     const user = userEvent.setup();

@@ -14,6 +14,9 @@
    Tables, code and diagrams that need more room reach into the margin to its right. */
 .view {
   --block-button-size: 1.75rem;
+
+  /* The gutter's outer strip, where a bracket runs beside the table, list, quote, alert or section it offers */
+  --bracket-lane-size: 1rem;
   --gutter-size: 4.5rem;
   --max-view-size: calc(72ch + var(--gutter-size) + 2.5rem);
 
@@ -461,6 +464,18 @@
   inset-inline-start: var(--gutter-lane);
   position: absolute;
   translate: -50% 0;
+}
+
+.structureBracket {
+  border: 2px solid var(--sui-color-text-muted);
+  border-end-start-radius: var(--sui-radius-sm);
+  border-inline-end: none;
+  border-start-start-radius: var(--sui-radius-sm);
+  inline-size: 5px;
+  inset-inline-start: calc(var(--bracket-lane-size) / 2 - 1px);
+  opacity: 0.45;
+  pointer-events: none;
+  position: absolute;
 }
 
 .hoveredMarker {

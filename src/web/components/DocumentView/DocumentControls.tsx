@@ -1,4 +1,3 @@
-import { Button } from "@krelborn/stylesui";
 import type { JSX } from "react";
 
 import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
@@ -6,13 +5,13 @@ import type { BlockSpan } from "../../../shared/markdown/BlockSpan";
 import { blockPassage } from "../../anchoring/blockPassage";
 import type { NewComment } from "../../review/NewComment";
 
-import { BlockCommentButton } from "./BlockCommentButton";
-import { BlockGutter } from "./BlockGutter";
 import { BlockTarget } from "./BlockTarget";
-import styles from "./DocumentView.module.css";
+import { GutterControls } from "./GutterControls";
+import { SelectionCommentButton } from "./SelectionCommentButton";
 import { ThreadMarkers } from "./ThreadMarkers";
 import type { GutterDrag } from "./useGutterDrag";
 import type { HoveredBlock } from "./useHoveredBlock";
+import type { OfferedStructure } from "./useOfferedStructure";
 import type { PendingSpan } from "./usePendingSpan";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
@@ -39,6 +38,11 @@ export interface DocumentControlsProps {
   markers: ThreadMarker[];
 
   /**
+   * The structure the gutter offers a comment on, or null
+   */
+  offeredStructure: OfferedStructure | null;
+
+  /**
    * Called when the + gains or loses the keyboard focus
    */
   onBlockButtonFocusChange: (isFocused: boolean) => void;
@@ -61,9 +65,9 @@ export interface DocumentControlsProps {
 }
 
 /**
- * The controls laid over the rendered doc: the gutter down its left, + beside the block the pointer picks, a frame
- * around the blocks a comment is for, a numbered marker beside each thread's passage, and Comment beside the selected
- * text
+ * The controls laid over the rendered doc: the gutter down its left, with a bracket beside the structure it offers, +
+ * beside the block the pointer picks, a frame around the blocks a comment is for, a numbered marker beside each
+ * thread's passage, and Comment beside the selected text
  */
 export function DocumentControls({
   document: shown,
@@ -71,6 +75,7 @@ export function DocumentControls({
   hoveredBlock,
   isBlockButtonFocused,
   markers,
+  offeredStructure,
   onBlockButtonFocusChange,
   onComment,
   onSelectThread,
@@ -92,52 +97,18 @@ export function DocumentControls({
   };
   return (
     <>
-      <BlockGutter
-        onPointerDown={(event) => gutterDrag.startDrag(event, commentOnSpan)}
-        pickedBox={gutterDrag.box ?? (hoveredBlock?.isPointerInGutter === true ? hoveredBlock.box : null)}
+      <GutterControls
+        gutterDrag={gutterDrag}
+        hoveredBlock={hoveredBlock}
+        isBlockButtonFocused={isBlockButtonFocused}
+        offeredStructure={offeredStructure}
+        onBlockButtonFocusChange={onBlockButtonFocusChange}
+        onComment={commentOnSpan}
+        pendingSpan={pendingSpan}
       />
       {pendingSpan !== null && <BlockTarget box={pendingSpan.box} />}
-      {gutterDrag.span !== null && gutterDrag.box !== null && (
-        <BlockTarget box={gutterDrag.box} label={countLabel(gutterDrag.span)} />
-      )}
-      {hoveredBlock !== null && (
-        <BlockCommentButton
-          block={hoveredBlock.box}
-          isFocused={isBlockButtonFocused}
-          isFramed={gutterDrag.span !== null || isSpanOf(pendingSpan, hoveredBlock.box.index)}
-          isPointerInGutter={hoveredBlock.isPointerInGutter}
-          onComment={() => commentOnSpan({ firstBlock: hoveredBlock.box.index, lastBlock: hoveredBlock.box.index })}
-          onDragStart={(event) => gutterDrag.startDrag(event, commentOnSpan)}
-          onFocusChange={onBlockButtonFocusChange}
-        />
-      )}
       <ThreadMarkers markers={markers} onSelectThread={onSelectThread} selectedThreadId={selectedThreadId} />
-      {selectionComment !== null && (
-        <div className={styles.selectionLane} style={{ top: selectionComment.top }}>
-          {/* Reaches to where the selection ends, and gives way when Comment would pass the end of the lane */}
-          <span style={{ flexBasis: selectionComment.left }} />
-          <Button
-            className={styles.selectionButton}
-            onClick={() => commentOnSelection(selectionComment)}
-            onMouseDown={(event) => event.preventDefault()}
-            size="sm"
-            data-md-ignore=""
-          >
-            Comment
-          </Button>
-        </div>
-      )}
+      <SelectionCommentButton onComment={commentOnSelection} selectionComment={selectionComment} />
     </>
   );
-}
-
-/**
- * @returns how many blocks a drag covers, or nothing for one block
- */
-function countLabel({ firstBlock, lastBlock }: BlockSpan): string | undefined {
-  return lastBlock > firstBlock ? `${lastBlock - firstBlock + 1} blocks` : undefined;
-}
-
-function isSpanOf(span: BlockSpan | null, blockIndex: number): boolean {
-  return span?.firstBlock === blockIndex && span.lastBlock === blockIndex;
 }

@@ -11,6 +11,8 @@ import { useGutterDrag } from "./useGutterDrag";
 import type { HoveredBlock } from "./useHoveredBlock";
 import { useHoveredBlock } from "./useHoveredBlock";
 import { useHoveredThread } from "./useHoveredThread";
+import type { OfferedStructure } from "./useOfferedStructure";
+import { useOfferedStructure } from "./useOfferedStructure";
 import type { PendingSpan } from "./usePendingSpan";
 import { usePendingSpan } from "./usePendingSpan";
 import type { RenderedDocument } from "./useRenderedDocument";
@@ -60,6 +62,12 @@ export interface DocumentOverlay {
   markers: ThreadMarker[];
 
   /**
+   * The structure the gutter offers a comment on, around the block it picks, or null when the pointer is not in the
+   * gutter or the user is dragging
+   */
+  offeredStructure: OfferedStructure | null;
+
+  /**
    * The blocks a comment on whole blocks is being written on, or null
    */
   pendingSpan: PendingSpan | null;
@@ -93,6 +101,21 @@ export function useDocumentOverlay(
     isHeld: isBlockButtonFocused,
     isPinned: gutterDrag.span !== null,
   });
+  const isPickingInGutter = hoveredBlock?.isPointerInGutter === true && gutterDrag.span === null;
+  const offeredStructure = useOfferedStructure(
+    viewRef,
+    contentRef,
+    rendered,
+    isPickingInGutter ? hoveredBlock.box.index : null
+  );
   const pendingSpan = usePendingSpan(viewRef, contentRef, rendered, pendingPassage);
-  return { gutterDrag, hoveredBlock, isPointingAtHighlight, markers, pendingSpan, selectionComment };
+  return {
+    gutterDrag,
+    hoveredBlock,
+    isPointingAtHighlight,
+    markers,
+    offeredStructure,
+    pendingSpan,
+    selectionComment,
+  };
 }
