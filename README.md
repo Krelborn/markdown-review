@@ -80,7 +80,7 @@ Comments are saved as drafts until you submit them. Click **Edit** to change one
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/submit-dark.png">
-    <img src="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/submit-light.png" width="384" alt="The Submit review popover, offering Revise, Go ahead or Hand back to agent for one draft, and saying the agent is listening and will hear at once.">
+    <img src="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/submit-light.png" width="384" alt="The Submit review popover for one draft, offering Revise, Go ahead with the agent's next task, or Hand back to agent, and saying the agent is listening and will hear at once.">
   </picture>
 </p>
 
