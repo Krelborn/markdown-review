@@ -2,7 +2,7 @@ import { Radio, Text } from "@krelborn/stylesui";
 import type { JSX, Ref } from "react";
 import { useId } from "react";
 
-import type { Verdict } from "../../../shared/api/apiRequestSchemas";
+import type { Verdict } from "../../../shared/review/reviewRoundSchema";
 
 import styles from "./SubmitMenu.module.css";
 

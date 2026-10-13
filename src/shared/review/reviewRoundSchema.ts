@@ -2,9 +2,9 @@ import { z } from "zod";
 
 import { documentPathSchema } from "./anchorSchema";
 
-const verdictSchema = z.enum(["revise", "go-ahead", "hand-back"]);
+export const verdictSchema = z.enum(["revise", "go-ahead", "hand-back"]);
 
-const nextTaskSchema = z
+export const nextTaskSchema = z
   .string()
   .trim()
   .min(1)

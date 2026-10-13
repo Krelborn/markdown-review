@@ -63,16 +63,16 @@ describe("browserRoutes", () => {
     await browser("POST", "/api/threads", cacheComment);
     await browser("POST", "/api/threads", { anchor: { kind: "review" }, body: "Overall?" });
 
-    const response = await browser("POST", "/api/submit", { verdict: "request-changes" });
+    const response = await browser("POST", "/api/submit", { verdict: "revise" });
 
-    expect(await response.json()).toMatchObject({ review: { approved: false }, submittedThreadIds: [1, 2] });
+    expect(await response.json()).toEqual({ round: null, submittedThreadIds: [1, 2] });
     expect(published).toContainEqual({ type: "submitted" });
   });
 
   test("must replace a draft reply and then delete it when the browser edits and discards it", async () => {
     const { browser } = await setUpAppTest(getDirectory());
     await browser("POST", "/api/threads", cacheComment);
-    await browser("POST", "/api/submit", { verdict: "request-changes" });
+    await browser("POST", "/api/submit", { verdict: "revise" });
 
     const written = await browser("PUT", "/api/threads/1/draft", { body: "Still unclear" });
     const deleted = await browser("DELETE", "/api/threads/1/draft");
@@ -95,7 +95,7 @@ describe("browserRoutes", () => {
     await mkdir(path.join(root, "notes"));
     await writeFile(path.join(root, "notes", "idea.md"), "Idea\n");
     await browser("POST", "/api/threads", cacheComment);
-    await browser("POST", "/api/submit", { verdict: "request-changes" });
+    await browser("POST", "/api/submit", { verdict: "revise" });
     await browser("POST", "/api/threads", { anchor: { document: "docs/plan.md", kind: "document" }, body: "Doc?" });
     await browser("GET", "/api/document?path=notes/idea.md");
 

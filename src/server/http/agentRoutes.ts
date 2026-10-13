@@ -23,17 +23,17 @@ export function registerAgentRoutes(app: Hono, dependencies: AppDependencies): v
   });
 
   app.post("/api/agent/open", async (context) => {
-    const { path } = await readJsonBody(context, agentOpenRequestSchema);
+    const { nextTask, path } = await readJsonBody(context, agentOpenRequestSchema);
     if (path !== undefined) {
       await checkDocumentPath(root, path, false);
       recentDocuments.add(path);
       watchDocument(path);
     }
-    const review = await store.requestReview();
+    const round = await store.openRound(path ?? null, nextTask ?? null);
     events.publish({ type: "threads-changed" });
     const pagePath = path === undefined ? "" : `document/${path.split("/").map(encodeURIComponent).join("/")}`;
     const url = `http://127.0.0.1:${port()}/${pagePath}`;
-    const response: AgentOpenResponse = { navigated: tabs.navigateLatest(url), review, url };
+    const response: AgentOpenResponse = { navigated: tabs.navigateLatest(url), round, url };
     return context.json(response);
   });
 

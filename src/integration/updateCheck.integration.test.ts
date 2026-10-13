@@ -33,7 +33,7 @@ describe("update check", () => {
     });
 
     const opened = await startCli(repository.root, ["open", "docs/plan.md"], "", env).result;
-    await repository.browser("POST", "/api/submit", { verdict: "approve" });
+    await repository.browser("POST", "/api/submit", { verdict: "go-ahead" });
     const inbox = await startCli(repository.root, ["inbox"], "", env).result;
 
     expect(opened.stdout).toContain(
@@ -59,7 +59,7 @@ describe("update check", () => {
       expect(await readFile(cachePath(repository.root), "utf8")).toContain("99.0.0");
     });
     await repository.browser("POST", "/api/threads", { anchor: { kind: "review" }, body: "Overall?" });
-    await repository.browser("POST", "/api/submit", { verdict: "request-changes" });
+    await repository.browser("POST", "/api/submit", { verdict: "revise" });
 
     const poll = await startCli(repository.root, ["poll", "--timeout", "5"], "", env).result;
     const inbox = await startCli(repository.root, ["inbox"], "", env).result;

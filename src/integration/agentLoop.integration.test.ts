@@ -27,7 +27,7 @@ describe("agent loop", () => {
     await poll.printedToStderr("Waiting up to 20s");
 
     await repository.browser("POST", "/api/threads", cacheComment);
-    await repository.browser("POST", "/api/submit", { verdict: "request-changes" });
+    await repository.browser("POST", "/api/submit", { verdict: "revise" });
 
     const { exitCode, stdout } = await poll.result;
     expect(exitCode).toBe(0);
@@ -49,7 +49,7 @@ describe("agent loop", () => {
     const repository = getRepository();
     await repository.run(["open"]);
     await repository.browser("POST", "/api/threads", cacheComment);
-    await repository.browser("POST", "/api/submit", { verdict: "request-changes" });
+    await repository.browser("POST", "/api/submit", { verdict: "revise" });
 
     const first = await repository.run(["poll", "--timeout", "5"]);
     const second = await repository.run(["poll", "--timeout", "5"]);
@@ -76,7 +76,7 @@ describe("agent loop", () => {
     const poll = repository.start(["poll", "--timeout", "20"]);
     await poll.printedToStderr("Waiting up to 20s");
 
-    await repository.browser("POST", "/api/submit", { verdict: "approve" });
+    await repository.browser("POST", "/api/submit", { verdict: "go-ahead" });
     const approved = await poll.result;
     await repository.run(["open", "docs/plan.md"]);
     const nextRound = await repository.run(["inbox"]);
@@ -90,7 +90,7 @@ describe("agent loop", () => {
     await repository.run(["open"]);
     await repository.browser("POST", "/api/threads", cacheComment);
     await repository.browser("POST", "/api/threads", { anchor: { kind: "review" }, body: "Overall?" });
-    await repository.browser("POST", "/api/submit", { verdict: "request-changes" });
+    await repository.browser("POST", "/api/submit", { verdict: "revise" });
 
     const replied = await repository.run(["reply", "1", "Upstream", "is", "daily."]);
     const resolved = await repository.run(["resolve", "2", "--file", "-"], "Checked every section.\nAll consistent.");
@@ -103,7 +103,7 @@ describe("agent loop", () => {
     const repository = getRepository();
     await repository.run(["open"]);
     await repository.browser("POST", "/api/threads", cacheComment);
-    await repository.browser("POST", "/api/submit", { verdict: "request-changes" });
+    await repository.browser("POST", "/api/submit", { verdict: "revise" });
 
     const { exitCode, stderr } = await repository.run(["resolve", "99"]);
 
@@ -117,7 +117,7 @@ describe("agent loop", () => {
     const repository = getRepository();
     await repository.run(["open"]);
     await repository.browser("POST", "/api/threads", cacheComment);
-    await repository.browser("POST", "/api/submit", { verdict: "request-changes" });
+    await repository.browser("POST", "/api/submit", { verdict: "revise" });
     await repository.run(["stop"]);
 
     await repository.writeDocument("docs/plan.md", plan.replace("# Plan\n\n", "# Plan\n\nIntro.\n\n"));

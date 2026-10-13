@@ -1,4 +1,3 @@
-import type { Verdict } from "../../shared/api/apiRequestSchemas";
 import type { ThreadsSnapshot } from "../../shared/api/apiResponseSchemas";
 import type { Anchor } from "../../shared/review/anchorSchema";
 import { documentPathSchema } from "../../shared/review/anchorSchema";
@@ -6,7 +5,7 @@ import type { DocumentThreadsFile } from "../../shared/review/documentThreadsFil
 import type { NewThread } from "../../shared/review/newThreadSchema";
 import { newThreadSchema } from "../../shared/review/newThreadSchema";
 import type { ReviewFile } from "../../shared/review/reviewFileSchema";
-import type { ReviewState } from "../../shared/review/ReviewState";
+import type { ReviewRound, Verdict } from "../../shared/review/reviewRoundSchema";
 import { storeFileVersion } from "../../shared/review/storeFileVersion";
 import type { Thread } from "../../shared/review/threadSchema";
 import { messageBodySchema } from "../../shared/review/threadSchema";
@@ -18,6 +17,7 @@ import { emptyReviewFile } from "./emptyReviewFile";
 import { hashSource } from "./hashSource";
 import { needsAgent } from "./needsAgent";
 import { OperationQueue } from "./OperationQueue";
+import { openRound } from "./openRound";
 import { parseStoreInput } from "./parseStoreInput";
 import { renumberDuplicateThreads } from "./renumberDuplicateThreads";
 import { StoreError } from "./StoreError";
@@ -33,10 +33,13 @@ import {
   submitDraft,
   writeDraft,
 } from "./threadTransitions";
-import { toReviewState } from "./toReviewState";
 
 export interface SubmitResult {
-  review: ReviewState;
+  /**
+   * The review round after the submit, or null when no review was opened
+   */
+  round: ReviewRound | null;
+
   submittedThreadIds: number[];
 }
 
@@ -71,16 +74,18 @@ export class ReviewStore {
   }
 
   /**
-   * Starts a review round, so an earlier approval no longer counts
+   * Adds a doc to the review round going on, or starts the next round
    *
-   * @returns the review state after the request
+   * @param path the doc the agent opened, or null for the docs list
+   * @param nextTask what the agent will do once the user says go ahead, or null to keep what the round has
+   * @returns the round the doc is now in
    */
-  public requestReview(): Promise<ReviewState> {
+  public openRound(path: string | null, nextTask: string | null): Promise<ReviewRound> {
     return this.queue.enqueue(async () => {
       const review = requireValid(await this.files.readReviewFile());
-      const next = { ...review, requestedAt: new Date().toISOString() };
-      await this.files.writeReviewFile(next);
-      return toReviewState(next);
+      const round = openRound(review.round, path, nextTask, new Date().toISOString());
+      await this.files.writeReviewFile({ ...review, round });
+      return round;
     });
   }
 
@@ -144,9 +149,9 @@ export class ReviewStore {
   /**
    * Submits every draft in the repo and records the user's verdict on the review round
    *
-   * @param verdict "approve" ends the round; "request-changes" needs at least one draft
-   * @returns the IDs of the threads that received a submitted message, and the review state after the submit
-   * @throws StoreError "invalid-state" when requesting changes with no drafts
+   * @param verdict "go-ahead" and "hand-back" end the round; "revise" needs at least one draft
+   * @returns the IDs of the threads that received a submitted message, and the round after the submit
+   * @throws StoreError "invalid-state" when asking for revisions with no drafts
    */
   public submit(verdict: Verdict): Promise<SubmitResult> {
     return this.queue.enqueue(async () => {
@@ -157,7 +162,7 @@ export class ReviewStore {
         .filter((thread) => thread.draft !== undefined)
         .map((thread) => thread.id)
         .sort((left, right) => left - right);
-      if (verdict === "request-changes" && submittedThreadIds.length === 0) {
+      if (verdict === "revise" && submittedThreadIds.length === 0) {
         throw new StoreError("invalid-state", "There are no drafts to submit");
       }
       for (const file of documentFiles) {
@@ -165,11 +170,11 @@ export class ReviewStore {
       }
       const next: ReviewFile = {
         ...review,
-        approvedAt: verdict === "approve" ? at : null,
+        round: review.round === null ? null : { ...review.round, verdict: { at, kind: verdict } },
         threads: review.threads.map((thread) => submitDraft(thread, at)),
       };
       await this.files.writeReviewFile(next);
-      return { review: toReviewState(next), submittedThreadIds };
+      return { round: next.round, submittedThreadIds };
     });
   }
 
@@ -198,7 +203,7 @@ export class ReviewStore {
    * Reads threads for the browser, first re-anchoring any doc that changed since its threads were last anchored
    *
    * @param document the doc whose threads to read, alongside the review's, or null for every thread
-   * @returns the review state, the threads in ID order, and any store files that could not be read
+   * @returns the review round, the threads in ID order, and any store files that could not be read
    * @throws StoreError "invalid-input" when the doc path is not a repo-relative POSIX path
    */
   public readThreads(document: string | null): Promise<ThreadsSnapshot> {
@@ -209,7 +214,7 @@ export class ReviewStore {
    * Reads what the agent has to act on, first re-anchoring any doc that changed since its threads were last anchored
    *
    * @param document the doc to limit the threads to, or null for every thread including the review's
-   * @returns the review state and the threads that need the agent
+   * @returns the review round and the threads that need the agent
    * @throws StoreError "invalid-input" when the doc path is not a repo-relative POSIX path
    */
   public readInbox(document: string | null): Promise<ThreadsSnapshot> {
@@ -234,7 +239,7 @@ export class ReviewStore {
     for (const name of documents) {
       threads.push(...(await this.readDocumentThreadsOrReport(name, problems)));
     }
-    return { problems, review: toReviewState(review), threads: threads.sort((left, right) => left.id - right.id) };
+    return { problems, round: review.round, threads: threads.sort((left, right) => left.id - right.id) };
   }
 
   private async readReviewFileOrReport(problems: string[]): Promise<ReviewFile> {

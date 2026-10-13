@@ -6,6 +6,8 @@ import { createDocumentText } from "../../shared/markdown/createDocumentText";
 import { linesForRange } from "../../shared/markdown/linesForRange";
 import type { Anchor } from "../../shared/review/anchorSchema";
 import type { NewThread } from "../../shared/review/newThreadSchema";
+import type { ReviewRound } from "../../shared/review/reviewRoundSchema";
+import { buildRound } from "../../shared/review/testing/reviewBuilders";
 import type { Thread } from "../../shared/review/threadSchema";
 import type { ReviewApi } from "../api/ReviewApi";
 import { ReviewApiError } from "../api/ReviewApiError";
@@ -16,6 +18,12 @@ const testDocument = "# Plan\n\nWe cache results for **24h** today.\n\nRetries h
 export interface FakeReviewApiOptions {
   documents?: Record<string, string>;
   recent?: string[];
+
+  /**
+   * The review round; by default, one the agent opened on `docs/plan.md`
+   */
+  round?: ReviewRound | null;
+
   threads?: Thread[];
 
   /**
@@ -48,12 +56,13 @@ export interface FakeReviewApi {
 export function createFakeReviewApi({
   documents = { "docs/plan.md": testDocument },
   recent = [],
+  round = buildRound(),
   threads = [],
   update = { availableVersion: null, command: null },
 }: FakeReviewApiOptions = {}): FakeReviewApi {
   const snapshot: ThreadsSnapshot = {
     problems: [],
-    review: { approved: false, approvedAt: null, requestedAt: "2026-10-08T09:00:00.000Z" },
+    round: structuredClone(round),
     threads: structuredClone(threads),
   };
   const listeners = new Set<(event: ReviewEvent) => void>();
@@ -117,11 +126,7 @@ export function createFakeReviewApi({
               updatedAt: at,
             }
       );
-      snapshot.review = {
-        ...snapshot.review,
-        approved: verdict === "approve",
-        approvedAt: verdict === "approve" ? at : null,
-      };
+      snapshot.round = snapshot.round === null ? null : { ...snapshot.round, verdict: { at, kind: verdict } };
       emit({ type: "threads-changed" });
       return Promise.resolve();
     },

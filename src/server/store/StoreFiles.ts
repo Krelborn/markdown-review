@@ -1,6 +1,8 @@
 import { mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 
+import { z } from "zod";
+
 import type { DocumentThreadsFile } from "../../shared/review/documentThreadsFileSchema";
 import { documentThreadsFileSchema } from "../../shared/review/documentThreadsFileSchema";
 import type { ReviewFile } from "../../shared/review/reviewFileSchema";
@@ -21,6 +23,11 @@ import {
   reviewFilePath,
   storeDirectory,
 } from "./storePaths";
+import { reviewFileVersion1Schema, upgradeReviewFile } from "./upgradeReviewFile";
+
+const storedReviewFileSchema = z
+  .discriminatedUnion("version", [reviewFileSchema, reviewFileVersion1Schema])
+  .transform((file) => (file.version === 1 ? upgradeReviewFile(file) : file));
 
 /**
  * Reads and writes the files of one root's `.markdown-review/` directory and the docs they refer to
@@ -44,7 +51,7 @@ export class StoreFiles {
    * @returns the review file, or an empty one when it does not exist yet
    */
   public async readReviewFile(): Promise<StoreFileResult<ReviewFile>> {
-    const result = await readStoreFile(reviewFilePath(this.root), reviewFileSchema);
+    const result = await readStoreFile(reviewFilePath(this.root), storedReviewFileSchema);
     return result.kind === "valid" ? { kind: "valid", value: result.value ?? emptyReviewFile } : result;
   }
 

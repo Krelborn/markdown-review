@@ -3,7 +3,6 @@ import { clsx } from "clsx";
 import type { JSX } from "react";
 import { useMemo, useRef } from "react";
 
-import type { ReviewState } from "../../../shared/review/ReviewState";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { useReviewApi } from "../../api/useReviewApi";
 import { useReviewEvents } from "../../api/useReviewEvents";
@@ -26,8 +25,6 @@ import { TopBar } from "../TopBar/TopBar";
 import styles from "./App.module.css";
 import { DocumentPane } from "./DocumentPane";
 import { useCommentsPanel } from "./useCommentsPanel";
-
-const unrequestedReview: ReviewState = { approved: false, approvedAt: null, requestedAt: null };
 
 const commentsPanelId = "comments-panel";
 
@@ -134,7 +131,7 @@ export function App(): JSX.Element {
                 onTogglePanel={togglePanel}
                 panelId={commentsPanelId}
                 panelToggleRef={panelToggleRef}
-                review={threads.snapshot?.review ?? unrequestedReview}
+                round={threads.snapshot?.round ?? null}
               />
             </div>
           </div>

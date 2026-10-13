@@ -2,7 +2,7 @@ import { Alert, Button, Cluster, Counter, Popover, Stack, Text, usePopover, Visu
 import type { JSX } from "react";
 import { useRef, useState } from "react";
 
-import type { Verdict } from "../../../shared/api/apiRequestSchemas";
+import type { Verdict } from "../../../shared/review/reviewRoundSchema";
 import { describeFailure } from "../../api/describeFailure";
 import { useReviewApi } from "../../api/useReviewApi";
 import type { DraftCount } from "../../review/countDraftsByDocument";
@@ -45,7 +45,7 @@ export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }
   const checkedVerdictRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const canSubmit = !hasUnsavedText && (verdict === "approve" || draftCount > 0);
+  const canSubmit = !hasUnsavedText && (verdict !== "revise" || draftCount > 0);
   const popover = usePopover({
     initialFocus: checkedVerdictRef,
     onOpenChange: (open) => {
@@ -120,5 +120,5 @@ export function SubmitMenu({ agentWaiting, drafts, hasUnsavedText, onSubmitted }
  * @returns asking for changes when there are drafts, and approving otherwise
  */
 function openingVerdictOf(draftCount: number): Verdict {
-  return draftCount > 0 ? "request-changes" : "approve";
+  return draftCount > 0 ? "revise" : "go-ahead";
 }

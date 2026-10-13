@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 
-import { buildThread } from "../../shared/review/testing/reviewBuilders";
+import { buildRound, buildThread } from "../../shared/review/testing/reviewBuilders";
 import { setUpTemporaryDirectory } from "../testing/setUpTemporaryDirectory";
 
 import { StoreFiles } from "./StoreFiles";
@@ -58,7 +58,7 @@ describe("StoreFiles", () => {
 
   test("must read back the review file when one has been written", async () => {
     const files = new StoreFiles(getDirectory());
-    const review = { approvedAt: null, requestedAt: "2026-10-08T09:00:00.000Z", threads: [], version: 1 as const };
+    const review = { round: buildRound(), threads: [], version: 2 as const };
 
     await files.writeReviewFile(review);
 
@@ -78,7 +78,7 @@ describe("StoreFiles", () => {
   test("must return an empty review when review.json does not exist", async () => {
     expect(await new StoreFiles(getDirectory()).readReviewFile()).toEqual({
       kind: "valid",
-      value: { approvedAt: null, requestedAt: null, threads: [], version: 1 },
+      value: { round: null, threads: [], version: 2 },
     });
   });
 });

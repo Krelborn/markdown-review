@@ -1,14 +1,8 @@
 import { z } from "zod";
 
 import { documentPathSchema } from "../review/anchorSchema";
-import type { ReviewState } from "../review/ReviewState";
+import { reviewRoundSchema } from "../review/reviewRoundSchema";
 import { threadSchema } from "../review/threadSchema";
-
-const reviewStateSchema = z.strictObject({
-  approved: z.boolean(),
-  approvedAt: z.iso.datetime().nullable(),
-  requestedAt: z.iso.datetime().nullable(),
-}) satisfies z.ZodType<ReviewState>;
 
 /**
  * Not strict, so a newer server that reports more fields is still recognised by its protocol rather than mistaken for
@@ -24,7 +18,7 @@ export const healthSchema = z.object({
 
 export const threadsSnapshotSchema = z.strictObject({
   problems: z.array(z.string()),
-  review: reviewStateSchema,
+  round: reviewRoundSchema.nullable(),
   threads: z.array(threadSchema),
 });
 
@@ -32,7 +26,7 @@ export const pollResponseSchema = threadsSnapshotSchema.extend({ timedOut: z.boo
 
 export const agentOpenResponseSchema = z.strictObject({
   navigated: z.boolean(),
-  review: reviewStateSchema,
+  round: reviewRoundSchema.nullable(),
   url: z.string(),
 });
 

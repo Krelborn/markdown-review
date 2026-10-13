@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
-import type { Verdict } from "./apiRequestSchemas";
+import type { Verdict } from "../review/reviewRoundSchema";
+
 import {
   agentOpenRequestSchema,
   messageRequestSchema,
@@ -26,7 +27,13 @@ describe("apiRequestSchemas", () => {
     expect(resolveRequestSchema.safeParse({ body: null }).success).toBe(true);
   });
 
-  test.each<{ verdict: Verdict }>([{ verdict: "approve" }, { verdict: "request-changes" }])(
+  test("must accept an open request when it gives the agent's next task", () => {
+    expect(agentOpenRequestSchema.safeParse({ nextTask: "implement the plan", path: "docs/plan.md" }).success).toBe(
+      true
+    );
+  });
+
+  test.each<{ verdict: Verdict }>([{ verdict: "go-ahead" }, { verdict: "hand-back" }, { verdict: "revise" }])(
     "must accept a submit when the verdict is $verdict",
     ({ verdict }) => {
       expect(submitRequestSchema.safeParse({ verdict }).success).toBe(true);

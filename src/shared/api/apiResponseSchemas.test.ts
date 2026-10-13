@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { buildThread, testTime } from "../review/testing/reviewBuilders";
+import { buildRound, buildThread } from "../review/testing/reviewBuilders";
 
 import type {
   AgentOpenResponse,
@@ -24,15 +24,13 @@ import {
   threadsSnapshotSchema,
 } from "./apiResponseSchemas";
 
-const review = { approved: false, approvedAt: null, requestedAt: testTime };
-
-const inbox: ThreadsSnapshot = { problems: [], review, threads: [buildThread()] };
+const inbox: ThreadsSnapshot = { problems: [], round: buildRound(), threads: [buildThread()] };
 
 describe("apiResponseSchemas", () => {
   test("must accept each response the server sends when it has the documented shape", () => {
     const health: Health = { name: "markdown-review", pid: 42, protocol: 1, root: "/repo", version: "0.1.0" };
     const poll: PollResponse = { ...inbox, timedOut: false };
-    const opened: AgentOpenResponse = { navigated: false, review, url: "http://127.0.0.1:50000/" };
+    const opened: AgentOpenResponse = { navigated: false, round: buildRound(), url: "http://127.0.0.1:50000/" };
     const acted: AgentThreadResponse = { inbox, thread: buildThread() };
     const stopping: ShutdownResponse = { stopping: true };
     const documents: DocumentList = {

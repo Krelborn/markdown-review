@@ -1,4 +1,5 @@
 import type { AgentThreadResponse } from "../shared/api/apiResponseSchemas";
+import { roundOutcome } from "../shared/review/roundOutcome";
 
 import { formatIdList } from "./formatIdList";
 import { approvedStep } from "./nextSteps";
@@ -20,8 +21,9 @@ export function formatAgentAction(action: "replied" | "resolved", { inbox, threa
       '`markdown-review resolve <id> "<what changed>"`, or `markdown-review reply <id> "<question>"` if you need input.\n'
     );
   }
-  const step = inbox.review.approved
-    ? approvedStep
-    : "Run `markdown-review poll` to wait for the user's next round of comments.";
+  const step =
+    roundOutcome(inbox.round) === "go-ahead"
+      ? approvedStep
+      : "Run `markdown-review poll` to wait for the user's next round of comments.";
   return `${done} No threads need you now.\n\nnext_step: ${step}\n`;
 }

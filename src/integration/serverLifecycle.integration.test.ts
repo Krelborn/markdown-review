@@ -4,6 +4,8 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 
+import { protocolVersion } from "../shared/api/protocolVersion";
+
 import { setUpReviewRepository } from "./testing/setUpReviewRepository";
 
 const getRepository = setUpReviewRepository();
@@ -43,24 +45,24 @@ describe("server lifecycle", () => {
 
   test("must shut down a server of an older protocol and start the current one", async () => {
     const repository = getRepository();
-    const older = await startFakeServer(repository.root, 0);
+    const older = await startFakeServer(repository.root, protocolVersion - 1);
 
     const { exitCode } = await repository.run(["inbox"]);
 
     expect(exitCode).toBe(0);
     expect(older.shutdownRequested()).toBe(true);
-    expect((await repository.readServerFile()).protocol).toBe(1);
+    expect((await repository.readServerFile()).protocol).toBe(protocolVersion);
   });
 
   test("must leave a server of a newer protocol running and say how to use it", async () => {
     const repository = getRepository();
-    const newer = await startFakeServer(repository.root, 2);
+    const newer = await startFakeServer(repository.root, protocolVersion + 1);
 
     const { exitCode, stderr } = await repository.run(["inbox"]);
     await newer.close();
 
     expect(exitCode).toBe(1);
-    expect(stderr).toContain("A newer markdown-review (version 9.9.9, protocol 2) is serving");
+    expect(stderr).toContain(`A newer markdown-review (version 9.9.9, protocol ${protocolVersion + 1}) is serving`);
     expect(stderr).toContain("next_step: Run the newer markdown-review");
     expect(newer.shutdownRequested()).toBe(false);
   });

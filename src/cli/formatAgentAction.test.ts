@@ -1,15 +1,15 @@
 import { describe, expect, test } from "vitest";
 
-import { buildThread, testTime } from "../shared/review/testing/reviewBuilders";
+import { buildRound, buildThread, testTime } from "../shared/review/testing/reviewBuilders";
 
 import { formatAgentAction } from "./formatAgentAction";
 
-const notApproved = { approved: false, approvedAt: null, requestedAt: testTime };
+const roundGoingOn = buildRound();
 
 describe("formatAgentAction", () => {
   test("must confirm the reply and list the threads still waiting when others need the agent", () => {
     const text = formatAgentAction("replied", {
-      inbox: { problems: [], review: notApproved, threads: [buildThread({ id: 15 }), buildThread({ id: 16 })] },
+      inbox: { problems: [], round: roundGoingOn, threads: [buildThread({ id: 15 }), buildThread({ id: 16 })] },
       thread: buildThread({ id: 14 }),
     });
 
@@ -21,7 +21,7 @@ describe("formatAgentAction", () => {
 
   test("must tell the agent to wait for the next round when it resolved the last thread", () => {
     const text = formatAgentAction("resolved", {
-      inbox: { problems: [], review: notApproved, threads: [] },
+      inbox: { problems: [], round: roundGoingOn, threads: [] },
       thread: buildThread({ id: 14, status: "resolved" }),
     });
 
@@ -32,7 +32,7 @@ describe("formatAgentAction", () => {
 
   test("must tell the agent to carry on when it resolved the last thread of an approved review", () => {
     const text = formatAgentAction("resolved", {
-      inbox: { problems: [], review: { ...notApproved, approved: true, approvedAt: testTime }, threads: [] },
+      inbox: { problems: [], round: { ...roundGoingOn, verdict: { at: testTime, kind: "go-ahead" } }, threads: [] },
       thread: buildThread({ id: 14, status: "resolved" }),
     });
 

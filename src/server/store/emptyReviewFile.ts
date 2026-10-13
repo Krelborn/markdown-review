@@ -1,9 +1,4 @@
 import type { ReviewFile } from "../../shared/review/reviewFileSchema";
-import { storeFileVersion } from "../../shared/review/storeFileVersion";
+import { reviewFileVersion } from "../../shared/review/reviewFileVersion";
 
-export const emptyReviewFile: ReviewFile = {
-  approvedAt: null,
-  requestedAt: null,
-  threads: [],
-  version: storeFileVersion,
-};
+export const emptyReviewFile: ReviewFile = { round: null, threads: [], version: reviewFileVersion };

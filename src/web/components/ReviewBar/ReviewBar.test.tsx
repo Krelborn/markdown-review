@@ -4,8 +4,9 @@ import type { JSX } from "react";
 import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
 
-import type { ReviewState } from "../../../shared/review/ReviewState";
-import { buildPassageAnchor, buildThread, testTime } from "../../../shared/review/testing/reviewBuilders";
+import type { ReviewRound } from "../../../shared/review/reviewRoundSchema";
+import { roundOutcome } from "../../../shared/review/roundOutcome";
+import { buildPassageAnchor, buildRound, buildThread, testTime } from "../../../shared/review/testing/reviewBuilders";
 import { ReviewApiContext } from "../../api/ReviewApiContext";
 import { ReviewApiError } from "../../api/ReviewApiError";
 import type { DraftCount } from "../../review/countDraftsByDocument";
@@ -61,7 +62,7 @@ describe("ReviewBar", () => {
   test("must show the review as approved when the user approved this round", () => {
     const { render } = setUpTest();
 
-    render({ review: { approved: true, approvedAt: testTime, requestedAt: testTime } });
+    render({ round: buildRound({ verdict: { at: testTime, kind: "go-ahead" } }) });
 
     expect(screen.getByText("Approved")).toBeInTheDocument();
   });
@@ -105,7 +106,7 @@ describe("ReviewBar", () => {
     await user.click(elements.submitDialog().getByRole("button", { name: "Submit" }));
 
     expect(fake.snapshot.threads).toMatchObject([{ messages: [{ author: "user", body: "Why 24h?" }], status: "open" }]);
-    expect(fake.snapshot.review.approved).toBe(false);
+    expect(roundOutcome(fake.snapshot.round)).toBeNull();
     expect(onSubmitted).toHaveBeenCalled();
     expect(screen.queryByRole("dialog", { name: "Submit review" })).not.toBeInTheDocument();
   });
@@ -119,7 +120,7 @@ describe("ReviewBar", () => {
     await user.click(elements.submitDialog().getByRole("radio", { name: "Approve" }));
     await user.click(elements.submitDialog().getByRole("button", { name: "Submit" }));
 
-    expect(fake.snapshot.review.approved).toBe(true);
+    expect(roundOutcome(fake.snapshot.round)).toBe("go-ahead");
   });
 
   test("must show why when the server refuses the submit", async () => {
@@ -227,7 +228,7 @@ interface RenderOptions {
   drafts?: DraftCount[];
   hasUnsavedText?: boolean;
   isPanelOpen?: boolean;
-  review?: ReviewState;
+  round?: ReviewRound | null;
 }
 
 function setUpTest() {
@@ -239,7 +240,7 @@ function setUpTest() {
     drafts = [],
     hasUnsavedText = false,
     isPanelOpen = false,
-    review = fake.snapshot.review,
+    round = fake.snapshot.round,
   }: RenderOptions = {}): JSX.Element => (
     <ReviewApiContext value={fake.api}>
       <ReviewBar
@@ -251,7 +252,7 @@ function setUpTest() {
         onTogglePanel={onTogglePanel}
         panelId="comments-panel"
         panelToggleRef={createRef()}
-        review={review}
+        round={round}
       />
     </ReviewApiContext>
   );

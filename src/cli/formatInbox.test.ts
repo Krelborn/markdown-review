@@ -1,14 +1,14 @@
 import { describe, expect, test } from "vitest";
 
 import type { ThreadsSnapshot } from "../shared/api/apiResponseSchemas";
-import { buildPassageAnchor, buildThread, testTime } from "../shared/review/testing/reviewBuilders";
+import { buildPassageAnchor, buildRound, buildThread, testTime } from "../shared/review/testing/reviewBuilders";
 import type { Thread } from "../shared/review/threadSchema";
 
 import { formatInbox } from "./formatInbox";
 
-const notApproved = { approved: false, approvedAt: null, requestedAt: testTime };
+const roundGoingOn = buildRound();
 
-const approved = { approved: true, approvedAt: "2026-10-08T10:00:00.000Z", requestedAt: testTime };
+const roundWentAhead = buildRound({ verdict: { at: "2026-10-08T10:00:00.000Z", kind: "go-ahead" } });
 
 const cacheThread = buildThread({
   anchor: buildPassageAnchor({
@@ -51,7 +51,7 @@ describe("formatInbox", () => {
   });
 
   test("must put the notices just before next_step when there are some", () => {
-    const text = formatInbox(snapshot([], approved), ["update_available: one\n", "skill_outdated: two\n"]);
+    const text = formatInbox(snapshot([], roundWentAhead), ["update_available: one\n", "skill_outdated: two\n"]);
 
     expect(text).toBe(
       "Review approved. No threads need you.\n\nupdate_available: one\nskill_outdated: two\n\nnext_step: The user " +
@@ -60,7 +60,7 @@ describe("formatInbox", () => {
   });
 
   test("must tell the agent to carry on when the review is approved and nothing needs it", () => {
-    expect(formatInbox(snapshot([], approved))).toBe(
+    expect(formatInbox(snapshot([], roundWentAhead))).toBe(
       "Review approved. No threads need you.\n\nnext_step: The user approved the review. Carry on with your task; " +
         "do not run `markdown-review poll` again for this review.\n"
     );
@@ -79,7 +79,7 @@ describe("formatInbox", () => {
       messages: [{ at: testTime, author: "user", body: "Nit: make the retry count configurable." }],
     });
 
-    expect(formatInbox(snapshot([thread], approved))).toBe(
+    expect(formatInbox(snapshot([thread], roundWentAhead))).toBe(
       [
         "Review approved, 1 thread needs you (docs/plans/plan.md: 1)",
         "",
@@ -168,6 +168,6 @@ describe("formatInbox", () => {
   });
 });
 
-function snapshot(threads: Thread[], review: ThreadsSnapshot["review"] = notApproved): ThreadsSnapshot {
-  return { problems: [], review, threads };
+function snapshot(threads: Thread[], round: ThreadsSnapshot["round"] = roundGoingOn): ThreadsSnapshot {
+  return { problems: [], round, threads };
 }

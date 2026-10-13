@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
 
+import { roundOutcome } from "../../shared/review/roundOutcome";
 import type { CliContext } from "../CliContext";
 import { CliError } from "../CliError";
 import { connectToServer } from "../connectToServer";
@@ -35,12 +36,13 @@ export async function pollCommand(args: string[], context: CliContext): Promise<
       `Waiting up to ${timeoutSeconds}s for review comments. If this is interrupted, run \`markdown-review poll\` again; nothing is lost.\n`
     );
     const result = await client.poll(document, timeoutSeconds, abort.signal);
-    if (result.timedOut && result.threads.length === 0 && !result.review.approved) {
+    const wentAhead = roundOutcome(result.round) === "go-ahead";
+    if (result.timedOut && result.threads.length === 0 && !wentAhead) {
       terminal.stdout(
         `No comments yet.\n\nnext_step: Run \`markdown-review poll\` again to keep waiting. ${pollTimeoutAdvice}\n`
       );
     } else {
-      const notices = result.review.approved ? await readUpdateNotices(context, root, true) : [];
+      const notices = wentAhead ? await readUpdateNotices(context, root, true) : [];
       terminal.stdout(formatInbox(result, notices));
     }
     return 0;

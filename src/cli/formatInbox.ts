@@ -1,4 +1,5 @@
 import type { ThreadsSnapshot } from "../shared/api/apiResponseSchemas";
+import { roundOutcome } from "../shared/review/roundOutcome";
 import type { Thread } from "../shared/review/threadSchema";
 
 import { addressThreadsStep, approvedStep, approvedWithCommentsStep, waitForCommentsStep } from "./nextSteps";
@@ -12,15 +13,16 @@ const quoteEndLength = 60;
 /**
  * Describes the agent's inbox as compact text for the agent to read
  *
- * @param snapshot the review state and the threads that need the agent
+ * @param snapshot the review round and the threads that need the agent
  * @param notices lines to put just before `next_step`, each ending in a newline
  * @returns the summary, each thread grouped by doc with its messages, any store problems, the notices, and a final
  *   `next_step`
  */
-export function formatInbox({ problems, review, threads }: ThreadsSnapshot, notices: readonly string[] = []): string {
+export function formatInbox({ problems, round, threads }: ThreadsSnapshot, notices: readonly string[] = []): string {
+  const approved = roundOutcome(round) === "go-ahead";
   const ordered = orderByDocument(threads);
   const ids = ordered.map((thread) => thread.id);
-  const sections = [summaryLine(review.approved, ordered)];
+  const sections = [summaryLine(approved, ordered)];
   if (ordered.length > 0) {
     sections.push(ordered.map(formatThread).join("\n\n"));
   }
@@ -30,7 +32,7 @@ export function formatInbox({ problems, review, threads }: ThreadsSnapshot, noti
   if (notices.length > 0) {
     sections.push(notices.join("").trimEnd());
   }
-  sections.push(`next_step: ${nextStep(review.approved, ids)}`);
+  sections.push(`next_step: ${nextStep(approved, ids)}`);
   return `${sections.join("\n\n")}\n`;
 }
 

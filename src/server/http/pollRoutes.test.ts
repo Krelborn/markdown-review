@@ -11,7 +11,7 @@ describe("pollRoutes", () => {
   test("must return at once when a thread already needs the agent", async () => {
     const { agent, browser } = await setUpAppTest(getDirectory());
     await browser("POST", "/api/threads", cacheComment);
-    await browser("POST", "/api/submit", { verdict: "request-changes" });
+    await browser("POST", "/api/submit", { verdict: "revise" });
 
     const result = pollResponseSchema.parse(await (await agent("GET", "/api/poll?timeout=5")).json());
 
@@ -24,7 +24,7 @@ describe("pollRoutes", () => {
 
     const poll = agent("GET", "/api/poll?timeout=10");
     await vi.waitFor(() => expect(activity.agentWaiting).toBe(true));
-    await browser("POST", "/api/submit", { verdict: "request-changes" });
+    await browser("POST", "/api/submit", { verdict: "revise" });
     const result = pollResponseSchema.parse(await (await poll).json());
 
     expect(result).toMatchObject({ threads: [{ id: 1 }], timedOut: false });
@@ -37,7 +37,7 @@ describe("pollRoutes", () => {
 
     const polls = [agent("GET", "/api/poll?timeout=10"), agent("GET", "/api/poll?timeout=10")];
     await vi.waitFor(() => expect(activity.agentWaiting).toBe(true));
-    await browser("POST", "/api/submit", { verdict: "request-changes" });
+    await browser("POST", "/api/submit", { verdict: "revise" });
     const results = await Promise.all(polls.map(async (poll) => pollResponseSchema.parse(await (await poll).json())));
 
     expect(results.map((result) => result.threads.map((thread) => thread.id))).toEqual([[1], [1]]);
@@ -53,14 +53,18 @@ describe("pollRoutes", () => {
     await vi.waitFor(() => expect(activity.agentWaiting).toBe(false));
   });
 
-  test("must return at once when the user has approved the round", async () => {
-    const { agent, browser } = await setUpAppTest(getDirectory());
-    await browser("POST", "/api/submit", { verdict: "approve" });
+  test.each([{ verdict: "go-ahead" as const }, { verdict: "hand-back" as const }])(
+    "must return at once when the user ended the round with $verdict",
+    async ({ verdict }) => {
+      const { agent, browser } = await setUpAppTest(getDirectory());
+      await agent("POST", "/api/agent/open", {});
+      await browser("POST", "/api/submit", { verdict });
 
-    const result = pollResponseSchema.parse(await (await agent("GET", "/api/poll?timeout=5")).json());
+      const result = pollResponseSchema.parse(await (await agent("GET", "/api/poll?timeout=5")).json());
 
-    expect(result).toMatchObject({ review: { approved: true }, threads: [], timedOut: false });
-  });
+      expect(result).toMatchObject({ round: { verdict: { kind: verdict } }, threads: [], timedOut: false });
+    }
+  );
 
   test("must keep waiting and time out when the submit holds nothing for the polled doc", async () => {
     const { activity, agent, browser } = await setUpAppTest(getDirectory());
@@ -68,7 +72,7 @@ describe("pollRoutes", () => {
 
     const poll = agent("GET", "/api/poll?timeout=1&document=docs/plan.md");
     await vi.waitFor(() => expect(activity.agentWaiting).toBe(true));
-    await browser("POST", "/api/submit", { verdict: "request-changes" });
+    await browser("POST", "/api/submit", { verdict: "revise" });
     const result = pollResponseSchema.parse(await (await poll).json());
 
     expect(result).toMatchObject({ threads: [], timedOut: true });

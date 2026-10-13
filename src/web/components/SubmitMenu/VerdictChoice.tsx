@@ -1,7 +1,7 @@
 import { RadioGroup, VisuallyHidden } from "@krelborn/stylesui";
 import type { JSX, Ref } from "react";
 
-import type { Verdict } from "../../../shared/api/apiRequestSchemas";
+import type { Verdict } from "../../../shared/review/reviewRoundSchema";
 
 import { VerdictOption } from "./VerdictOption";
 
@@ -28,22 +28,22 @@ export function VerdictChoice({ checkedRef, draftCount, onVerdictChange, verdict
   return (
     <RadioGroup
       label={<VisuallyHidden>Verdict</VisuallyHidden>}
-      onValueChange={(value) => onVerdictChange(value === "approve" ? "approve" : "request-changes")}
+      onValueChange={(value) => onVerdictChange(value === "go-ahead" ? "go-ahead" : "revise")}
       value={verdict}
     >
       <VerdictOption
         description="Send your comments and ask the agent to revise."
         isDisabled={draftCount === 0}
         label="Request changes"
-        ref={refFor("request-changes")}
-        value="request-changes"
+        ref={refFor("revise")}
+        value="revise"
       />
       <VerdictOption
         description={draftCount === 0 ? "End the review." : "Send your comments and end the review."}
         isDisabled={false}
         label="Approve"
-        ref={refFor("approve")}
-        value="approve"
+        ref={refFor("go-ahead")}
+        value="go-ahead"
       />
     </RadioGroup>
   );

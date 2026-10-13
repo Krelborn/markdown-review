@@ -5,6 +5,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { createDocumentText } from "../../shared/markdown/createDocumentText";
 import type { NewThread } from "../../shared/review/newThreadSchema";
+import { roundOutcome } from "../../shared/review/roundOutcome";
 import { buildPassageAnchor, buildThread } from "../../shared/review/testing/reviewBuilders";
 import { createMemoryLogger } from "../logging/testing/createMemoryLogger";
 import { setUpTemporaryDirectory } from "../testing/setUpTemporaryDirectory";
@@ -70,7 +71,7 @@ describe("ReviewStore", () => {
     await store.createDraftThread(commentOn(plan, "cache results for 24h"));
 
     const beforeSubmit = await store.readInbox(null);
-    await store.submit("request-changes");
+    await store.submit("revise");
     const afterSubmit = await store.readInbox(null);
 
     expect(beforeSubmit.threads).toEqual([]);
@@ -80,13 +81,13 @@ describe("ReviewStore", () => {
   test("must hand the user's reply to the agent when it was drafted before an agent reply and submitted after it", async () => {
     const { advanceClock, store } = await setUpLoadedTest();
     await store.createDraftThread({ anchor: { kind: "review" }, body: "Why 24h?" });
-    await store.submit("request-changes");
+    await store.submit("revise");
     await store.writeDraft(1, "Upstream changes hourly");
     advanceClock();
     await store.replyAsAgent(1, "Which upstream?");
     advanceClock();
 
-    await store.submit("request-changes");
+    await store.submit("revise");
 
     const inbox = await store.readInbox(null);
     expect(inbox.threads[0]?.messages.map(({ author }) => author)).toEqual(["user", "agent", "user"]);
@@ -102,7 +103,7 @@ describe("ReviewStore", () => {
   test("must resolve the thread when the agent resolves one it has already replied to", async () => {
     const { store } = await setUpLoadedTest();
     await store.createDraftThread({ anchor: { kind: "review" }, body: "Why?" });
-    await store.submit("request-changes");
+    await store.submit("revise");
     await store.replyAsAgent(1, "Because");
 
     const thread = await store.resolveAsAgent(1, null);
@@ -113,11 +114,11 @@ describe("ReviewStore", () => {
   test("must reopen a thread the user resolved when the user then submits a reply to it", async () => {
     const { store } = await setUpLoadedTest();
     await store.createDraftThread({ anchor: { kind: "review" }, body: "Why?" });
-    await store.submit("request-changes");
+    await store.submit("revise");
     await store.resolveAsUser(1);
     await store.writeDraft(1, "Actually, one more thing");
 
-    await store.submit("request-changes");
+    await store.submit("revise");
 
     expect((await store.readInbox(null)).threads.map((thread) => thread.status)).toEqual(["open"]);
   });
@@ -131,23 +132,66 @@ describe("ReviewStore", () => {
     expect((await store.readThreads(null)).threads).toEqual([]);
   });
 
-  test("must end the round when the user approves with no drafts, until the agent opens the review again", async () => {
+  test.each([{ verdict: "go-ahead" as const }, { verdict: "hand-back" as const }])(
+    "must end the round when the user chooses $verdict, until the agent opens the review again",
+    async ({ verdict }) => {
+      const { advanceClock, store } = await setUpLoadedTest();
+      await store.openRound("docs/plan.md", null);
+      advanceClock();
+
+      const ended = await store.submit(verdict);
+      advanceClock();
+      const nextRound = await store.openRound("docs/plan.md", null);
+
+      expect(roundOutcome(ended.round)).toBe(verdict);
+      expect(roundOutcome(nextRound)).toBeNull();
+    }
+  );
+
+  test("must start the round going again when the user asks for revisions after handing the review back", async () => {
     const { advanceClock, store } = await setUpLoadedTest();
-    await store.requestReview();
+    await store.openRound("docs/plan.md", null);
+    await store.submit("hand-back");
     advanceClock();
+    await store.createDraftThread({ anchor: { kind: "review" }, body: "Carry on after all" });
 
-    const approved = await store.submit("approve");
-    advanceClock();
-    const nextRound = await store.requestReview();
+    const revised = await store.submit("revise");
 
-    expect(approved.review.approved).toBe(true);
-    expect(nextRound.approved).toBe(false);
+    expect(roundOutcome(revised.round)).toBeNull();
   });
 
-  test("must refuse when the user requests changes with no drafts", async () => {
+  test("must record no verdict when the user submits before the agent opened a review", async () => {
+    const { store } = await setUpLoadedTest();
+    await store.createDraftThread({ anchor: { kind: "review" }, body: "Why?" });
+
+    const submitted = await store.submit("revise");
+
+    expect(submitted.round).toBeNull();
+  });
+
+  test("must read a version 1 review file without a problem and write it back as version 2", async () => {
+    const { root, store } = setUpTest();
+    const reviewFilePath = path.join(root, ".markdown-review", "review.json");
+    await writeJson(reviewFilePath, {
+      approvedAt: "2026-10-08T08:30:00.000Z",
+      requestedAt: "2026-10-08T08:00:00.000Z",
+      threads: [],
+      version: 1,
+    });
+    await store.initialize();
+
+    const snapshot = await store.readThreads(null);
+    await store.openRound("docs/plan.md", null);
+
+    expect(snapshot.problems).toEqual([]);
+    expect(snapshot.round?.verdict).toEqual({ at: "2026-10-08T08:30:00.000Z", kind: "go-ahead" });
+    expect(JSON.parse(await readFile(reviewFilePath, "utf8"))).toMatchObject({ version: 2 });
+  });
+
+  test("must refuse when the user asks for revisions with no drafts", async () => {
     const { store } = await setUpLoadedTest();
 
-    await expect(store.submit("request-changes")).rejects.toMatchObject({ reason: "invalid-state" });
+    await expect(store.submit("revise")).rejects.toMatchObject({ reason: "invalid-state" });
   });
 
   test("must refuse a comment when its body is blank", async () => {
@@ -161,7 +205,7 @@ describe("ReviewStore", () => {
   test("must refuse a blank agent reply and keep the thread readable when the agent sends an empty reply", async () => {
     const { store } = await setUpLoadedTest();
     await store.createDraftThread({ anchor: { kind: "review" }, body: "Why?" });
-    await store.submit("request-changes");
+    await store.submit("revise");
 
     const reply = store.replyAsAgent(1, "");
 
@@ -202,7 +246,7 @@ describe("ReviewStore", () => {
   test("must report the moved lines and save the new hash when the doc was edited while nothing was reading it", async () => {
     const { readStoredDocumentFile, store, writeDocument } = await setUpLoadedTest();
     await store.createDraftThread(commentOn(plan, "three times"));
-    await store.submit("request-changes");
+    await store.submit("revise");
     const edited = `# Plan\n\nIntro.\n\n${plan.slice("# Plan\n\n".length)}`;
     await writeDocument("docs/plan.md", edited);
 
