@@ -88,12 +88,7 @@ test("must start a comment on a block when the user clicks the gutter beside it"
 });
 
 test("must start a comment quoting the rows the user drags over in the gutter", async ({ page, review }) => {
-  await review.writeDocument(
-    "docs/plan.md",
-    "# Plan\n\n| Setting | Value |\n| --- | --- |\n| ttl | 24h |\n| retries | 3 |\n| backoff | 2s |\n"
-  );
-  await review.open("docs/plan.md");
-  const rows = page.getByRole("article", { name: "docs/plan.md" }).getByRole("row");
+  const rows = await openTableDocument(page, review);
   const from = await pointInGutterBeside(page, rows.nth(1));
   const to = await pointInGutterBeside(page, rows.nth(3));
 
@@ -102,10 +97,9 @@ test("must start a comment quoting the rows the user drags over in the gutter", 
   await page.mouse.move(to.x, to.y, { steps: 5 });
   await page.mouse.up();
 
-  const quote = page.getByRole("region", { name: "New comment" }).getByRole("blockquote");
-  await expect(quote).toContainText("ttl");
-  await expect(quote).toContainText("backoff");
-  await expect(quote).not.toContainText("Setting");
+  await expect(newCommentQuote(page)).toContainText("ttl");
+  await expect(newCommentQuote(page)).toContainText("backoff");
+  await expect(newCommentQuote(page)).not.toContainText("Setting");
   await expect(page.getByRole("button", { exact: true, name: "Comment" })).toBeHidden();
 });
 
@@ -128,48 +122,32 @@ test("must scroll the doc column, and take in the blocks it brings into view, wh
   await expect.poll(() => column.evaluate((main) => main.scrollTop)).toBeGreaterThan(600);
   await page.mouse.up();
 
-  const quote = page.getByRole("region", { name: "New comment" }).getByRole("blockquote");
-  await expect(quote).toContainText("Paragraph 1.");
-  await expect(quote).toContainText("Paragraph 20.");
+  await expect(newCommentQuote(page)).toContainText("Paragraph 1.");
+  await expect(newCommentQuote(page)).toContainText("Paragraph 20.");
 });
 
 test("must start a comment quoting the whole table when the user clicks the bracket beside it", async ({
   page,
   review,
 }) => {
-  await review.writeDocument(
-    "docs/plan.md",
-    "# Plan\n\n| Setting | Value |\n| --- | --- |\n| ttl | 24h |\n| retries | 3 |\n\nAfter the table.\n"
-  );
-  await review.open("docs/plan.md");
-  const row = page.getByRole("article", { name: "docs/plan.md" }).getByRole("row").nth(1);
+  const rows = await openTableDocument(page, review);
   const lane = await boxOf(page.getByTestId("bracket-lane"));
-  const beside = await pointInGutterBeside(page, row);
+  const beside = await pointInGutterBeside(page, rows.nth(1));
 
   await page.mouse.move(lane.x + lane.width / 2, beside.y);
   await expect(page.getByTestId("block-target")).toContainText("Comment on the table");
   await page.mouse.down();
   await page.mouse.up();
 
-  const quote = page.getByRole("region", { name: "New comment" }).getByRole("blockquote");
-  await expect(quote).toContainText("Setting");
-  await expect(quote).toContainText("retries");
-  await expect(quote).not.toContainText("After the table.");
+  await expectWholeTableQuoted(page);
 });
 
 test("must start a comment quoting the whole table when the user ⌥-clicks the gutter beside a row", async ({
   page,
   review,
 }) => {
-  await review.writeDocument(
-    "docs/plan.md",
-    "# Plan\n\n| Setting | Value |\n| --- | --- |\n| ttl | 24h |\n| retries | 3 |\n\nAfter the table.\n"
-  );
-  await review.open("docs/plan.md");
-  const beside = await pointInGutterBeside(
-    page,
-    page.getByRole("article", { name: "docs/plan.md" }).getByRole("row").nth(1)
-  );
+  const rows = await openTableDocument(page, review);
+  const beside = await pointInGutterBeside(page, rows.nth(1));
 
   await page.mouse.move(beside.x, beside.y);
   await page.keyboard.down("Alt");
@@ -178,10 +156,7 @@ test("must start a comment quoting the whole table when the user ⌥-clicks the 
   await page.mouse.up();
   await page.keyboard.up("Alt");
 
-  const quote = page.getByRole("region", { name: "New comment" }).getByRole("blockquote");
-  await expect(quote).toContainText("Setting");
-  await expect(quote).toContainText("retries");
-  await expect(quote).not.toContainText("After the table.");
+  await expectWholeTableQuoted(page);
 });
 
 test("must put the + beside a list item when the user points beside the item's text", async ({ page, review }) => {
@@ -494,6 +469,33 @@ async function gutterBeside(page: Page, element: Locator): Promise<{ x: number; 
   const gutter = await boxOf(page.getByTestId("block-gutter"));
   const point = await pointInGutterBeside(page, element);
   return { x: point.x - gutter.x, y: point.y - gutter.y };
+}
+
+/**
+ * Opens a doc holding a heading, a table of three rows under a header row, and a paragraph
+ *
+ * @returns the table's rows, the header row first
+ */
+async function openTableDocument(page: Page, review: ReviewFixture): Promise<Locator> {
+  await review.writeDocument(
+    "docs/plan.md",
+    "# Plan\n\n| Setting | Value |\n| --- | --- |\n| ttl | 24h |\n| retries | 3 |\n| backoff | 2s |\n\nAfter the table.\n"
+  );
+  await review.open("docs/plan.md");
+  return page.getByRole("article", { name: "docs/plan.md" }).getByRole("row");
+}
+
+function newCommentQuote(page: Page): Locator {
+  return page.getByRole("region", { name: "New comment" }).getByRole("blockquote");
+}
+
+/**
+ * Expects the new comment to quote every row of the table `openTableDocument` opens, and nothing after it
+ */
+async function expectWholeTableQuoted(page: Page): Promise<void> {
+  await expect(newCommentQuote(page)).toContainText("Setting");
+  await expect(newCommentQuote(page)).toContainText("backoff");
+  await expect(newCommentQuote(page)).not.toContainText("After the table.");
 }
 
 /**
