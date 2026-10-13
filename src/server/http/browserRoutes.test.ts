@@ -65,7 +65,7 @@ describe("browserRoutes", () => {
 
     const response = await browser("POST", "/api/submit", { verdict: "revise" });
 
-    expect(await response.json()).toEqual({ round: null, submittedThreadIds: [1, 2] });
+    expect(await response.json()).toMatchObject({ round: { verdict: { kind: "revise" } }, submittedThreadIds: [1, 2] });
     expect(published).toContainEqual({ type: "submitted" });
   });
 

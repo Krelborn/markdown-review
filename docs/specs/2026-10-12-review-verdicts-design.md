@@ -29,7 +29,7 @@
 1. **Hand back.** The Submit popover offers **Revise**, **Go ahead** and **Hand back to agent**. Hand back sends the drafts in scope and ends a waiting `poll` at once. `poll` and `inbox` print a hand-back summary and a `next_step` telling the agent to stop: no edits, no answers to threads, no `poll`, and no carrying on with its task. It tells the user in the chat and waits.
 2. **Go ahead** behaves as Approve does now, under the new name and wording.
 3. **Scope.** A submit sends drafts on the whole review, drafts on docs the agent opened this round, and drafts written since the round began. Older drafts on other docs stay as drafts, and the popover lists them as not sent.
-4. **Resume.** After a hand-back, the agent runs `open` and then `poll` when the user asks to continue the review. Drafts the user wrote after handing back are sent with the next submit.
+4. **Resume.** After a hand-back, the agent runs `open` and then `poll` when the user asks to continue the review. Drafts the user wrote after handing back are sent with the next submit when the review resumes within 12 hours.
 5. **Forgotten rounds expire.** A round with no verdict, and no `open` or submit for 12 hours, is not joined by the next `open`, so it can't widen what later submits send.
 6. **Next task.** `open --next-task "<text>"` puts that text in the popover under Go ahead.
 7. **Badge.** The review bar shows "Going ahead" or "Handed back" while the round has that verdict.
@@ -52,7 +52,7 @@
 | What a submit sends | Drafts on the whole review, on a doc the agent opened this round, or written since the round began. With no round, every draft | Only the doc on screen; only opened docs; only recent drafts; a checkbox per doc | Chosen by the user. Opened docs alone would hold back comments on a linked doc. Recent drafts alone would hold back a resumed review's drafts |
 | Drafts a submit keeps | Listed in the popover under "Not sent" | An Include control; marks in the sidebar | Chosen by the user: listing them is enough |
 | Where the scope rule lives | `isDraftInRound` in `src/shared/review`, used by the store and the browser | The server sends the scope in each snapshot | One function, so the popover can't promise something the store doesn't do |
-| When a round starts | At the end of the previous round, if that ended less than 12 hours ago. Otherwise at the `open` | Always at the `open` | Drafts written after a hand-back, before the agent opens the doc again, belong to the resumed review |
+| When a round starts | At the hand-back, if the user handed the previous round back less than 12 hours ago. Otherwise at the `open` | Always at the `open`; also at the end of a round that went ahead | Drafts written after a hand-back, before the agent opens the doc again, belong to the resumed review. Drafts left on other docs while the agent carries on after Go ahead are not part of its next review |
 | Joining a round | `open` adds its doc to a round with no verdict that had an `open` or submit in the last 12 hours. Otherwise it starts a new round | Every `open` starts a round, as now; a flag to join | An agent opening a plan and its spec gets one round, and a forgotten `open` from yesterday is not joined |
 | What expiry affects | Only whether `open` joins. A submit always uses the stored round | Also treat an expired round as no round when submitting | Keeps the browser's rule free of the clock, and no submit changes meaning while the user is writing it |
 | Saying what Go ahead leads to | `open --next-task "<text>"`, one line of at most 200 characters, shown under Go ahead. Optional. Without it, a generic sentence | Required; per-verdict texts | Cheap, and it makes what Go ahead leads to visible. Optional, because an agent may have nothing more to do |
@@ -93,7 +93,7 @@
 `POST /api/agent/open` takes `{ path?, nextTask? }`. The store's `openRound(path, nextTask)` replaces `requestReview()`:
 
 - **Join** when the round has no ending verdict, and the later of `lastOpenedAt` and `verdict.at` is less than 12 hours ago. It adds `path` to `documents` if it is new, sets `lastOpenedAt` to now, and replaces `nextTask` when one is given.
-- **Start** otherwise, with `documents` holding `path` if given, `lastOpenedAt` now, `nextTask` as given or null, and `verdict` null. `startedAt` is the previous round's `verdict.at` when that round ended less than 12 hours ago, and now otherwise.
+- **Start** otherwise, with `documents` holding `path` if given, `lastOpenedAt` now, `nextTask` as given or null, and `verdict` null. `startedAt` is the previous round's `verdict.at` when the user handed that round back less than 12 hours ago, but never later than now, and now otherwise.
 
 The `open` output doesn't change.
 
@@ -102,7 +102,7 @@ The `open` output doesn't change.
 `POST /api/submit` takes `{ verdict: "revise" | "go-ahead" | "hand-back" }` and answers `{ round, submittedThreadIds }`.
 
 - A thread's draft is **in scope** when `isDraftInRound(thread, round)` holds. That is when there is no round, when the thread is on the whole review, when its doc is in `round.documents`, or when `draft.at` is at or after `round.startedAt`. Editing an old draft brings it into scope, because the edit moves `draft.at`.
-- The store submits every in-scope draft as today and leaves the rest as drafts. It sets `round.verdict` to `{ kind: verdict, at: now }`. With no round, it records nothing beyond the drafts.
+- The store submits every in-scope draft as today and leaves the rest as drafts. It sets `round.verdict` to `{ kind: verdict, at: now }`. With no round, it first starts one as an `open` of the docs list would, so Go ahead and Hand back end a waiting `poll` even when no review was opened.
 - `revise` with no in-scope draft fails with `invalid-state`, "There are no drafts to submit", as Request changes does today. `go-ahead` and `hand-back` are allowed with none.
 - `waitForInbox` returns at once when `roundOutcome(round)` isn't null or a thread needs the agent, so either ending verdict ends a waiting `poll`.
 
@@ -213,7 +213,7 @@ Three slices, each its own pull request, released together or in order. Slice 1 
 1. **Verdicts and Hand back:**
    - the round record with every field;
    - the version 1 upgrade;
-   - `openRound` with joining and expiry;
+   - `joinOrStartRound` with joining and expiry;
    - `round` in every response;
    - `nextTask` accepted by `POST /api/agent/open` and stored;
    - the three verdicts;
@@ -261,9 +261,9 @@ node dist/cli.js poll --timeout 600   # then choose Hand back to agent in the br
 | `src/shared/api/apiRequestSchemas.ts` | The three verdicts; `nextTask` on the open request |
 | `src/shared/api/apiResponseSchemas.ts` | `round` in place of `review` |
 | `src/shared/api/protocolVersion.ts` | 2 |
-| `src/server/store/openRound.ts` | Joins the round or starts the next one, from the round, the path, the next task and the time |
-| `src/server/store/upgradeReviewFile.ts` | Reads a version 1 `review.json` as version 2 |
-| `src/server/store/StoreFiles.ts` | `readReviewFile` accepts version 1 or 2 and upgrades |
+| `src/server/store/joinOrStartRound.ts` | Joins the round or starts the next one, from the round, the path, the next task and the time |
+| `src/server/store/storedReviewFileSchema.ts` | Reads `review.json` at version 1 or 2, upgrading version 1 |
+| `src/server/store/StoreFiles.ts` | `readReviewFile` reads through `storedReviewFileSchema` |
 | `src/server/store/ReviewStore.ts` | `openRound` in place of `requestReview`; `submit` sends the in-scope drafts and records the verdict |
 | `src/server/store/toReviewState.ts`, `emptyReviewFile.ts` | `toReviewState` is deleted; the empty file has a null `round` |
 | `src/server/http/agentRoutes.ts`, `browserRoutes.ts`, `waitForInbox.ts` | Pass `nextTask`; answer `round`; end a poll on either ending verdict |
@@ -347,16 +347,18 @@ export function isDraftInRound(thread: Thread, round: ReviewRound | null): boole
 - **Unit (`node` project):**
   - `isDraftInRound`: no draft; no round; a whole-review draft; an opened doc's draft from before the round; another doc's draft from before and from after the round began; an old draft edited since.
   - `roundOutcome`: null round, no verdict, each verdict.
-  - `openRound`:
+  - `joinOrStartRound`:
     - joins a round going on, and adds a new doc only once;
     - keeps `nextTask` when none is given and replaces it when one is;
     - starts a new round after Go ahead and after Hand back;
     - starts a new round when the last `open` and submit are 12 hours old, and joins at just under 12 hours;
-    - starts a new round at the previous round's end when that was within 12 hours, and at the `open` otherwise.
-  - `upgradeReviewFile`: never requested, approved after the request, approved before it, requested without approval.
+    - starts a new round at the hand-back when that was within 12 hours, and at the `open` after Go ahead or otherwise;
+    - leaves a new round without a next task when none is given.
+  - `storedReviewFileSchema`: never requested, approved after the request, approved before it, approved as it was requested, requested without approval.
   - `ReviewStore`:
     - Hand back ends the round until the next `open`;
     - Revise after Hand back starts the round going again;
+    - Go ahead or Hand back with no round starts one that ended with that verdict;
     - submit leaves out-of-scope drafts as drafts and returns only the submitted IDs;
     - Revise with only out-of-scope drafts fails;
     - a version 1 file reads without a problem and is written as version 2.

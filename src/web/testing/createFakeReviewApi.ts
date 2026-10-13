@@ -126,7 +126,10 @@ export function createFakeReviewApi({
               updatedAt: at,
             }
       );
-      snapshot.round = snapshot.round === null ? null : { ...snapshot.round, verdict: { at, kind: verdict } };
+      snapshot.round = {
+        ...(snapshot.round ?? { documents: [], lastOpenedAt: at, nextTask: null, startedAt: at }),
+        verdict: { at, kind: verdict },
+      };
       emit({ type: "threads-changed" });
       return Promise.resolve();
     },

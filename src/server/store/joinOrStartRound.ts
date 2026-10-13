@@ -8,12 +8,13 @@ const roundExpiryMilliseconds = 12 * 60 * 60 * 1000;
  *
  * @param round the current round, or null before any review was opened
  * @param path the doc the agent opened, or null for the docs list
- * @param nextTask what the agent will do once the user says go ahead, or null to keep what the round has
+ * @param nextTask what the agent will do once the user says go ahead; null keeps a joined round's task and leaves a
+ *   new round without one
  * @param at the current time, ISO 8601
  * @returns the round joined when it has not ended and had an open or a submit in the last 12 hours, otherwise a new
- *   round, which starts when the previous one ended if that was in the last 12 hours
+ *   round, which starts when the user handed the previous one back if that was in the last 12 hours
  */
-export function openRound(
+export function joinOrStartRound(
   round: ReviewRound | null,
   path: string | null,
   nextTask: string | null,
@@ -27,18 +28,27 @@ export function openRound(
       nextTask: nextTask ?? round.nextTask,
     };
   }
-  const previousEnd = round !== null && roundOutcome(round) !== null ? (round.verdict?.at ?? null) : null;
   return {
     documents: path === null ? [] : [path],
     lastOpenedAt: at,
     nextTask,
-    startedAt: previousEnd !== null && isRecent(previousEnd, at) ? previousEnd : at,
+    startedAt: recentHandBack(round, at) ?? at,
     verdict: null,
   };
 }
 
 function lastActivity({ lastOpenedAt, verdict }: ReviewRound): string {
   return verdict !== null && Date.parse(verdict.at) > Date.parse(lastOpenedAt) ? verdict.at : lastOpenedAt;
+}
+
+/**
+ * @returns when the user handed the round back, no later than `at`, or null when they did not or it was 12 hours ago
+ */
+function recentHandBack(round: ReviewRound | null, at: string): string | null {
+  if (round?.verdict?.kind !== "hand-back" || !isRecent(round.verdict.at, at)) {
+    return null;
+  }
+  return Date.parse(round.verdict.at) < Date.parse(at) ? round.verdict.at : at;
 }
 
 function isRecent(earlier: string, at: string): boolean {

@@ -160,16 +160,25 @@ describe("ReviewStore", () => {
     expect(roundOutcome(revised.round)).toBeNull();
   });
 
-  test("must record no verdict when the user submits before the agent opened a review", async () => {
-    const { store } = await setUpLoadedTest();
-    await store.createDraftThread({ anchor: { kind: "review" }, body: "Why?" });
+  test.each([{ verdict: "go-ahead" as const }, { verdict: "hand-back" as const }])(
+    "must start a round that ended with $verdict when the user chooses it before the agent opened a review",
+    async ({ verdict }) => {
+      const { store } = await setUpLoadedTest();
 
-    const submitted = await store.submit("revise");
+      const submitted = await store.submit(verdict);
 
-    expect(submitted.round).toBeNull();
-  });
+      expect(submitted.round).toEqual({
+        documents: [],
+        lastOpenedAt: "2026-10-08T09:00:00.000Z",
+        nextTask: null,
+        startedAt: "2026-10-08T09:00:00.000Z",
+        verdict: { at: "2026-10-08T09:00:00.000Z", kind: verdict },
+      });
+      expect(roundOutcome((await store.readInbox(null)).round)).toBe(verdict);
+    }
+  );
 
-  test("must read a version 1 review file without a problem and write it back as version 2", async () => {
+  test("must read a version 1 review file without a problem and write it back as version 2 when the agent opens a doc", async () => {
     const { root, store } = setUpTest();
     const reviewFilePath = path.join(root, ".markdown-review", "review.json");
     await writeJson(reviewFilePath, {

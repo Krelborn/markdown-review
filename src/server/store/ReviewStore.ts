@@ -15,9 +15,9 @@ import type { Logger } from "../logging/Logger";
 
 import { emptyReviewFile } from "./emptyReviewFile";
 import { hashSource } from "./hashSource";
+import { joinOrStartRound } from "./joinOrStartRound";
 import { needsAgent } from "./needsAgent";
 import { OperationQueue } from "./OperationQueue";
-import { openRound } from "./openRound";
 import { parseStoreInput } from "./parseStoreInput";
 import { renumberDuplicateThreads } from "./renumberDuplicateThreads";
 import { StoreError } from "./StoreError";
@@ -36,9 +36,9 @@ import {
 
 export interface SubmitResult {
   /**
-   * The review round after the submit, or null when no review was opened
+   * The review round after the submit, which records the verdict
    */
-  round: ReviewRound | null;
+  round: ReviewRound;
 
   submittedThreadIds: number[];
 }
@@ -77,13 +77,14 @@ export class ReviewStore {
    * Adds a doc to the review round going on, or starts the next round
    *
    * @param path the doc the agent opened, or null for the docs list
-   * @param nextTask what the agent will do once the user says go ahead, or null to keep what the round has
+   * @param nextTask what the agent will do once the user says go ahead; null keeps a joined round's task and leaves a
+   *   new round without one
    * @returns the round the doc is now in
    */
   public openRound(path: string | null, nextTask: string | null): Promise<ReviewRound> {
     return this.queue.enqueue(async () => {
       const review = requireValid(await this.files.readReviewFile());
-      const round = openRound(review.round, path, nextTask, new Date().toISOString());
+      const round = joinOrStartRound(review.round, path, nextTask, new Date().toISOString());
       await this.files.writeReviewFile({ ...review, round });
       return round;
     });
@@ -147,7 +148,8 @@ export class ReviewStore {
   }
 
   /**
-   * Submits every draft in the repo and records the user's verdict on the review round
+   * Submits every draft in the repo and records the user's verdict on the review round, starting one when no review
+   * was opened
    *
    * @param verdict "go-ahead" and "hand-back" end the round; "revise" needs at least one draft
    * @returns the IDs of the threads that received a submitted message, and the round after the submit
@@ -168,13 +170,13 @@ export class ReviewStore {
       for (const file of documentFiles) {
         await this.files.writeDocumentFile({ ...file, threads: file.threads.map((thread) => submitDraft(thread, at)) });
       }
-      const next: ReviewFile = {
+      const round = { ...(review.round ?? joinOrStartRound(null, null, null, at)), verdict: { at, kind: verdict } };
+      await this.files.writeReviewFile({
         ...review,
-        round: review.round === null ? null : { ...review.round, verdict: { at, kind: verdict } },
+        round,
         threads: review.threads.map((thread) => submitDraft(thread, at)),
-      };
-      await this.files.writeReviewFile(next);
-      return { round: next.round, submittedThreadIds };
+      });
+      return { round, submittedThreadIds };
     });
   }
 
