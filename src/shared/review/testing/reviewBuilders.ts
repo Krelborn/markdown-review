@@ -1,4 +1,5 @@
 import type { PassageAnchor } from "../anchorSchema";
+import type { ReviewRound } from "../reviewRoundSchema";
 import type { Thread } from "../threadSchema";
 
 export const testTime = "2026-10-08T09:00:00.000Z";
@@ -16,6 +17,17 @@ export function buildPassageAnchor(overrides: Partial<PassageAnchor> = {}): Pass
     startLine: 3,
     startOffset: 5,
     suffix: "",
+    ...overrides,
+  };
+}
+
+export function buildRound(overrides: Partial<ReviewRound> = {}): ReviewRound {
+  return {
+    documents: ["docs/plan.md"],
+    lastOpenedAt: testTime,
+    nextTask: null,
+    startedAt: testTime,
+    verdict: null,
     ...overrides,
   };
 }
