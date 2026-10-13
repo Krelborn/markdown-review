@@ -36,7 +36,8 @@ const spec = "# Spec\n\n## Goals\n\nResults are cached.\n";
 
 export interface ReviewFixture {
   /**
-   * Runs the agent's `open` for the doc, shows the page it prints in the browser and waits until the doc has rendered
+   * Runs the agent's `open` for the doc, shows the page it prints in the browser unless the server showed it in the tab
+   * that was already open, and waits until the doc has rendered
    *
    * @param env variables to set in the CLI's environment, which the server it starts inherits
    */
@@ -64,7 +65,10 @@ export const test = base.extend<{ review: ReviewFixture }>({
     await runTest({
       open: async (document, env) => {
         const { stdout } = await startCli(root, ["open", document], "", env).result;
-        await page.goto(stdout.slice(stdout.indexOf("http"), stdout.indexOf("\n")));
+        // Navigating again makes WebKit refuse the fetches the tab is making for the agent's open, and log them as errors
+        if (!stdout.includes("Shown in the browser tab that was already open.")) {
+          await page.goto(stdout.slice(stdout.indexOf("http"), stdout.indexOf("\n")));
+        }
         await expect(
           page.getByRole("banner").getByRole("heading", { level: 1, name: path.posix.basename(document) })
         ).toBeVisible();
