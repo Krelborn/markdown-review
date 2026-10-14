@@ -7,7 +7,7 @@ const edgeZone = 48;
 /**
  * The most a drag scrolls the doc in one frame
  */
-const maxStep = 20;
+const maximumStep = 20;
 
 /**
  * Finds how far to scroll the doc in a frame while the user drags near the top or bottom of the box it scrolls in
@@ -27,5 +27,5 @@ export function autoScrollStep(pointerY: number, { bottom, top }: Pick<DOMRect, 
 }
 
 function stepFor(depth: number): number {
-  return Math.ceil(maxStep * Math.min(depth / edgeZone, 1));
+  return Math.ceil(maximumStep * Math.min(depth / edgeZone, 1));
 }

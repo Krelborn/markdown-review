@@ -21,9 +21,18 @@ const containerCloseTypes = new Set([
 ]);
 
 interface OpenContainer {
+  /**
+   * The first leaf block after the container's opening token
+   */
+  firstBlock: number;
+
   kind: "alert" | "list" | "quote" | "table";
   token: Token;
-  tokenIndex: number;
+}
+
+interface OpenSection {
+  firstBlock: number;
+  rank: number;
 }
 
 /**
@@ -42,21 +51,36 @@ export function findStructures(tokens: readonly Token[], leafBlocks: readonly Le
 }
 
 function findContainers(tokens: readonly Token[], leafBlocks: readonly LeafBlock[]): DocumentStructure[] {
+  const blocksBefore = countBlocksBefore(tokens.length, leafBlocks);
   const open: OpenContainer[] = [];
   const containers: DocumentStructure[] = [];
   tokens.forEach((token, tokenIndex) => {
     const kind = containerKinds[token.type];
     if (kind !== undefined) {
-      open.push({ kind, token, tokenIndex });
+      open.push({ firstBlock: blocksBefore[tokenIndex + 1] ?? 0, kind, token });
       return;
     }
     const opening = containerCloseTypes.has(token.type) ? open.pop() : undefined;
-    const span = opening === undefined ? null : blocksBetween(leafBlocks, opening.tokenIndex, tokenIndex);
-    if (opening !== undefined && span !== null) {
-      containers.push(toContainer(opening, span));
+    const lastBlock = (blocksBefore[tokenIndex] ?? 0) - 1;
+    if (opening !== undefined && lastBlock >= opening.firstBlock) {
+      containers.push(toContainer(opening, { firstBlock: opening.firstBlock, lastBlock }));
     }
   });
   return containers;
+}
+
+/**
+ * @returns for each token index from 0 to the number of tokens, how many leaf blocks open on a token before it
+ */
+function countBlocksBefore(tokenCount: number, leafBlocks: readonly LeafBlock[]): number[] {
+  const counts = Array.from({ length: tokenCount + 1 }, () => 0);
+  for (const { tokenIndex } of leafBlocks) {
+    counts[tokenIndex + 1] = (counts[tokenIndex + 1] ?? 0) + 1;
+  }
+  for (let i = 1; i < counts.length; i += 1) {
+    counts[i] = (counts[i] ?? 0) + (counts[i - 1] ?? 0);
+  }
+  return counts;
 }
 
 function toContainer({ kind, token }: OpenContainer, span: BlockSpan): DocumentStructure {
@@ -66,20 +90,26 @@ function toContainer({ kind, token }: OpenContainer, span: BlockSpan): DocumentS
 }
 
 function findSections(leafBlocks: readonly LeafBlock[]): DocumentStructure[] {
-  const headings = leafBlocks.flatMap(({ token }, index) =>
-    token.type === "heading_open" && token.level === 0 ? [{ index, rank: Number(token.tag.slice(1)) }] : []
-  );
-  return headings.map(({ index, rank }, position) => {
-    const next = headings.slice(position + 1).find((heading) => heading.rank <= rank);
-    return { depth: 0, firstBlock: index, kind: "section", lastBlock: (next?.index ?? leafBlocks.length) - 1 };
+  const open: OpenSection[] = [];
+  const sections: DocumentStructure[] = [];
+  const close = (lastBlock: number): void => {
+    const section = open.pop();
+    if (section !== undefined) {
+      sections.push({ depth: 0, firstBlock: section.firstBlock, kind: "section", lastBlock });
+    }
+  };
+  leafBlocks.forEach(({ token }, index) => {
+    if (token.type !== "heading_open" || token.level !== 0) {
+      return;
+    }
+    const rank = Number(token.tag.slice(1));
+    while ((open.at(-1)?.rank ?? 0) >= rank) {
+      close(index - 1);
+    }
+    open.push({ firstBlock: index, rank });
   });
-}
-
-/**
- * @returns the leaf blocks whose tokens lie between two tokens, or null when none do
- */
-function blocksBetween(leafBlocks: readonly LeafBlock[], openIndex: number, closeIndex: number): BlockSpan | null {
-  const firstBlock = leafBlocks.findIndex(({ tokenIndex }) => tokenIndex > openIndex);
-  const lastBlock = leafBlocks.findLastIndex(({ tokenIndex }) => tokenIndex < closeIndex);
-  return firstBlock === -1 || lastBlock < firstBlock ? null : { firstBlock, lastBlock };
+  while (open.length > 0) {
+    close(leafBlocks.length - 1);
+  }
+  return sections;
 }
