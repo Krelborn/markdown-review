@@ -1,0 +1,48 @@
+name: Publish the site
+
+# publish.yml calls it once a release is staged on npm, so the site describes the version on npm
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      # Install @krelborn/stylesui from GitHub Packages
+      packages: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      # .npmrc reads it to install @krelborn/stylesui, whose stylesheet site/stylesui.css links to
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      # No cache, as in publish.yml: the site serves StylesUI's stylesheet from the install
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - uses: actions/configure-pages@v6
+
+      # The upload follows the symbolic links in site/ to the screenshots and StylesUI's stylesheet
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v5

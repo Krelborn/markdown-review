@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en" data-sui-palette="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Markdown Review: review your agent's docs like a pull request</title>
+    <meta
+      name="description"
+      content="Review the plans, specs and design notes your coding agent writes in your browser, then hand your comments back so it can edit the docs and answer each one. Works with Claude Code, Codex, OpenCode and any agent with a shell."
+    />
+    <link rel="canonical" href="https://krelborn.github.io/markdown-review/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Markdown Review" />
+    <meta
+      property="og:description"
+      content="Review your agent's plans and specs in the browser, the way you review a pull request, then hand the comments back."
+    />
+    <meta property="og:url" content="https://krelborn.github.io/markdown-review/" />
+    <meta property="og:image" content="https://krelborn.github.io/markdown-review/images/review-light.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="images/icon.svg" />
+    <link rel="stylesheet" href="stylesui.css" />
+    <link rel="stylesheet" href="site.css" />
+    <script>
+      {
+        const mode = localStorage.getItem("markdown-review-mode");
+        if (mode === "light" || mode === "dark") {
+          document.documentElement.dataset.suiMode = mode;
+        }
+      }
+    </script>
+    <script src="site.js" defer></script>
+  </head>
+  <body class="landing">
+    <svg class="sprite" aria-hidden="true">
+      <symbol id="icon-arrow-right" viewBox="0 0 24 24">
+        <path d="M5 12h14" />
+        <path d="m12 5 7 7-7 7" />
+      </symbol>
+      <symbol id="icon-bot" viewBox="0 0 24 24">
+        <path d="M12 8V4H8" />
+        <rect width="16" height="12" x="4" y="8" rx="2" />
+        <path d="M2 14h2" />
+        <path d="M20 14h2" />
+        <path d="M15 13v2" />
+        <path d="M9 13v2" />
+      </symbol>
+      <symbol id="icon-brackets" viewBox="0 0 24 24">
+        <path d="M16 3h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-3" />
+        <path d="M8 21H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h3" />
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol>
+      <symbol id="icon-copy" viewBox="0 0 24 24">
+        <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+      </symbol>
+      <symbol id="icon-files" viewBox="0 0 24 24">
+        <path d="M15 2h-4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8" />
+        <path d="M16.706 2.706A2.4 2.4 0 0 0 15 2v5a1 1 0 0 0 1 1h5a2.4 2.4 0 0 0-.706-1.706z" />
+        <path d="M5 7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 1.732-1" />
+      </symbol>
+      <symbol id="icon-github" viewBox="0 0 16 16">
+        <path
+          fill="currentColor"
+          stroke="none"
+          d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"
+        />
+      </symbol>
+      <symbol id="icon-link" viewBox="0 0 24 24">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </symbol>
+      <symbol id="icon-list-checks" viewBox="0 0 24 24">
+        <path d="M13 5h8" />
+        <path d="M13 12h8" />
+        <path d="M13 19h8" />
+        <path d="m3 17 2 2 4-4" />
+        <path d="m3 7 2 2 4-4" />
+      </symbol>
+      <symbol id="icon-message-square-text" viewBox="0 0 24 24">
+        <path
+          d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"
+        />
+        <path d="M7 11h10" />
+        <path d="M7 15h6" />
+        <path d="M7 7h8" />
+      </symbol>
+      <symbol id="icon-messages-square" viewBox="0 0 24 24">
+        <path
+          d="M16 10a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 14.286V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
+        />
+        <path
+          d="M20 9a2 2 0 0 1 2 2v10.286a.71.71 0 0 1-1.212.502l-2.202-2.202A2 2 0 0 0 17.172 19H10a2 2 0 0 1-2-2v-1"
+        />
+      </symbol>
+      <symbol id="icon-moon" viewBox="0 0 24 24">
+        <path
+          d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"
+        />
+      </symbol>
+      <symbol id="icon-repeat" viewBox="0 0 24 24">
+        <path d="m17 2 4 4-4 4" />
+        <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+        <path d="m7 22-4-4 4-4" />
+        <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+      </symbol>
+      <symbol id="icon-send" viewBox="0 0 24 24">
+        <path
+          d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"
+        />
+        <path d="m21.854 2.147-10.94 10.939" />
+      </symbol>
+      <symbol id="icon-square-plus" viewBox="0 0 24 24">
+        <rect width="18" height="18" x="3" y="3" rx="2" />
+        <path d="M8 12h8" />
+        <path d="M12 8v8" />
+      </symbol>
+      <symbol id="icon-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2" />
+        <path d="M12 20v2" />
+        <path d="m4.93 4.93 1.41 1.41" />
+        <path d="m17.66 17.66 1.41 1.41" />
+        <path d="M2 12h2" />
+        <path d="M20 12h2" />
+        <path d="m6.34 17.66-1.41 1.41" />
+        <path d="m19.07 4.93-1.41 1.41" />
+      </symbol>
+      <symbol id="icon-text-select" viewBox="0 0 24 24">
+        <path d="M14 21h1" />
+        <path d="M14 3h1" />
+        <path d="M19 3a2 2 0 0 1 2 2" />
+        <path d="M21 14v1" />
+        <path d="M21 19a2 2 0 0 1-2 2" />
+        <path d="M21 9v1" />
+        <path d="M3 14v1" />
+        <path d="M3 9v1" />
+        <path d="M5 21a2 2 0 0 1-2-2" />
+        <path d="M5 3a2 2 0 0 0-2 2" />
+        <path d="M7 12h10" />
+        <path d="M7 16h6" />
+        <path d="M7 8h8" />
+        <path d="M9 21h1" />
+        <path d="M9 3h1" />
+      </symbol>
+    </svg>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="top-bar">
+      <div class="wrap">
+        <a class="brand" href="index.html">
+          <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="bubble"
+              d="M5 2.5h14a3 3 0 0 1 3 3V15a3 3 0 0 1-3 3h-8.25L6.5 21.5V18H5a3 3 0 0 1-3-3V5.5a3 3 0 0 1 3-3Z"
+            />
+            <path class="mark" d="M5.75 13.5v-7l2.75 3.25 2.75-3.25v7M16.25 6.5v7M13.75 11l2.5 2.5 2.5-2.5" />
+          </svg>
+          Markdown Review
+        </a>
+        <nav class="nav" aria-label="Site">
+          <a href="#comment">Features</a>
+          <a href="#install">Install</a>
+          <a href="docs.html" data-keep>Docs</a>
+        </nav>
+        <a
+          class="button"
+          data-variant="ghost"
+          data-icon-only
+          href="https://github.com/Krelborn/markdown-review"
+          aria-label="Markdown Review on GitHub"
+        >
+          <svg class="icon" aria-hidden="true"><use href="#icon-github" /></svg>
+        </a>
+        <button
+          class="button"
+          data-variant="ghost"
+          data-icon-only
+          type="button"
+          data-mode-toggle
+          aria-label="Switch between light and dark"
+        >
+          <svg class="icon when-light" aria-hidden="true"><use href="#icon-moon" /></svg>
+          <svg class="icon when-dark" aria-hidden="true"><use href="#icon-sun" /></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="wrap">
+          <div class="hero-text">
+            <p class="eyebrow">For Claude Code, Codex, OpenCode and any agent with a shell</p>
+            <h1>Your agent writes the plan. <em>You review it.</em></h1>
+            <p class="lead">
+              Markdown Review opens the plans, specs and design notes your coding agent writes in your browser, the way
+              you would review a pull request. Comment, submit, and the agent edits the docs and answers every comment.
+            </p>
+            <div class="command">
+              <code><span class="prompt">$ </span>npm install --global @krelborn/markdown-review</code>
+              <button
+                class="copy"
+                type="button"
+                data-copy="npm install --global @krelborn/markdown-review"
+                aria-label="Copy"
+              >
+                <svg class="icon idle" aria-hidden="true"><use href="#icon-copy" /></svg>
+                <svg class="icon done" aria-hidden="true"><use href="#icon-check" /></svg>
+              </button>
+            </div>
+            <div class="actions">
+              <a class="button" data-size="lg" href="#install">Get started</a>
+              <a class="button" data-size="lg" data-variant="outline-secondary" href="docs.html">Read the docs</a>
+            </div>
+          </div>
+
+          <div class="stage">
+            <div class="window">
+              <div class="window-bar" aria-hidden="true">
+                <div class="window-dots"><span></span><span></span><span></span></div>
+                <div class="window-address">127.0.0.1:52817/document/docs/plans/rate-limiting.md</div>
+              </div>
+              <img
+                class="when-light"
+                src="images/review-light.png"
+                width="1400"
+                height="860"
+                alt="A plan open in Markdown Review. The doc is on the left with two passages highlighted, and the comments column on the right holds a draft, an open thread in which the agent asks a question, and resolved threads."
+              />
+              <img
+                class="when-dark"
+                src="images/review-dark.png"
+                width="1400"
+                height="860"
+                alt="A plan open in Markdown Review. The doc is on the left with two passages highlighted, and the comments column on the right holds a draft, an open thread in which the agent asks a question, and resolved threads."
+                loading="lazy"
+              />
+            </div>
+            <div class="terminal" data-sui-mode="dark" aria-hidden="true">
+              <div class="window-bar">
+                <div class="window-dots"><span></span><span></span><span></span></div>
+                <div class="window-title">agent</div>
+              </div>
+              <pre><span class="prompt">$</span> markdown-review open docs/plans/rate-limiting.md
+<span class="output">Opened docs/plans/rate-limiting.md for review: http://127.0.0.1:52817/document/docs/plans/rate-limiting.md
+Opened in the user's browser.</span>
+
+<span class="prompt">$</span> markdown-review poll
+<span class="output">3 threads need you (docs/plans/rate-limiting.md: 3)</span>
+
+<span class="key">#1</span> docs/plans/rate-limiting.md:15
+  quote: <span class="quote">"stored in Redis so that every instance of the API…"</span>
+  user: What happens when Redis is down?</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="loop" aria-label="The review loop">
+        <div class="wrap">
+          <ol>
+            <li>
+              <svg class="icon" aria-hidden="true"><use href="#icon-bot" /></svg>Your agent writes a doc and opens it
+            </li>
+            <li class="arrow" aria-hidden="true">
+              <svg class="icon"><use href="#icon-arrow-right" /></svg>
+            </li>
+            <li>
+              <svg class="icon" aria-hidden="true"><use href="#icon-text-select" /></svg>You comment and submit
+            </li>
+            <li class="arrow" aria-hidden="true">
+              <svg class="icon"><use href="#icon-arrow-right" /></svg>
+            </li>
+            <li>
+              <svg class="icon" aria-hidden="true"><use href="#icon-repeat" /></svg>It edits the doc and answers
+            </li>
+            <li class="arrow" aria-hidden="true">
+              <svg class="icon"><use href="#icon-arrow-right" /></svg>
+            </li>
+            <li>
+              <svg class="icon" aria-hidden="true"><use href="#icon-send" /></svg>You say go ahead
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <div class="wrap">
+        <section id="comment" class="row" aria-labelledby="comment-heading">
+          <div>
+            <p class="eyebrow">Comment on anything</p>
+            <h2 id="comment-heading">Point at exactly what needs to change</h2>
+            <p>Comments hold on to the words you chose, and follow them when the agent edits the doc.</p>
+            <ul class="points">
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#icon-text-select" /></svg><strong>A passage</strong
+                ><span>Select text, even across paragraphs, and click Comment.</span>
+              </li>
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#icon-square-plus" /></svg
+                ><strong>A block, or several</strong
+                ><span>Click the + in the margin, or drag down it, for code, diagrams and HTML.</span>
+              </li>
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#icon-brackets" /></svg
+                ><strong>A table, list or section</strong
+                ><span>Click the bracket at the margin's far left, or <kbd>⌥</kbd>-click the margin.</span>
+              </li>
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#icon-message-square-text" /></svg
+                ><strong>The whole doc, or the whole review</strong
+                ><span>From + Comment at the top of the comments.</span>
+              </li>
+            </ul>
+          </div>
+          <div class="backdrop">
+            <div class="window">
+              <img
+                class="when-light"
+                src="images/blocks-light.png"
+                width="861"
+                height="348"
+                alt="A paragraph and a table, with a frame round the table labelled Comment on the table, drawn from the bracket in the margin."
+                loading="lazy"
+              />
+              <img
+                class="when-dark"
+                src="images/blocks-dark.png"
+                width="861"
+                height="348"
+                alt="A paragraph and a table, with a frame round the table labelled Comment on the table, drawn from the bracket in the margin."
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section id="threads" class="row" data-flip aria-labelledby="threads-heading">
+          <div>
+            <p class="eyebrow">Threads</p>
+            <h2 id="threads-heading">Every comment gets an answer</h2>
+            <p>
+              The agent resolves each thread, saying what it changed, or replies with a question. The page shows it at
+              once, and re-renders the doc in place.
+            </p>
+            <div class="terminal" data-sui-mode="dark">
+              <pre><span class="prompt">$</span> markdown-review resolve 1 "Added a Failure modes section: the limiter fails open."
+<span class="prompt">$</span> markdown-review reply 2 "Should a single API key be able to override its plan's limits too?"
+<span class="prompt">$</span> markdown-review poll</pre>
+            </div>
+            <ul class="points">
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#icon-list-checks" /></svg
+                ><strong>Drafts, Open, Outdated and Resolved</strong
+                ><span>Grouped the way you would expect from a pull request.</span>
+              </li>
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#icon-messages-square" /></svg
+                ><strong>Reply to reopen</strong
+                ><span>Resolved threads stay folded until the agent answers in them.</span>
+              </li>
+            </ul>
+          </div>
+          <div class="backdrop">
+            <div class="window" data-narrow data-crop>
+              <img
+                class="when-light"
+                src="images/threads-light.png"
+                width="384"
+                height="812"
+                alt="The comments column: a draft, an open thread in which the agent asks a question, and a resolved thread."
+                loading="lazy"
+              />
+              <img
+                class="when-dark"
+                src="images/threads-dark.png"
+                width="384"
+                height="812"
+                alt="The comments column: a draft, an open thread in which the agent asks a question, and a resolved thread."
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section id="submit" class="row" aria-labelledby="submit-heading">
+          <div>
+            <p class="eyebrow">Submit</p>
+            <h2 id="submit-heading">Hand it back with a verdict</h2>
+            <p>Comments are drafts until you submit them, and every submit says what the agent does next.</p>
+            <ul class="points">
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#icon-repeat" /></svg><strong>Revise</strong
+                ><span>The agent revises the docs, answers each comment, and waits for you again.</span>
+              </li>
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#icon-arrow-right" /></svg><strong>Go ahead</strong
+                ><span>The review ends. The agent addresses any drafts, then carries on with its next task.</span>
+              </li>
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#icon-bot" /></svg><strong>Hand back to agent</strong
+                ><span>The review ends, and the agent stops and waits for you in the chat.</span>
+              </li>
+            </ul>
+          </div>
+          <div class="backdrop">
+            <div class="window" data-narrow>
+              <img
+                class="when-light"
+                src="images/submit-light.png"
+                width="384"
+                height="581"
+                alt="The Submit review popover for one draft, offering Revise, Go ahead with the agent's next task, or Hand back to agent."
+                loading="lazy"
+              />
+              <img
+                class="when-dark"
+                src="images/submit-dark.png"
+                width="384"
+                height="581"
+                alt="The Submit review popover for one draft, offering Revise, Go ahead with the agent's next task, or Hand back to agent."
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section id="documents" class="row" data-flip aria-labelledby="documents-heading">
+          <div>
+            <p class="eyebrow">Many docs</p>
+            <h2 id="documents-heading">Review a set of docs together</h2>
+            <p>
+              A plan rarely comes alone. The agent can add every doc it wrote to the same review, and you submit them in
+              one go.
+            </p>
+            <ul class="points">
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#icon-files" /></svg
+                ><strong>This doc and All docs</strong><span>Switch between one doc's comments and every doc's.</span>
+              </li>
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#icon-link" /></svg
+                ><strong>Links stay in the app</strong
+                ><span>A link to another markdown doc in the repository opens it for review.</span>
+              </li>
+            </ul>
+          </div>
+          <div class="backdrop">
+            <div class="window" data-narrow data-crop>
+              <img
+                class="when-light"
+                src="images/documents-light.png"
+                width="384"
+                height="812"
+                alt="The comments column on the All docs tab, with drafts on two docs, each under its doc's path."
+                loading="lazy"
+              />
+              <img
+                class="when-dark"
+                src="images/documents-dark.png"
+                width="384"
+                height="812"
+                alt="The comments column on the All docs tab, with drafts on two docs, each under its doc's path."
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section id="rendering" class="row" aria-labelledby="rendering-heading">
+          <div>
+            <p class="eyebrow">Rendering</p>
+            <h2 id="rendering-heading">Reads like GitHub</h2>
+            <p>
+              Tables, task lists, alerts, syntax-highlighted code and Mermaid diagrams, with the frontmatter in a
+              Properties panel. Light or dark, in four palettes.
+            </p>
+          </div>
+          <div class="backdrop">
+            <div class="window" data-crop style="--crop-height: 36rem">
+              <img
+                class="when-light"
+                src="images/rendering-light.png"
+                width="773"
+                height="1212"
+                alt="A doc rendered with a Properties panel, a note, a table, a sequence diagram and a task list."
+                loading="lazy"
+              />
+              <img
+                class="when-dark"
+                src="images/rendering-dark.png"
+                width="773"
+                height="1212"
+                alt="A doc rendered with a Properties panel, a note, a table, a sequence diagram and a task list."
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section id="install" class="install" data-sui-mode="dark" aria-labelledby="install-heading">
+        <div class="wrap">
+          <div>
+            <p class="eyebrow">Get started</p>
+            <h2 id="install-heading">Set up in a minute</h2>
+            <p class="lead">
+              Markdown Review runs on your machine: a CLI that starts a small server for each repository and serves the
+              app on 127.0.0.1. No MCP server, plugin or account.
+            </p>
+            <p>
+              Needs Node.js 22.22.2 or later, 24.15 or later, or 26 and later, on macOS or Linux.
+              <a href="docs.html#requirements">More in the docs</a>.
+            </p>
+          </div>
+          <ol>
+            <li>
+              <strong>1. Install the CLI</strong>
+              <div class="command">
+                <code>npm install --global @krelborn/markdown-review</code>
+                <button
+                  class="copy"
+                  type="button"
+                  data-copy="npm install --global @krelborn/markdown-review"
+                  aria-label="Copy"
+                >
+                  <svg class="icon idle" aria-hidden="true"><use href="#icon-copy" /></svg>
+                  <svg class="icon done" aria-hidden="true"><use href="#icon-check" /></svg>
+                </button>
+              </div>
+            </li>
+            <li>
+              <strong>2. Teach your agent the review loop</strong>
+              <div class="command">
+                <code>markdown-review install-skill --global</code>
+                <button class="copy" type="button" data-copy="markdown-review install-skill --global" aria-label="Copy">
+                  <svg class="icon idle" aria-hidden="true"><use href="#icon-copy" /></svg>
+                  <svg class="icon done" aria-hidden="true"><use href="#icon-check" /></svg>
+                </button>
+              </div>
+              <p>
+                Writes the skill to <code>~/.claude/skills</code> for Claude Code and <code>~/.agents/skills</code> for
+                Codex, Gemini CLI and most other agents. Start a new agent session afterwards.
+              </p>
+            </li>
+            <li>
+              <strong>3. Ask for a review</strong>
+              <p class="say">I'd like to review the plan in markdown-review</p>
+              <p>
+                The agent opens the doc, waits for your comments, edits the doc and answers each one, until you say go
+                ahead.
+              </p>
+            </li>
+          </ol>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        <a class="brand" href="index.html">
+          <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              class="bubble"
+              d="M5 2.5h14a3 3 0 0 1 3 3V15a3 3 0 0 1-3 3h-8.25L6.5 21.5V18H5a3 3 0 0 1-3-3V5.5a3 3 0 0 1 3-3Z"
+            />
+            <path class="mark" d="M5.75 13.5v-7l2.75 3.25 2.75-3.25v7M16.25 6.5v7M13.75 11l2.5 2.5 2.5-2.5" />
+          </svg>
+          Markdown Review
+        </a>
+        <a href="docs.html">Docs</a>
+        <a href="https://github.com/Krelborn/markdown-review">GitHub</a>
+        <a href="https://www.npmjs.com/package/@krelborn/markdown-review">npm</a>
+        <a href="https://github.com/Krelborn/markdown-review/issues">Report an issue</a>
+        <a href="https://github.com/Krelborn/markdown-review/blob/main/LICENSE">MIT licence</a>
+      </div>
+    </footer>
+  </body>
+</html>

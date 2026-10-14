@@ -79,3 +79,15 @@ jobs:
 
       # prepublishOnly runs pnpm build. A maintainer approves the staged version on npmjs.com.
       - run: npm stage publish --tag ${{ github.event.release.prerelease && 'next' || 'latest' }}
+
+  site:
+    needs: publish
+    if: ${{ !github.event.release.prerelease }}
+    permissions:
+      contents: read
+      # Install @krelborn/stylesui from GitHub Packages
+      packages: read
+      # Deploy to GitHub Pages
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml

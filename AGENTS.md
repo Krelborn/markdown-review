@@ -5,7 +5,7 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 ## Commands
 
 - `pnpm build`: build the CLI and server into `dist/cli.js`, and the web app into `dist/web/`, which the server serves. The web build also writes the licences of the packages it bundles to `dist/web/licences.md`, which the server serves at `/licences`.
-- `pnpm test`: all tests: the `node` project (`src/cli`, `src/server`, `src/shared`), the `web` project in jsdom (`src/web`), and the `integration` project, which builds `dist/cli.js` first and runs it as separate processes against temporary git repositories
+- `pnpm test`: all tests: the `node` project (`src/cli`, `src/screenshots`, `src/server`, `src/shared`), the `web` project in jsdom (`src/web`), and the `integration` project, which builds `dist/cli.js` first and runs it as separate processes against temporary git repositories
 - `pnpm test:e2e`: Playwright end-to-end tests in Chromium and WebKit. They build the package first, then run the CLI and the web app together against temporary git repositories. Install the browsers once with `pnpm exec playwright install chromium webkit`.
 - `pnpm screenshots`: build the package, then take the screenshots in `docs/images/` again, each in light and dark mode, by playing a scripted review in Chromium. Run it after a change to how the app looks, and check the new images before committing them.
 - `pnpm test:coverage`: tests with v8 coverage, written to `coverage/istanbul.json`
@@ -21,6 +21,7 @@ Markdown Review: a local tool for reviewing agent-written markdown in a browser 
 - `src/e2e/`: Playwright tests in which a user reviews in the browser while the CLI plays the agent.
 - `skills/markdown-review/SKILL.md`: the skill that teaches agents the review loop. The build bundles it into `dist/cli.js`, and `install-skill` writes that copy, with the package version as `metadata.version` in its frontmatter. The CLI calls an installed copy outdated when that version is older than its own, so every release asks for the skill to be reinstalled. Don't put a version in the source file: the package version is the skill's version.
 - `src/screenshots/`: the scripted reviews `pnpm screenshots` plays, and the docs they review.
+- `site/`: the website, published to GitHub Pages: `index.html`, a tour of the features, and `docs.html`, the manual. Plain HTML, CSS and JavaScript, with no build: open `site/index.html` in a browser to see it. `site/stylesui.css` links to StylesUI's stylesheet in `node_modules`, and `site/images` to `docs/images`; the site builds on StylesUI's tokens but not its React components. `docs.html` repeats the README's usage, so change both together.
 - `src/web/`: the React app the server serves, built with `vite.web.config.mts` from `src/web/index.html`. `components/` holds one folder per component; `rendering/` holds the walk that reads canonical text from rendered blocks, and the conformance test that checks it against `src/shared`.
 
 ## Protocol
@@ -35,6 +36,8 @@ Publishing a GitHub release stages that version on npm, and a maintainer approve
 2. Publish a GitHub release from `main`, tagged `v<version>`. Mark it as a pre-release exactly when the version has a pre-release part, such as `0.2.0-beta.1`.
 3. `.github/workflows/publish.yml` checks that the tagged commit is on `main` and that the tag matches `package.json`, runs `ci.yml` on that commit, then runs `npm stage publish` through npm trusted publishing, with the dist-tag `next` for a pre-release and `latest` otherwise.
 4. Approve the staged version with 2FA in the Staged Packages tab of the package on npmjs.com, or with `npm stage approve <stage-id>`, which needs npm 11.15 or later (`npx npm@latest stage approve <stage-id>`); the publish job's log has the id. Check the version and dist-tag first: npm won't stop an older version from taking `latest`. Nothing is public until then, and `npm stage reject <stage-id>` withdraws it.
+
+Once a release that isn't a pre-release is staged on npm, `publish.yml` also publishes the site from the release's commit, through `.github/workflows/pages.yml`, so the site describes the version on npm. To publish a fix to the site between releases, run that workflow by hand from `main`, but only while `main` describes nothing npm doesn't have yet; otherwise the fix goes out with the next release. Before the first release that publishes the site, enable GitHub Pages in the repository's settings with the source "GitHub Actions", and add the tag rule `v*` to the deployment branches and tags of the `github-pages` environment, since a release deploys from its tag.
 
 If a job fails on something transient, such as a flaky e2e test, use "Re-run failed jobs" on the run's page. If the check or CI fails for a real reason, nothing reached npm: delete the release and its tag, fix `main`, and release the same version again.
 

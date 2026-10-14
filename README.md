@@ -14,6 +14,8 @@
 
 Review the markdown your coding agent writes, such as plans, specs and design notes, in your browser, the way you would review a pull request. Then hand your comments back to the agent so it can edit the docs and answer each one.
 
+The website has a tour and the docs: [krelborn.github.io/markdown-review](https://krelborn.github.io/markdown-review/).
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/review-dark.png">
   <img src="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/review-light.png" alt="A plan open in Markdown Review. The doc is on the left with two passages highlighted, and the comments column on the right holds a draft comment, an open thread in which the agent asks a question, and resolved threads.">
