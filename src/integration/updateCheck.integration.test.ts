@@ -93,7 +93,7 @@ describe("update check", () => {
 
     expect(stdout).toContain(
       `skill_outdated: The markdown-review skill at ${skillPath} is older than this version (${packageVersion}). ` +
-        "Once the user says go ahead, run `markdown-review install-skill`."
+        "Once the user says go ahead, run `markdown-review install-skill --only claude`."
     );
   });
 });

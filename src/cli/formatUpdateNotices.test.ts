@@ -3,9 +3,35 @@ import { describe, expect, test } from "vitest";
 import type { InstalledSkill } from "./findInstalledSkills";
 import { formatUpdateNotices } from "./formatUpdateNotices";
 
-const repositorySkill: InstalledSkill = { isGlobal: false, path: "/repo/.claude/skills/x/SKILL.md", version: "0.3.0" };
+const repositoryClaudeSkill: InstalledSkill = {
+  directory: "claude",
+  isGlobal: false,
+  path: "/repo/.claude/skills/x/SKILL.md",
+  version: "0.3.0",
+};
 
-const globalSkill: InstalledSkill = { isGlobal: true, path: "/home/.claude/skills/x/SKILL.md", version: "0.3.0" };
+const repositoryAgentsSkill: InstalledSkill = {
+  directory: "agents",
+  isGlobal: false,
+  path: "/repo/.agents/skills/x/SKILL.md",
+  version: "0.3.0",
+};
+
+const globalClaudeSkill: InstalledSkill = {
+  directory: "claude",
+  isGlobal: true,
+  path: "/home/.claude/skills/x/SKILL.md",
+  version: "0.3.0",
+};
+
+const globalAgentsSkill: InstalledSkill = {
+  directory: "agents",
+  isGlobal: true,
+  path: "/home/.agents/skills/x/SKILL.md",
+  version: "0.3.0",
+};
+
+const everySkill = [repositoryClaudeSkill, repositoryAgentsSkill, globalClaudeSkill, globalAgentsSkill];
 
 describe("formatUpdateNotices", () => {
   test("must say nothing when there is no update and every skill is current", () => {
@@ -14,7 +40,7 @@ describe("formatUpdateNotices", () => {
         availableUpdate: null,
         currentVersion: "0.3.0",
         installKind: "global",
-        skills: [repositorySkill, globalSkill],
+        skills: everySkill,
         wentAhead: true,
       })
     ).toEqual([]);
@@ -26,7 +52,7 @@ describe("formatUpdateNotices", () => {
         availableUpdate: { distTag: "latest", version: "0.4.0" },
         currentVersion: "0.3.0",
         installKind: "global",
-        skills: [{ ...globalSkill, version: null }],
+        skills: [{ ...globalClaudeSkill, version: null }],
         wentAhead: false,
       })
     ).toEqual([
@@ -40,7 +66,7 @@ describe("formatUpdateNotices", () => {
         availableUpdate: { distTag: "latest", version: "0.4.0" },
         currentVersion: "0.3.0",
         installKind: "global",
-        skills: [repositorySkill, globalSkill],
+        skills: everySkill,
         wentAhead: true,
       })
     ).toEqual([
@@ -56,13 +82,14 @@ describe("formatUpdateNotices", () => {
         availableUpdate: { distTag: "latest", version: "0.4.0" },
         currentVersion: "0.3.0",
         installKind: "global",
-        skills: [{ ...repositorySkill, version: "0.5.0-beta.1" }, globalSkill],
+        skills: [{ ...repositoryClaudeSkill, version: "0.5.0-beta.1" }, repositoryAgentsSkill, globalClaudeSkill],
         wentAhead: true,
       })
     ).toEqual([
       "update_available: markdown-review 0.4.0 is out; this is 0.3.0. Ask the user whether to update. If they agree, " +
         "run `npm install --global @krelborn/markdown-review@latest`, then `markdown-review stop`, " +
-        "then `markdown-review install-skill --global`.\n",
+        "then `markdown-review install-skill --only agents`, " +
+        "then `markdown-review install-skill --global --only claude`.\n",
     ]);
   });
 
@@ -114,13 +141,13 @@ describe("formatUpdateNotices", () => {
         availableUpdate: null,
         currentVersion: "0.4.0-beta.1",
         installKind: "npx",
-        skills: [{ ...globalSkill, version: null }],
+        skills: [{ ...globalClaudeSkill, version: null }],
         wentAhead: true,
       })
     ).toEqual([
       "skill_outdated: The markdown-review skill at /home/.claude/skills/x/SKILL.md is older than this version " +
-        "(0.4.0-beta.1). Run `npx @krelborn/markdown-review@0.4.0-beta.1 install-skill --global`. The new skill loads " +
-        "in the next agent session.\n",
+        "(0.4.0-beta.1). Run `npx @krelborn/markdown-review@0.4.0-beta.1 install-skill --global --only claude`. The " +
+        "new skill loads in the next agent session.\n",
     ]);
   });
 
@@ -135,7 +162,7 @@ describe("formatUpdateNotices", () => {
       availableUpdate: null,
       currentVersion: "0.3.0",
       installKind: "global",
-      skills: [{ ...repositorySkill, version }],
+      skills: [{ ...repositoryClaudeSkill, version }],
       wentAhead: true,
     });
 
@@ -151,12 +178,95 @@ describe("formatUpdateNotices", () => {
         availableUpdate: null,
         currentVersion: "0.3.0",
         installKind: "global",
-        skills: [{ ...repositorySkill, version: null }, globalSkill],
+        skills: [{ ...repositoryClaudeSkill, version: null }, globalClaudeSkill],
         wentAhead,
       })
     ).toEqual([
       "skill_outdated: The markdown-review skill at /repo/.claude/skills/x/SKILL.md is older than this version (0.3.0). " +
-        `${when} \`markdown-review install-skill\`. The new skill loads in the next agent session.\n`,
+        `${when} \`markdown-review install-skill --only claude\`. The new skill loads in the next agent session.\n`,
     ]);
   });
+
+  test.each([
+    {
+      condition: "both copies in the repo are outdated",
+      skills: [repositoryClaudeSkill, repositoryAgentsSkill],
+      expected: [
+        skillOutdated(
+          "skills at /repo/.claude/skills/x/SKILL.md and /repo/.agents/skills/x/SKILL.md are",
+          "markdown-review install-skill"
+        ),
+      ],
+    },
+    {
+      condition: "the repo has only an outdated .agents copy",
+      skills: [repositoryAgentsSkill],
+      expected: [
+        skillOutdated("skill at /repo/.agents/skills/x/SKILL.md is", "markdown-review install-skill --only agents"),
+      ],
+    },
+    {
+      condition: "the repo's .claude copy is current and its .agents copy is outdated",
+      skills: [{ ...repositoryClaudeSkill, version: "0.4.0" }, repositoryAgentsSkill],
+      expected: [
+        skillOutdated("skill at /repo/.agents/skills/x/SKILL.md is", "markdown-review install-skill --only agents"),
+      ],
+    },
+    {
+      condition: "both copies in the home directory are outdated",
+      skills: [globalClaudeSkill, globalAgentsSkill],
+      expected: [
+        skillOutdated(
+          "skills at /home/.claude/skills/x/SKILL.md and /home/.agents/skills/x/SKILL.md are",
+          "markdown-review install-skill --global"
+        ),
+      ],
+    },
+    {
+      condition: "the home directory's .claude copy is outdated and its .agents copy is current",
+      skills: [globalClaudeSkill, { ...globalAgentsSkill, version: "0.4.0" }],
+      expected: [
+        skillOutdated(
+          "skill at /home/.claude/skills/x/SKILL.md is",
+          "markdown-review install-skill --global --only claude"
+        ),
+      ],
+    },
+    {
+      condition: "copies in the repo and the home directory are outdated",
+      skills: everySkill,
+      expected: [
+        skillOutdated(
+          "skills at /repo/.claude/skills/x/SKILL.md and /repo/.agents/skills/x/SKILL.md are",
+          "markdown-review install-skill"
+        ),
+        skillOutdated(
+          "skills at /home/.claude/skills/x/SKILL.md and /home/.agents/skills/x/SKILL.md are",
+          "markdown-review install-skill --global"
+        ),
+      ],
+    },
+  ])("must reinstall exactly the outdated copies when $condition", ({ expected, skills }) => {
+    expect(
+      formatUpdateNotices({
+        availableUpdate: null,
+        currentVersion: "0.4.0",
+        installKind: "global",
+        skills,
+        wentAhead: true,
+      })
+    ).toEqual(expected);
+  });
 });
+
+/**
+ * @param subject what is outdated, after "The markdown-review "
+ * @param command the command that reinstalls it
+ * @returns the `skill_outdated` line for running version 0.4.0, once the user said go ahead
+ */
+function skillOutdated(subject: string, command: string): string {
+  return (
+    `skill_outdated: The markdown-review ${subject} older than this version (0.4.0). Run \`${command}\`. ` +
+    "The new skill loads in the next agent session.\n"
+  );
+}

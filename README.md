@@ -19,7 +19,7 @@ Review the markdown your coding agent writes, such as plans, specs and design no
   <img src="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/review-light.png" alt="A plan open in Markdown Review. The doc is on the left with two passages highlighted, and the comments column on the right holds a draft comment, an open thread in which the agent asks a question, and resolved threads.">
 </picture>
 
-Markdown Review runs locally on your machine. It is a CLI that starts a small server for each repository and serves a browser app on `127.0.0.1`. The agent talks to it through ordinary shell commands, so it works with Claude Code, OpenCode or any agent that has a shell tool. No MCP server or plugin needed.
+Markdown Review runs locally on your machine. It is a CLI that starts a small server for each repository and serves a browser app on `127.0.0.1`. The agent talks to it through ordinary shell commands, so it works with Claude Code, Codex, OpenCode or any agent that has a shell tool. No MCP server or plugin needed.
 
 > [!WARNING]
 > Markdown Review is in beta. It works, but expect rough edges, and expect commands and behaviour to change between releases until 1.0.
@@ -45,11 +45,11 @@ Or run it without installing, with `npx @krelborn/markdown-review <command>`.
 Then teach your agent the review loop by installing the skill:
 
 ```sh
-markdown-review install-skill            # into this repository's .claude/skills
-markdown-review install-skill --global   # into ~/.claude/skills, for every repository
+markdown-review install-skill            # into this repository's .claude/skills and .agents/skills
+markdown-review install-skill --global   # into ~/.claude/skills and ~/.agents/skills, for every repository
 ```
 
-Claude Code and OpenCode both read skills from there. The skill loads when an agent session starts, so start a new session after installing it.
+Claude Code reads `.claude/skills`; Codex, Gemini CLI and most other agents read `.agents/skills`. Agents that read both, such as OpenCode, Cursor and GitHub Copilot, find the skill in each. To write just one copy, add `--only claude` or `--only agents`. The skill loads when an agent session starts, so start a new session after installing it.
 
 ## Usage
 
@@ -95,15 +95,15 @@ Links between markdown docs in the repository open in the app. Docs render with 
 
 These are the commands the agent runs. You rarely need them yourself, but they are handy for trying the tool out.
 
-| Command                                                          | What it does                                                                                                                                                                                      |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `markdown-review open [path] [--next-task <text>]`               | Start a review round, or add the doc to the one in progress, and show the doc, or the docs list, in the browser. `--next-task` says what the agent will do once you say go ahead. Prints the URL. |
-| `markdown-review poll [--document <path>] [--timeout <seconds>]` | Wait until you submit, then print the comments that need the agent. Gives up after 540 seconds by default.                                                                                        |
-| `markdown-review inbox [--document <path>]`                      | Print the same as `poll`, without waiting.                                                                                                                                                        |
-| `markdown-review reply <id> <text>`                              | Answer a thread without resolving it, for example to ask you a question.                                                                                                                          |
-| `markdown-review resolve <id> [text]`                            | Resolve a thread, optionally saying what changed.                                                                                                                                                 |
-| `markdown-review stop`                                           | Stop the review server for this repository.                                                                                                                                                       |
-| `markdown-review install-skill [--global]`                       | Install the skill that teaches agents this workflow.                                                                                                                                              |
+| Command                                                            | What it does                                                                                                                                                                                      |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `markdown-review open [path] [--next-task <text>]`                 | Start a review round, or add the doc to the one in progress, and show the doc, or the docs list, in the browser. `--next-task` says what the agent will do once you say go ahead. Prints the URL. |
+| `markdown-review poll [--document <path>] [--timeout <seconds>]`   | Wait until you submit, then print the comments that need the agent. Gives up after 540 seconds by default.                                                                                        |
+| `markdown-review inbox [--document <path>]`                        | Print the same as `poll`, without waiting.                                                                                                                                                        |
+| `markdown-review reply <id> <text>`                                | Answer a thread without resolving it, for example to ask you a question.                                                                                                                          |
+| `markdown-review resolve <id> [text]`                              | Resolve a thread, optionally saying what changed.                                                                                                                                                 |
+| `markdown-review stop`                                             | Stop the review server for this repository.                                                                                                                                                       |
+| `markdown-review install-skill [--global] [--only claude\|agents]` | Install the skill that teaches agents this workflow in `.claude/skills` and `.agents/skills`, or with `--only` in just one of them.                                                               |
 
 `reply` and `resolve` also take `--file <path>` for a long message, or `--file -` to read standard input. `markdown-review --help` lists the commands, and `markdown-review <command> --help` describes one. Every command ends with a `next_step` line that tells the agent what to do next.
 

@@ -68,6 +68,16 @@ describe("runCli", () => {
       args: ["open", "docs/plan.md", "--next-task", "implement the plan\nthen ship it"],
       message: "error: --next-task must be one line of at most 200 characters",
     },
+    {
+      condition: "the skills directory to install in is unknown",
+      args: ["install-skill", "--only", "cursor"],
+      message: 'error: --only must be claude or agents, not "cursor"',
+    },
+    {
+      condition: "the skills directory to install in is empty",
+      args: ["install-skill", "--only="],
+      message: 'error: --only must be claude or agents, not ""',
+    },
   ])("must exit 2 with the error and a next_step when $condition", async ({ args, message }) => {
     const { run } = await setUpTest();
 
@@ -125,7 +135,7 @@ describe("runCli", () => {
 
   test("must tell the agent to refresh the skill when the installed copy is from another version", async () => {
     const { root, run } = await setUpTest({ withServer: true });
-    const skillPath = path.join(root, ".claude", "skills", "markdown-review", "SKILL.md");
+    const skillPath = skillCopyPath(root, ".claude");
     await mkdir(path.dirname(skillPath), { recursive: true });
     await writeFile(skillPath, "# An older skill\n");
 
@@ -133,8 +143,8 @@ describe("runCli", () => {
 
     expect(stdout).toContain(
       `\n\nskill_outdated: The markdown-review skill at ${skillPath} is older than this version (${packageVersion}). ` +
-        "Once the user says go ahead, run `markdown-review install-skill`. The new skill loads in the next " +
-        `agent session.\n\nnext_step: ${waitForCommentsStep}\n`
+        "Once the user says go ahead, run `markdown-review install-skill --only claude`. The new skill loads in the " +
+        `next agent session.\n\nnext_step: ${waitForCommentsStep}\n`
     );
   });
 
@@ -239,42 +249,75 @@ describe("runCli", () => {
     expect(stderr).toContain("is not a file inside the repository");
   });
 
-  test("must install the skill in the repository's skills directory when the agent installs it", async () => {
+  test.each([
+    { command: "install-skill", isGlobal: false, written: [".claude", ".agents"] },
+    { command: "install-skill --only claude", isGlobal: false, written: [".claude"] },
+    { command: "install-skill --only agents", isGlobal: false, written: [".agents"] },
+    { command: "install-skill --global", isGlobal: true, written: [".claude", ".agents"] },
+    { command: "install-skill --global --only agents", isGlobal: true, written: [".agents"] },
+  ])(
+    "must install just the copies the agent asks for when it runs $command",
+    async ({ command, isGlobal, written }) => {
+      const { home, root, run } = await setUpTest();
+      const [base, otherBase] = isGlobal ? [home, root] : [root, home];
+
+      const { exitCode, stdout } = await run(command.split(" "));
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toBe(
+        written
+          .map((directory) => `Installed the markdown-review skill at ${skillCopyPath(base, directory)}\n`)
+          .join("") +
+          "\nnext_step: The skill loads when an agent session starts. To start a review now, run " +
+          "`markdown-review open <doc.md>`.\n"
+      );
+      expect(await readSkillCopies(base)).toEqual(
+        Object.fromEntries(written.map((directory) => [directory, stampSkill(skill, packageVersion)]))
+      );
+      expect(await readSkillCopies(otherBase)).toEqual({});
+    }
+  );
+
+  test("must say for each copy whether it reinstalled or updated the skill when copies are installed", async () => {
     const { root, run } = await setUpTest();
-    const skillPath = path.join(root, ".claude", "skills", "markdown-review", "SKILL.md");
-
-    const { exitCode, stdout } = await run(["install-skill"]);
-
-    expect(exitCode).toBe(0);
-    expect(stdout).toBe(
-      `Installed the markdown-review skill at ${skillPath}\n\n` +
-        "next_step: The skill loads when an agent session starts. To start a review now, run `markdown-review open <doc.md>`.\n"
-    );
-    expect(await readFile(skillPath, "utf8")).toBe(stampSkill(skill, packageVersion));
-  });
-
-  test("must install the skill in the user's skills directory when the agent installs it with --global", async () => {
-    const { home, run } = await setUpTest();
-
-    await run(["install-skill", "--global"]);
-
-    expect(await readFile(path.join(home, ".claude", "skills", "markdown-review", "SKILL.md"), "utf8")).toBe(
-      stampSkill(skill, packageVersion)
-    );
-  });
-
-  test("must replace the skill and say so when an older version is installed", async () => {
-    const { root, run } = await setUpTest();
-    const skillPath = path.join(root, ".claude", "skills", "markdown-review", "SKILL.md");
-    await mkdir(path.dirname(skillPath), { recursive: true });
-    await writeFile(skillPath, "---\nname: markdown-review\n---\n");
+    await mkdir(path.dirname(skillCopyPath(root, ".claude")), { recursive: true });
+    await writeFile(skillCopyPath(root, ".claude"), stampSkill(skill, packageVersion));
+    await mkdir(path.dirname(skillCopyPath(root, ".agents")), { recursive: true });
+    await writeFile(skillCopyPath(root, ".agents"), "---\nname: markdown-review\n---\n");
 
     const { stdout } = await run(["install-skill"]);
 
-    expect(stdout.startsWith(`Updated the markdown-review skill at ${skillPath}\n`)).toBe(true);
-    expect(await readFile(skillPath, "utf8")).toBe(stampSkill(skill, packageVersion));
+    expect(
+      stdout.startsWith(
+        `Reinstalled the markdown-review skill at ${skillCopyPath(root, ".claude")}\n` +
+          `Updated the markdown-review skill at ${skillCopyPath(root, ".agents")}\n\n`
+      )
+    ).toBe(true);
+    expect(await readSkillCopies(root)).toEqual({
+      ".agents": stampSkill(skill, packageVersion),
+      ".claude": stampSkill(skill, packageVersion),
+    });
   });
 });
+
+function skillCopyPath(base: string, directory: string): string {
+  return path.join(base, directory, "skills", "markdown-review", "SKILL.md");
+}
+
+/**
+ * @param base the repo root or the home directory
+ * @returns the contents of each copy of the skill installed under base, by the directory that holds its skills
+ */
+async function readSkillCopies(base: string): Promise<Record<string, string>> {
+  const copies: Record<string, string> = {};
+  for (const directory of [".claude", ".agents"]) {
+    const contents = await readFile(skillCopyPath(base, directory), "utf8").catch(() => null);
+    if (contents !== null) {
+      copies[directory] = contents;
+    }
+  }
+  return copies;
+}
 
 async function writeUpdateCheck(home: string, latest: string): Promise<void> {
   const cachePath = path.join(home, ".cache", "markdown-review", "update-check.json");

@@ -4,6 +4,7 @@ import { cliCommand, globalInstallCommand, npxCommand } from "../server/update/i
 import { compareVersions } from "../server/update/semanticVersions";
 
 import type { InstalledSkill } from "./findInstalledSkills";
+import { skillDirectories } from "./skillDirectories";
 
 export interface UpdateNoticesInput {
   /**
@@ -19,6 +20,14 @@ export interface UpdateNoticesInput {
    * Whether the user said go ahead, which is when the agent should act on the notices
    */
   wentAhead: boolean;
+}
+
+/**
+ * The outdated copies of the skill in the repo, or in the home directory, and the command that reinstalls them
+ */
+interface SkillReinstall {
+  command: string;
+  paths: string[];
 }
 
 /**
@@ -43,13 +52,11 @@ export function formatUpdateNotices({
     ];
   }
   const when = wentAhead ? "Run" : "Once the user says go ahead, run";
-  return skills
-    .filter((skill) => isOlderThan(skill, currentVersion))
-    .map(
-      (skill) =>
-        `skill_outdated: The markdown-review skill at ${skill.path} is older than this version (${currentVersion}). ` +
-        `${when} \`${installSkillCommand(installKind, currentVersion, skill)}\`. The new skill loads in the next agent session.\n`
-    );
+  return planSkillReinstalls(installKind, currentVersion, skills, currentVersion).map(
+    ({ command, paths }) =>
+      `skill_outdated: ${describeOutdated(paths)} older than this version (${currentVersion}). ` +
+      `${when} \`${command}\`. The new skill loads in the next agent session.\n`
+  );
 }
 
 function describeUpdate(
@@ -60,9 +67,7 @@ function describeUpdate(
   const commands = [
     ...(installKind === "global" ? [globalInstallCommand(distTag)] : []),
     cliCommand(installKind, "stop", distTag),
-    ...skills
-      .filter((skill) => isOlderThan(skill, version))
-      .map((skill) => installSkillCommand(installKind, distTag, skill)),
+    ...planSkillReinstalls(installKind, distTag, skills, version).map(({ command }) => command),
   ];
   const steps = `run ${commands.map((command) => `\`${command}\``).join(", then ")}`;
   return installKind === "npx"
@@ -70,8 +75,40 @@ function describeUpdate(
     : `${steps}.`;
 }
 
-function installSkillCommand(installKind: InstallKind, versionOrTag: string, skill: InstalledSkill): string {
-  return cliCommand(installKind, skill.isGlobal ? "install-skill --global" : "install-skill", versionOrTag);
+/**
+ * @param installKind how markdown-review is installed
+ * @param versionOrTag the version or dist-tag the commands run
+ * @param skills the installed copies of the skill
+ * @param version the version a copy is outdated against
+ * @returns the reinstall for the repo, then for the home directory, leaving out either when no copy there is outdated;
+ *   one that leaves a skills directory alone passes `--only`, so it rewrites just the outdated copy
+ */
+function planSkillReinstalls(
+  installKind: InstallKind,
+  versionOrTag: string,
+  skills: readonly InstalledSkill[],
+  version: string
+): SkillReinstall[] {
+  return [false, true].flatMap((isGlobal) => {
+    const outdated = skills.filter((skill) => skill.isGlobal === isGlobal && isOlderThan(skill, version));
+    const [first] = outdated;
+    if (first === undefined) {
+      return [];
+    }
+    const everyCopyIsOutdated = outdated.length === skillDirectories.length;
+    const options = [...(isGlobal ? ["--global"] : []), ...(everyCopyIsOutdated ? [] : ["--only", first.directory])];
+    return [
+      {
+        command: cliCommand(installKind, ["install-skill", ...options].join(" "), versionOrTag),
+        paths: outdated.map((skill) => skill.path),
+      },
+    ];
+  });
+}
+
+function describeOutdated(paths: readonly string[]): string {
+  const at = paths.join(" and ");
+  return paths.length === 1 ? `The markdown-review skill at ${at} is` : `The markdown-review skills at ${at} are`;
 }
 
 function isOlderThan(skill: InstalledSkill, version: string): boolean {
