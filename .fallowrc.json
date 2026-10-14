@@ -1,4 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-  "entry": ["src/cli/main.ts", "src/web/main.tsx", "src/screenshots/**/*.shots.ts", "site/site.js", "site/site.css"]
+  "entry": ["src/cli/main.ts", "src/web/main.tsx", "src/screenshots/**/*.shots.ts", "site/site.js", "site/site.css"],
+  "rules": {
+    "dev-dependencies-in-production": "off"
+  }
 }
