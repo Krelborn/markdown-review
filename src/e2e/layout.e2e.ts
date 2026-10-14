@@ -191,6 +191,41 @@ for (const { button, edge, popover, side } of [
   });
 }
 
+test("must start each verdict's description where the text of its label starts", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+
+  await page.getByRole("button", { exact: true, name: submitButtonName(0) }).click();
+
+  const popover = page.getByRole("dialog", { name: "Submit review" });
+  for (const verdict of ["Revise", "Go ahead", "Hand back to agent"]) {
+    const descriptionId = await popover.getByRole("radio", { name: verdict }).getAttribute("aria-describedby");
+    const description = popover.locator(`[id="${descriptionId}"]`);
+    expect(await textStartOf(description)).toBeCloseTo(
+      await textStartOf(popover.getByText(verdict, { exact: true })),
+      0
+    );
+  }
+});
+
+test("must show each palette's name beside its radio, centred on it", async ({ page, review }) => {
+  await review.open("docs/plan.md");
+
+  await page.getByRole("button", { name: "Appearance" }).click();
+
+  const popover = page.getByRole("dialog", { name: "Appearance" });
+  for (const palette of [
+    { description: "Warm, low glare", title: "Paper" },
+    { description: "Dimmest, softest", title: "Dusk" },
+  ]) {
+    const radio = await boxOf(popover.getByRole("radio", { name: palette.title }));
+    const title = await boxOf(popover.getByText(palette.title, { exact: true }));
+    const description = await boxOf(popover.getByText(palette.description, { exact: true }));
+    const textCentre = (title.y + description.y + description.height) / 2;
+    expect(title.x).toBeGreaterThan(radio.x + radio.width);
+    expect(Math.abs(radio.y + radio.height / 2 - textCentre)).toBeLessThanOrEqual(2);
+  }
+});
+
 test("must keep the header and the review bar to one line each when the window is very narrow", async ({
   page,
   review,
@@ -744,6 +779,17 @@ function linesIn(element: Locator): Promise<number> {
     const range = document.createRange();
     range.selectNodeContents(shown);
     return new Set([...range.getClientRects()].map((box) => Math.round(box.top))).size;
+  });
+}
+
+/**
+ * @returns how far from the page's left edge the element's text starts, past any padding
+ */
+function textStartOf(element: Locator): Promise<number> {
+  return element.evaluate((shown) => {
+    const range = document.createRange();
+    range.selectNodeContents(shown);
+    return range.getBoundingClientRect().x;
   });
 }
 
