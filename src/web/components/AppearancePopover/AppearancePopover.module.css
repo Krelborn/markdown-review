@@ -1,11 +1,9 @@
-.choice {
-  align-items: center;
-}
-
+/* Inline, as a radio's label must hold: a block would drop below the radio */
 .content {
   align-items: center;
-  display: flex;
+  display: inline-flex;
   gap: var(--sui-space-3);
+  vertical-align: middle;
 }
 
 /* A small page in the palette: lines of text and a link beside a card. Theme paints its background. */
