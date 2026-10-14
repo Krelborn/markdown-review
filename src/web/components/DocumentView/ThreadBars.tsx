@@ -13,8 +13,7 @@ export interface ThreadBarsProps {
   bars: ThreadBar[];
 
   /**
-   * Whether the blocks of a hovered or selected comment are framed, which they are not during a drag down the gutter,
-   * so that the drag's frame is the only one
+   * Whether to frame the blocks of the hovered and selected comments
    */
   isFraming: boolean;
 
@@ -24,7 +23,7 @@ export interface ThreadBarsProps {
 
 /**
  * A bar beside the blocks of each comment on two or more whole blocks, which selects the comment and, while the pointer
- * is over it, hovers it; the blocks of a hovered or selected comment are framed
+ * is over it, hovers it; and, while framing, a frame around the blocks of the hovered and selected comments
  */
 export function ThreadBars({ bars, isFraming, onSelectThread, selectedThreadId }: ThreadBarsProps): JSX.Element {
   const { hoveredThreadId, onHoverThread } = useContext(HoveredThreadContext);

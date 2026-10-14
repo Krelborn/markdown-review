@@ -5,7 +5,6 @@ import type { BlockSpan } from "../../../shared/markdown/BlockSpan";
 import { blockPassage } from "../../anchoring/blockPassage";
 import type { NewComment } from "../../review/NewComment";
 
-import { BlockTarget } from "./BlockTarget";
 import { GutterControls } from "./GutterControls";
 import { SelectionCommentButton } from "./SelectionCommentButton";
 import { ThreadBars } from "./ThreadBars";
@@ -114,13 +113,13 @@ export function DocumentControls({
         onComment={commentOnSpan}
         pendingSpan={pendingSpan}
       />
+      {/* While the user drags down the gutter, the drag's frame is the only one */}
       <ThreadBars
         bars={threadBars}
         isFraming={gutterDrag.span === null}
         onSelectThread={onSelectThread}
         selectedThreadId={selectedThreadId}
       />
-      {pendingSpan !== null && <BlockTarget box={pendingSpan.box} />}
       <ThreadMarkers markers={markers} onSelectThread={onSelectThread} selectedThreadId={selectedThreadId} />
       <SelectionCommentButton onComment={commentOnSelection} selectionComment={selectionComment} />
     </>

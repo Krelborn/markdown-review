@@ -48,7 +48,8 @@ export interface GutterControlsProps {
 
 /**
  * The gutter down the left of the doc: its outer lane picks the structure around a block, and the rest picks the
- * block, with the + beside it, the blocks a drag covers, or with ⌥ held the structure
+ * block, with the + beside it, the blocks a drag covers, or with ⌥ held the structure. One frame goes round the blocks
+ * a comment is being written on, and moves to the blocks a drag covers while the user drags.
  */
 export function GutterControls({
   gutterDrag,
@@ -67,6 +68,8 @@ export function GutterControls({
     isOffering: offeredStructure !== null,
   });
   const pointedBox = isPickingBlock && hoveredBlock !== null ? hoveredBlock.box : null;
+  // One frame, so that a click on the gutter moves it rather than drawing it again and fading it in
+  const targetBox = draggedBox ?? pendingSpan?.box ?? null;
   // With ⌥ held, a click picks the structure around the block, or the block when no structure holds it
   const commentOnClick = (event: MouseEvent, blockIndex: number): void => {
     const blockSpan = { firstBlock: blockIndex, lastBlock: blockIndex };
@@ -84,7 +87,7 @@ export function GutterControls({
         pickedBox={draggedBox ?? pointedBox}
       />
       <StructurePicker isPicking={isPickingStructure} offeredStructure={offeredStructure} onComment={onComment} />
-      {draggedSpan !== null && draggedBox !== null && <BlockTarget box={draggedBox} label={countLabel(draggedSpan)} />}
+      {targetBox !== null && <BlockTarget box={targetBox} label={countLabel(draggedSpan)} />}
       {hoveredBlock !== null && (
         <BlockCommentButton
           block={hoveredBlock.box}
@@ -125,10 +128,12 @@ function pickingIn(
 }
 
 /**
- * @returns how many blocks a drag covers, or nothing for one block
+ * @returns how many blocks a drag covers, or nothing for one block or when the user is not dragging
  */
-function countLabel({ firstBlock, lastBlock }: BlockSpan): string | undefined {
-  return lastBlock > firstBlock ? `${lastBlock - firstBlock + 1} blocks` : undefined;
+function countLabel(span: BlockSpan | null): string | undefined {
+  return span !== null && span.lastBlock > span.firstBlock
+    ? `${span.lastBlock - span.firstBlock + 1} blocks`
+    : undefined;
 }
 
 function isSpanOf(span: BlockSpan | null, blockIndex: number): boolean {

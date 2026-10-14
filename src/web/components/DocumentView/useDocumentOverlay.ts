@@ -69,7 +69,7 @@ export interface DocumentOverlay {
   offeredStructure: OfferedStructure | null;
 
   /**
-   * The blocks a comment on whole blocks is being written on, or null, as during a drag down the gutter
+   * The blocks a comment on whole blocks is being written on, or null
    */
   pendingSpan: PendingSpan | null;
 
@@ -94,11 +94,10 @@ export function useDocumentOverlay(
   const { hoveredThreadId, onHoverThread } = useContext(HoveredThreadContext);
   const blockIndexLevelWith = useBlockIndexLevelWith(viewRef, contentRef, rendered);
   const gutterDrag = useGutterDrag(viewRef, contentRef, rendered, blockIndexLevelWith);
-  // A drag picks new blocks for the comment, so the passage it would replace is hidden until the drag ends
-  const shownPendingPassage = gutterDrag.span === null ? pendingPassage : null;
   const { bars: threadBars, markers } = useThreadHighlights(viewRef, contentRef, rendered, {
     hoveredThreadId,
-    pendingPassage: shownPendingPassage,
+    // A drag picks new blocks for the comment, so the passage it would replace is not highlighted until the drag ends
+    pendingPassage: gutterDrag.span === null ? pendingPassage : null,
     selectedThreadId,
     threads: highlightedThreads,
   });
@@ -116,7 +115,7 @@ export function useDocumentOverlay(
     rendered,
     isPickingInGutter ? hoveredBlock.box.index : null
   );
-  const pendingSpan = usePendingSpan(viewRef, contentRef, rendered, shownPendingPassage);
+  const pendingSpan = usePendingSpan(viewRef, contentRef, rendered, pendingPassage);
   return {
     gutterDrag,
     hoveredBlock,

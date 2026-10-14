@@ -610,6 +610,10 @@ describe("DocumentView", () => {
   test.each([
     { condition: "a comment is being written on other blocks", options: { pendingPassage: goalsPassage } },
     {
+      condition: "the user points at a comment on other blocks in the comments",
+      options: { hoveredThreadId: 5, threads: [buildThread({ anchor: goalsAnchor, id: 5 })] },
+    },
+    {
       condition: "the user has selected a comment on other blocks",
       options: { selectedThreadId: 5, threads: [buildThread({ anchor: goalsAnchor, id: 5 })] },
     },
@@ -627,6 +631,31 @@ describe("DocumentView", () => {
       expect(screen.getAllByTestId("block-target").map(({ textContent }) => textContent)).toEqual(["2 blocks"]);
     }
   );
+
+  test("must keep the frame, rather than draw it again and fade it in, when the user clicks the gutter beside the block a comment is being written on", async () => {
+    const { render } = setUpTest({
+      pendingPassage: {
+        document: "docs/plan.md",
+        endOffset: 84,
+        kind: "passage",
+        prefix: "Goals\n",
+        quote: "Retries happen three times.",
+        startOffset: 57,
+        suffix: "",
+      },
+    });
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    const frame = screen.getByTestId("block-target");
+
+    await pressGutter(user, 150);
+    const framesWhilePressed = screen.getAllByTestId("block-target");
+    await releaseGutter(user);
+
+    expect(framesWhilePressed).toEqual([frame]);
+    expect(screen.getAllByTestId("block-target")).toEqual([frame]);
+  });
 
   test("must frame the blocks a comment is being written on again when the user presses Escape during a drag", async () => {
     const resizes = standInForResizes();
