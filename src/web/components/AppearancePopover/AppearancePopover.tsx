@@ -64,13 +64,7 @@ export function AppearancePopover(): JSX.Element {
             value={appearance.palette}
           >
             {paletteChoices.map(({ description, name, title }) => (
-              <Radio
-                aria-describedby={`${descriptionId}-${name}`}
-                aria-label={title}
-                className={styles.choice}
-                key={name}
-                value={name}
-              >
+              <Radio key={name} value={name} aria-describedby={`${descriptionId}-${name}`} aria-label={title}>
                 <span className={styles.content}>
                   <Theme as="span" className={styles.swatch} palette={name}>
                     <span className={styles.lines} />
