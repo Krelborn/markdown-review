@@ -458,6 +458,28 @@ describe("DocumentView", () => {
     );
   });
 
+  test("must start a comment on the block when the user presses + from the keyboard after the browser cancels a drag from it", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await moveInGutter(user, 60);
+    await user.pointer({
+      coords: { clientX: 20, clientY: 60 },
+      keys: "[MouseLeft>]",
+      target: screen.getByRole("button", { name: "Comment on this block" }),
+    });
+    fireEvent.pointerCancel(document);
+
+    await user.keyboard("{Enter}");
+
+    expect(onComment).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        anchor: expect.objectContaining({ quote: "We cache results for 24h today. See the spec." }),
+      })
+    );
+  });
+
   test("must start one comment on the block when the user clicks the + while the gutter picks the block", async () => {
     const { onComment, render } = setUpTest();
     const user = userEvent.setup();

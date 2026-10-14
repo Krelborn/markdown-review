@@ -11,14 +11,14 @@ export interface BlockCommentButtonProps {
   block: BlockBox;
 
   /**
-   * Whether the block is framed already, because a comment is being written on it
-   */
-  isFramed: boolean;
-
-  /**
    * Whether the + has the keyboard focus
    */
   isFocused: boolean;
+
+  /**
+   * Whether the block is framed already, because a comment is being written on it
+   */
+  isFramed: boolean;
 
   /**
    * Whether the pointer is in the gutter, where it picks the block
@@ -69,7 +69,8 @@ export function BlockCommentButton({
         className={clsx(styles.blockButton, { [styles.pickingBlockButton ?? ""]: isPointerInGutter })}
         onBlur={() => onFocusChange(false)}
         onClick={(event) => {
-          if (!isDragClickRef.current) {
+          // A press from the keyboard, which never starts a drag, has a detail of 0
+          if (event.detail === 0 || !isDragClickRef.current) {
             onComment(event);
           }
           isDragClickRef.current = false;
