@@ -37,9 +37,11 @@ Publishing a GitHub release stages that version on npm, and a maintainer approve
 3. `.github/workflows/publish.yml` checks that the tagged commit is on `main` and that the tag matches `package.json`, runs `ci.yml` on that commit, then runs `npm stage publish` through npm trusted publishing, with the dist-tag `next` for a pre-release and `latest` otherwise.
 4. Approve the staged version with 2FA in the Staged Packages tab of the package on npmjs.com, or with `npm stage approve <stage-id>`, which needs npm 11.15 or later (`npx npm@latest stage approve <stage-id>`); the publish job's log has the id. Check the version and dist-tag first: npm won't stop an older version from taking `latest`. Nothing is public until then, and `npm stage reject <stage-id>` withdraws it.
 
+The trusted publisher on npmjs.com names the workflow `publish.yml` and the environment `npm`, and allows neither `npm publish` nor `npm dist-tag`, so every version waits for approval. Only the `publish` job runs in `npm`: npm checks the name of the calling workflow, so without the environment the site job, which gets an OIDC token to deploy, could publish too.
+
 Once a release that isn't a pre-release is staged on npm, `publish.yml` also publishes the site from the release's commit, through `.github/workflows/pages.yml`, so the site describes the version on npm. To publish a fix to the site between releases, run that workflow by hand from `main`, but only while `main` describes nothing npm doesn't have yet; otherwise the fix goes out with the next release. Before the first release that publishes the site, enable GitHub Pages in the repository's settings with the source "GitHub Actions", and add the tag rule `v*` to the deployment branches and tags of the `github-pages` environment, since a release deploys from its tag.
 
-If a job fails on something transient, such as a flaky e2e test, use "Re-run failed jobs" on the run's page. If the check or CI fails for a real reason, nothing reached npm: delete the release and its tag, fix `main`, and release the same version again.
+If a job fails on something transient, such as a flaky e2e test, use "Re-run failed jobs" on the run's page. If the check or CI fails for a real reason, nothing reached npm: delete the release and its tag, fix `main`, and release the same version again. If the site job fails, the version is already staged on npm, so keep the release and its tag: fix the setting and re-run the failed job, or fix `main` and run `pages.yml` by hand from it.
 
 ## Anchoring
 
