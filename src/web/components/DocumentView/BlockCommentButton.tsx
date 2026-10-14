@@ -1,4 +1,4 @@
-import { AddIcon, IconButton } from "@krelborn/stylesui";
+import { AddIcon, Button } from "@krelborn/stylesui";
 import { clsx } from "clsx";
 import type { JSX, MouseEvent, PointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -63,11 +63,10 @@ export function BlockCommentButton({
   return (
     <>
       {(isFocused || isPointedAt || isPointerInGutter) && !isFramed && <BlockTarget box={block} />}
-      {/* Its tooltip opens above it, clear of the bracket lane on its left and the comments' bars on its right, which the
-          tooltip would cover while the pointer moves onto it */}
-      <IconButton
+      {/* A Button rather than an IconButton, whose tooltip would cover the bracket lane or the comments' bars beside the
+          +; the frame around the block shows what the + is for */}
+      <Button
         className={clsx(styles.blockButton, { [styles.pickingBlockButton ?? ""]: isPointerInGutter })}
-        label="Comment on this block"
         onBlur={() => onFocusChange(false)}
         onClick={(event) => {
           if (!isDragClickRef.current) {
@@ -84,10 +83,11 @@ export function BlockCommentButton({
         size="sm"
         style={{ top: block.firstLineMiddle }}
         variant="ghost"
+        aria-label="Comment on this block"
         data-md-ignore=""
       >
-        <AddIcon />
-      </IconButton>
+        <AddIcon className={styles.blockButtonIcon} />
+      </Button>
     </>
   );
 }

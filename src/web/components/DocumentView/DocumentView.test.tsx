@@ -195,6 +195,18 @@ describe("DocumentView", () => {
     expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
   });
 
+  test("must name the + without a tooltip, which would cover the bracket lane or the comments' bars beside it", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await moveInGutter(user, 60);
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toBeInTheDocument();
+    expect(screen.queryByRole("tooltip", { hidden: true })).not.toBeInTheDocument();
+  });
+
   test("must keep the block framed when the pointer leaves the + while it has focus", async () => {
     const { render } = setUpTest();
     const user = userEvent.setup();

@@ -422,7 +422,13 @@
   block-size: var(--block-button-size);
   inline-size: var(--block-button-size);
   inset-inline-start: calc(var(--gutter-size) - var(--block-button-gap));
+  padding: 0;
   translate: -100% -50%;
+}
+
+/* As large as StylesUI's IconButton draws its icon */
+.blockButtonIcon {
+  font-size: 1.25em;
 }
 
 /* Opaque, so that the gutter's bar does not show through it */

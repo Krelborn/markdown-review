@@ -171,10 +171,8 @@ test("must start a comment quoting the whole table when the user moves from the 
   page,
   review,
 }) => {
-  // Wide enough for the +'s tooltip to fit left of the +, over the bracket lane, were it to open there
-  await page.setViewportSize({ height: 720, width: 1800 });
   const rows = await openTableDocument(page, review);
-  const button = await showBlockButtonTooltip(page, rows.nth(1));
+  const button = await restOnBlockButton(page, rows.nth(1));
 
   await clickBracketLane(page, button.y + button.height / 2, "Comment on the table");
 
@@ -188,7 +186,7 @@ test("must select a comment on a section when the user moves from the + to the c
   await openSectionsDocument(review);
   await writeSectionComment(page, "Goals", "Rethink these goals.");
   const secondGoal = page.getByRole("article", { name: "docs/plan.md" }).getByText("Second goal.");
-  const button = await showBlockButtonTooltip(page, secondGoal);
+  const button = await restOnBlockButton(page, secondGoal);
   const bar = await boxOf(page.getByTestId("thread-bar"));
 
   await page.mouse.click(bar.x + bar.width / 2, button.y + button.height / 2);
@@ -643,11 +641,11 @@ async function pointInGutterBeside(page: Page, element: Locator): Promise<{ x: n
 }
 
 /**
- * Points at the + beside the element until the +'s tooltip shows
+ * Points at the + beside the element, and rests there for as long as StylesUI takes to show a tooltip, 400ms
  *
  * @returns where the + is on the page
  */
-async function showBlockButtonTooltip(
+async function restOnBlockButton(
   page: Page,
   element: Locator
 ): Promise<{ height: number; width: number; x: number; y: number }> {
@@ -655,7 +653,7 @@ async function showBlockButtonTooltip(
   await page.mouse.move(beside.x, beside.y);
   const button = page.getByRole("button", { name: "Comment on this block" });
   await button.hover();
-  await expect(page.getByRole("tooltip", { name: "Comment on this block" })).toBeVisible();
+  await page.waitForTimeout(500);
   return boxOf(button);
 }
 
