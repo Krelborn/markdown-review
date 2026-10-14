@@ -9,6 +9,8 @@ permissions: {}
 
 jobs:
   deploy:
+    # By hand only from main: a release deploys from its tag through publish.yml
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency:
       group: pages
@@ -22,11 +24,10 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    env:
-      # .npmrc reads it to install @krelborn/stylesui, whose stylesheet site/stylesui.css links to
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v6
 
@@ -36,6 +37,9 @@ jobs:
           node-version: 22
 
       - run: pnpm install --frozen-lockfile --ignore-scripts
+        env:
+          # .npmrc reads it to install @krelborn/stylesui, whose stylesheet site/stylesui.css links to
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/configure-pages@v6
 

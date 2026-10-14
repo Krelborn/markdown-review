@@ -45,6 +45,16 @@ describe("findInstalledSkills", () => {
       { directory: "claude", isGlobal: true, path: skillInstallPath(home, "claude"), version: null },
     ]);
   });
+
+  test("must leave out a copy when it cannot be read", async () => {
+    const { home, install, root } = setUpTest();
+    await mkdir(skillInstallPath(root, "claude"), { recursive: true });
+    await install(root, "agents", skill);
+
+    expect(await findInstalledSkills(root, home)).toEqual([
+      { directory: "agents", isGlobal: false, path: skillInstallPath(root, "agents"), version: null },
+    ]);
+  });
 });
 
 function setUpTest() {

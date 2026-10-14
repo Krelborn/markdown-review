@@ -257,7 +257,7 @@
         <p>
           It writes the skill to two places, <code>~/.claude/skills</code> and <code>~/.agents/skills</code>, or without
           <code>--global</code> to <code>.claude/skills</code> and <code>.agents/skills</code> in the repository, so
-          that every agent finds it:
+          that each of these agents finds it:
         </p>
         <div class="table-scroll">
           <table>
@@ -277,8 +277,12 @@
                 <td><code>.agents/skills</code></td>
               </tr>
               <tr>
-                <td>OpenCode, Cursor, GitHub Copilot</td>
+                <td>OpenCode, Cursor</td>
                 <td>Both</td>
+              </tr>
+              <tr>
+                <td>GitHub Copilot</td>
+                <td>Both in the repository, <code>~/.agents/skills</code> with <code>--global</code></td>
               </tr>
             </tbody>
           </table>

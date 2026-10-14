@@ -54,6 +54,8 @@ jobs:
   publish:
     needs: verify
     runs-on: ubuntu-latest
+    # npm's trusted publisher accepts only this environment, so the site job's OIDC token cannot publish
+    environment: npm
     permissions:
       contents: read
       # Install @krelborn/stylesui from GitHub Packages
