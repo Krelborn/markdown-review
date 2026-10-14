@@ -51,7 +51,7 @@ markdown-review install-skill            # into this repository's .claude/skills
 markdown-review install-skill --global   # into ~/.claude/skills and ~/.agents/skills, for every repository
 ```
 
-Claude Code reads `.claude/skills`; Codex, Gemini CLI and most other agents read `.agents/skills`. Agents that read both, such as OpenCode, Cursor and GitHub Copilot, find the skill in each. To write just one copy, add `--only claude` or `--only agents`. The skill loads when an agent session starts, so start a new session after installing it.
+Claude Code reads `.claude/skills`; Codex, Gemini CLI and most other agents read `.agents/skills`. Agents that read both, such as OpenCode, Cursor and, in a repository, GitHub Copilot, find the skill in each. To write just one copy, add `--only claude` or `--only agents`. The skill loads when an agent session starts, so start a new session after installing it.
 
 ## Usage
 
