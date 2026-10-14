@@ -26,6 +26,11 @@ export interface HoveredBlock {
 }
 
 /**
+ * Where the pointer is, and the element under it
+ */
+type PointerPlace = Pick<MouseEvent, "clientX" | "clientY" | "target">;
+
+/**
  * A block the pointer picked, in the rendering it picked it in
  */
 interface PickedBlock {
@@ -56,7 +61,7 @@ export interface HoveredBlockOptions {
  * Follows the block the + sits beside, so the view can offer a comment on the whole block: the block the pointer
  * picks, or while the + has the focus the last one it picked; it is measured again whenever the content's layout
  * changes. The pointer picks the block it is over, and beside the doc, in the gutter or on the markers' side, or over
- * the doc between blocks, the block level with it.
+ * the doc between blocks, the block level with it; it picks again when the doc scrolls under it.
  *
  * @returns the block the + sits beside, or null when the pointer has left the view and the + is not held, or when the
  *   doc has rendered again since the pointer picked the block, as the block may have moved or be another block now
@@ -70,6 +75,8 @@ export function useHoveredBlock(
   const [pointed, setPointed] = useState<PickedBlock | null>(null);
   // Kept while the + is pinned, so the + moves to the block under the pointer when the drag that pinned it ends
   const lastPickedRef = useRef<PickedBlock | null>(null);
+  // Where the pointer last moved over the view, or null once it has left
+  const lastPointRef = useRef<Pick<PointerPlace, "clientX" | "clientY"> | null>(null);
   const [isPointerInView, setIsPointerInView] = useState(false);
   const [isPointerInGutter, setIsPointerInGutter] = useState(false);
   const [isPointerInBracketLane, setIsPointerInBracketLane] = useState(false);
@@ -89,16 +96,15 @@ export function useHoveredBlock(
     if (!isPinned && lastPicked?.rendered === rendered) {
       pick(lastPicked);
     }
-    const point = (event: MouseEvent): void => {
+    const pointAt = (place: PointerPlace): void => {
+      const { clientX, target } = place;
       const contentBox = content.getBoundingClientRect();
-      const isOnBar = event.target instanceof Element && event.target.closest("[data-thread-bar]") !== null;
-      const isInGutter = event.clientX < contentBox.left && !isOnBar;
-      const isBesideContent = isInGutter || event.clientX > contentBox.right;
-      const index = isOnBar ? null : pickedBlockIndex(event, content, isBesideContent, blockIndexLevelWith);
+      const isOnBar = target instanceof Element && target.closest("[data-thread-bar]") !== null;
+      const isInGutter = clientX < contentBox.left && !isOnBar;
+      const isBesideContent = isInGutter || clientX > contentBox.right;
+      const index = isOnBar ? null : pickedBlockIndex(place, content, isBesideContent, blockIndexLevelWith);
       setIsPointerInGutter(isInGutter);
-      setIsPointerInBracketLane(
-        event.target instanceof Element && event.target.closest("[data-bracket-lane]") !== null
-      );
+      setIsPointerInBracketLane(target instanceof Element && target.closest("[data-bracket-lane]") !== null);
       if (index === null) {
         return;
       }
@@ -108,18 +114,33 @@ export function useHoveredBlock(
         pick({ index, rendered });
       }
     };
+    const point = (event: MouseEvent): void => {
+      lastPointRef.current = { clientX: event.clientX, clientY: event.clientY };
+      pointAt(event);
+    };
     const leave = (): void => {
+      lastPointRef.current = null;
       setIsPointerInView(false);
       setIsPointerInGutter(false);
       setIsPointerInBracketLane(false);
     };
+    // Scrolling moves the doc under a pointer that fires no event where it stays over the same element, such as the
+    // gutter, so the pointer picks again
+    const scroll = (): void => {
+      const lastPoint = lastPointRef.current;
+      if (lastPoint !== null) {
+        pointAt({ ...lastPoint, target: document.elementFromPoint(lastPoint.clientX, lastPoint.clientY) });
+      }
+    };
     view.addEventListener("mouseover", point);
     view.addEventListener("mousemove", point);
     view.addEventListener("mouseleave", leave);
+    document.addEventListener("scroll", scroll, { capture: true, passive: true });
     return () => {
       view.removeEventListener("mouseover", point);
       view.removeEventListener("mousemove", point);
       view.removeEventListener("mouseleave", leave);
+      document.removeEventListener("scroll", scroll, { capture: true });
     };
   }, [blockIndexLevelWith, contentRef, isPinned, rendered, viewRef]);
   const blockIndex =
@@ -138,15 +159,15 @@ export function useHoveredBlock(
  *   Comment beside a selection
  */
 function pickedBlockIndex(
-  event: MouseEvent,
+  place: PointerPlace,
   content: Element,
   isBesideContent: boolean,
   blockIndexLevelWith: (clientY: number) => number | null
 ): number | null {
-  const target = event.target instanceof Node && content.contains(event.target) ? event.target : null;
+  const target = place.target instanceof Node && content.contains(place.target) ? place.target : null;
   if (!isBesideContent && target === null) {
     return null;
   }
   const block = isBesideContent || target === null ? null : blockElementAt(content, target);
-  return block === null ? blockIndexLevelWith(event.clientY) : Number(block.getAttribute("data-md-block"));
+  return block === null ? blockIndexLevelWith(place.clientY) : Number(block.getAttribute("data-md-block"));
 }

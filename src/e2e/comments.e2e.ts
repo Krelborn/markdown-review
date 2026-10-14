@@ -167,6 +167,31 @@ test("must start a comment quoting the whole table when the user ⌥-clicks the 
   await expectWholeTableQuoted(page);
 });
 
+test("must start a comment quoting the list when the doc scrolls the list under a still pointer in the bracket lane", async ({
+  page,
+  review,
+}) => {
+  await review.writeDocument(
+    "docs/plan.md",
+    withParagraphs("# Plan\n\n| Setting | Value |\n| --- | --- |\n| ttl | 24h |\n\n- First item\n- Second item", 40)
+  );
+  await review.open("docs/plan.md");
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+  const row = await boxOf(article.getByRole("row").nth(1));
+  const item = await boxOf(article.getByText("First item"));
+  const lane = await boxOf(page.getByTestId("bracket-lane"));
+  await page.mouse.move(lane.x + lane.width / 2, row.y + row.height / 2);
+  await expect(page.getByTestId("block-target")).toContainText("Comment on the table");
+
+  await page.getByRole("main").evaluate((main, distance) => main.scrollBy(0, distance), item.y - row.y);
+  await expect(page.getByTestId("block-target")).toContainText("Comment on the list");
+  await page.mouse.down();
+  await page.mouse.up();
+
+  await expect(newCommentQuote(page)).toContainText("First item");
+  await expect(newCommentQuote(page)).not.toContainText("ttl");
+});
+
 test("must start a comment quoting the whole table when the user moves from the + to the bracket beside it", async ({
   page,
   review,

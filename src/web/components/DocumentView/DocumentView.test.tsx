@@ -88,6 +88,7 @@ const goalsPassage: NewPassageAnchor = {
 
 afterEach(() => {
   Reflect.deleteProperty(document, "caretPositionFromPoint");
+  Reflect.deleteProperty(document, "elementFromPoint");
   vi.restoreAllMocks();
 });
 
@@ -526,6 +527,24 @@ describe("DocumentView", () => {
       });
     }
   );
+
+  test("must start a comment on the structure level with the pointer when the doc scrolls under the pointer in the bracket lane", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    const coords = { clientX: 4, clientY: 60 };
+    await user.pointer({ coords, target: elements.bracketLane() });
+    Object.assign(document, { elementFromPoint: () => elements.bracketLane() });
+
+    layOutBlocks(50);
+    fireEvent.scroll(document);
+    await user.pointer({ coords, keys: "[MouseLeft]", target: elements.bracketLane() });
+
+    expect(onComment).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ anchor: expect.objectContaining({ quote: "Goals\nRetries happen three times." }) })
+    );
+  });
 
   test("must frame the structure and name it when the pointer is in the bracket lane", async () => {
     const { render } = setUpTest();
@@ -1493,10 +1512,16 @@ function moveBlockOf(text: HTMLElement, top: number): void {
 /**
  * Lays the plan out with the doc 40px from the view's left edge and its blocks 30px, 24px, 38px and 24px tall at 0px,
  * 54px, 94px and 140px down
+ *
+ * @param scrolledBy how far the doc has scrolled, which moves the view and everything in it up the page by as much
  */
-function layOutBlocks(): void {
+function layOutBlocks(scrolledBy = 0): void {
   const article = elements.article();
-  vi.spyOn(article, "getBoundingClientRect").mockReturnValue(new DOMRect(40, 0, 600, 164));
+  const view = article.parentElement;
+  if (view !== null) {
+    vi.spyOn(view, "getBoundingClientRect").mockReturnValue(new DOMRect(0, -scrolledBy));
+  }
+  vi.spyOn(article, "getBoundingClientRect").mockReturnValue(new DOMRect(40, -scrolledBy, 600, 164));
   const blocks = [
     { text: within(article).getByRole("heading", { level: 1, name: "Plan" }), top: 0, height: 30 },
     { text: within(article).getByText("We cache results for", { exact: false }), top: 54, height: 24 },
@@ -1506,7 +1531,7 @@ function layOutBlocks(): void {
   for (const { height, text, top } of blocks) {
     const block = text.closest("[data-md-block]");
     if (block !== null) {
-      vi.spyOn(block, "getBoundingClientRect").mockReturnValue(new DOMRect(40, top, 600, height));
+      vi.spyOn(block, "getBoundingClientRect").mockReturnValue(new DOMRect(40, top - scrolledBy, 600, height));
     }
   }
 }
