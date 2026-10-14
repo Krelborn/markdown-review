@@ -34,7 +34,8 @@
     "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
     "prepare": "husky",
     "prepublishOnly": "pnpm build",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "screenshots": "playwright test --config playwright.screenshots.config.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.4",
