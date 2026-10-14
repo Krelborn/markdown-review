@@ -217,18 +217,23 @@ test("must frame the section when the user points at the card of a comment on it
   await expect.poll(() => isFramed(page, article.getByText("None yet."))).toBe(false);
 });
 
-test("must draw a section's name over the frame of the comment being written on it when the user points at its bracket again", async ({
+test("must draw a section's name over the frame of the comment being written on it, even as the frames fade in, when the user points at the section's bracket", async ({
   page,
   review,
 }) => {
   await openSectionsDocument(review);
+  // Frames fade in for the whole test, so the check falls inside the fade, while each frame is drawn on its own
+  await page.evaluate(() => {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync("[data-testid='block-target'] { animation-duration: 1h !important; }");
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+  });
   const beside = await pointInGutterBeside(
     page,
     page.getByRole("article", { name: "docs/plan.md" }).getByRole("heading", { name: "Goals" })
   );
-  const clicked = await clickBracketLane(page, beside.y, "Comment on the section “Goals”");
 
-  await page.mouse.move(clicked.x, clicked.y + 4);
+  await clickBracketLane(page, beside.y, "Comment on the section “Goals”");
 
   const label = page.getByText("Comment on the section “Goals”");
   await expect(label).toBeVisible();
@@ -655,13 +660,12 @@ async function showBlockButtonTooltip(
 }
 
 /**
- * @returns whether nothing is drawn over the middle of the element once the frames have faded in; the frames, which
- *   the pointer passes through, take it for the check, so that hit testing finds them
+ * @returns whether the element is drawn over everything else at its middle. Hit testing finds only what takes the
+ *   pointer, which frames let through, so the frames take it for the check.
  */
 function isDrawnOnTop(element: Locator): Promise<boolean> {
-  return element.evaluate(async (node) => {
+  return element.evaluate((node) => {
     const frames = [...document.querySelectorAll<HTMLElement>("[data-testid='block-target']")];
-    await Promise.all(frames.flatMap((frame) => frame.getAnimations().map((animation) => animation.finished)));
     for (const frame of frames) {
       frame.style.pointerEvents = "auto";
     }

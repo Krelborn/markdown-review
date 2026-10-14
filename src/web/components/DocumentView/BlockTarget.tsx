@@ -32,7 +32,10 @@ export interface BlockTargetProps {
 export function BlockTarget({ box, label, tone = "primary" }: BlockTargetProps): JSX.Element {
   return (
     <div
-      className={clsx(styles.blockTarget, { [styles.warningBlockTarget ?? ""]: tone === "warning" })}
+      className={clsx(styles.blockTarget, {
+        [styles.labelledBlockTarget ?? ""]: label !== undefined,
+        [styles.warningBlockTarget ?? ""]: tone === "warning",
+      })}
       style={{
         height: box.height + 2 * verticalOutset,
         left: box.left - horizontalOutset,
