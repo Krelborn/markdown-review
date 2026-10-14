@@ -21,8 +21,23 @@ const markdown = createMarkdownIt();
  */
 export function parseBlocks(source: string): MarkdownBlock[] {
   const tokens = markdown.parse(source, {});
+  return blocksFromTokens(tokens, findLeafBlocks(tokens, source), source);
+}
+
+/**
+ * Reads the leaf blocks of a doc that is parsed already, as `parseBlocks` does
+ *
+ * @param tokens the token stream `createMarkdownIt` parsed the doc into
+ * @param leafBlocks the doc's leaf blocks, as `findLeafBlocks` finds them in the tokens
+ * @param source the markdown source
+ */
+export function blocksFromTokens(
+  tokens: readonly Token[],
+  leafBlocks: readonly LeafBlock[],
+  source: string
+): MarkdownBlock[] {
   const sourceLines = source.split(/\r\n?|\n/);
-  return findLeafBlocks(tokens, source).map((leafBlock) => {
+  return leafBlocks.map((leafBlock) => {
     const block = toMarkdownBlock(tokens, leafBlock);
     return block.text === "" ? toSourceTextBlock(block, sourceLines) : block;
   });

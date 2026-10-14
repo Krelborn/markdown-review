@@ -2,7 +2,16 @@ import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
 import type { ReviewFixture } from "./testing/reviewTest";
-import { boxOf, highlightedText, selectText, submitDrafts, test, writeDraftComment } from "./testing/reviewTest";
+import {
+  boxOf,
+  highlightedText,
+  saveNewComment,
+  selectText,
+  submitDrafts,
+  test,
+  withParagraphs,
+  writeDraftComment,
+} from "./testing/reviewTest";
 
 test("must ask about the first comment's text, then save it and start the next, when the user starts another comment", async ({
   page,
@@ -77,6 +86,181 @@ test("must start a comment on a block when the user clicks the gutter beside it"
   await expect(
     page.getByRole("region", { name: "New comment" }).getByText("Retries happen three times.")
   ).toBeVisible();
+});
+
+test("must start a comment quoting the rows the user drags over in the gutter", async ({ page, review }) => {
+  const rows = await openTableDocument(page, review);
+
+  await dragDownRows(page, rows);
+  await page.mouse.up();
+
+  await expect(newCommentQuote(page)).toContainText("ttl");
+  await expect(newCommentQuote(page)).toContainText("backoff");
+  await expect(newCommentQuote(page)).not.toContainText("Setting");
+  await expect(page.getByRole("button", { exact: true, name: "Comment" })).toBeHidden();
+});
+
+test("must scroll the doc column, and take in the blocks it brings into view, when the user drags to the column's bottom edge", async ({
+  page,
+  review,
+}) => {
+  await review.writeDocument("docs/plan.md", withParagraphs("# Plan", 60));
+  await review.open("docs/plan.md");
+  const column = page.getByRole("main");
+  const columnBox = await boxOf(column);
+  const from = await pointInGutterBeside(
+    page,
+    page.getByRole("article", { name: "docs/plan.md" }).getByText("Paragraph 1.", { exact: true })
+  );
+
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(from.x, columnBox.y + columnBox.height - 4, { steps: 5 });
+  await expect.poll(() => column.evaluate((main) => main.scrollTop)).toBeGreaterThan(600);
+  await page.mouse.up();
+
+  await expect(newCommentQuote(page)).toContainText("Paragraph 1.");
+  await expect(newCommentQuote(page)).toContainText("Paragraph 20.");
+});
+
+test("must clear the selected text, and Comment beside it, when the user starts a drag down the gutter", async ({
+  page,
+  review,
+}) => {
+  const rows = await openTableDocument(page, review);
+  await selectText(page, "After", "table.");
+  await expect(page.getByRole("button", { exact: true, name: "Comment" })).toBeVisible();
+
+  await dragDownRows(page, rows);
+
+  await expect(page.getByRole("button", { exact: true, name: "Comment" })).toBeHidden();
+  expect(await page.evaluate(() => getSelection()?.toString())).toBe("");
+  await page.mouse.up();
+});
+
+test("must start a comment quoting the whole table when the user clicks the bracket beside it", async ({
+  page,
+  review,
+}) => {
+  const rows = await openTableDocument(page, review);
+  const beside = await pointInGutterBeside(page, rows.nth(1));
+
+  await clickBracketLane(page, beside.y, "Comment on the table");
+
+  await expectWholeTableQuoted(page);
+});
+
+test("must start a comment quoting the whole table when the user ⌥-clicks the gutter beside a row", async ({
+  page,
+  review,
+}) => {
+  const rows = await openTableDocument(page, review);
+  const beside = await pointInGutterBeside(page, rows.nth(1));
+
+  await page.mouse.move(beside.x, beside.y);
+  await page.keyboard.down("Alt");
+  await expect(page.getByTestId("block-target")).toContainText("Comment on the table");
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.keyboard.up("Alt");
+
+  await expectWholeTableQuoted(page);
+});
+
+test("must start a comment quoting the list when the doc scrolls the list under a still pointer in the bracket lane", async ({
+  page,
+  review,
+}) => {
+  await review.writeDocument(
+    "docs/plan.md",
+    withParagraphs("# Plan\n\n| Setting | Value |\n| --- | --- |\n| ttl | 24h |\n\n- First item\n- Second item", 40)
+  );
+  await review.open("docs/plan.md");
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+  const row = await boxOf(article.getByRole("row").nth(1));
+  const item = await boxOf(article.getByText("First item"));
+  const lane = await boxOf(page.getByTestId("bracket-lane"));
+  await page.mouse.move(lane.x + lane.width / 2, row.y + row.height / 2);
+  await expect(page.getByTestId("block-target")).toContainText("Comment on the table");
+
+  await page.getByRole("main").evaluate((main, distance) => main.scrollBy(0, distance), item.y - row.y);
+  await expect(page.getByTestId("block-target")).toContainText("Comment on the list");
+  await page.mouse.down();
+  await page.mouse.up();
+
+  await expect(newCommentQuote(page)).toContainText("First item");
+  await expect(newCommentQuote(page)).not.toContainText("ttl");
+});
+
+test("must start a comment quoting the whole table when the user moves from the + to the bracket beside it", async ({
+  page,
+  review,
+}) => {
+  const rows = await openTableDocument(page, review);
+  const button = await restOnBlockButton(page, rows.nth(1));
+
+  await clickBracketLane(page, button.y + button.height / 2, "Comment on the table");
+
+  await expectWholeTableQuoted(page);
+});
+
+test("must select a comment on a section when the user moves from the + to the comment's bar and clicks it", async ({
+  page,
+  review,
+}) => {
+  await openSectionsDocument(review);
+  await writeSectionComment(page, "Goals", "Rethink these goals.");
+  const secondGoal = page.getByRole("article", { name: "docs/plan.md" }).getByText("Second goal.");
+  const button = await restOnBlockButton(page, secondGoal);
+  const bar = await boxOf(page.getByTestId("thread-bar"));
+
+  await page.mouse.click(bar.x + bar.width / 2, button.y + button.height / 2);
+  await page.mouse.move(0, 0);
+
+  await expect.poll(() => isFramed(page, secondGoal)).toBe(true);
+});
+
+test("must show a bar, and no highlight, beside a saved comment on a section", async ({ page, review }) => {
+  await openSectionsDocument(review);
+
+  await writeSectionComment(page, "Goals", "Rethink these goals.");
+
+  await expect(page.getByTestId("thread-bar")).toBeVisible();
+  await expect.poll(() => highlightedText(page)).toEqual([]);
+});
+
+test("must frame the section when the user points at the card of a comment on it", async ({ page, review }) => {
+  await openSectionsDocument(review);
+  await writeSectionComment(page, "Goals", "Rethink these goals.");
+
+  await page.getByRole("region", { name: "Drafts" }).getByRole("article").hover();
+
+  const article = page.getByRole("article", { name: "docs/plan.md" });
+  await expect.poll(() => isFramed(page, article.getByText("Second goal."))).toBe(true);
+  await expect.poll(() => isFramed(page, article.getByText("None yet."))).toBe(false);
+});
+
+test("must draw a section's name over the frame of the comment being written on it, even as the frames fade in, when the user points at the section's bracket", async ({
+  page,
+  review,
+}) => {
+  await openSectionsDocument(review);
+  // Frames fade in for the whole test, so the check falls inside the fade, while each frame is drawn on its own
+  await page.evaluate(() => {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync("[data-testid='block-target'] { animation-duration: 1h !important; }");
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+  });
+  const beside = await pointInGutterBeside(
+    page,
+    page.getByRole("article", { name: "docs/plan.md" }).getByRole("heading", { name: "Goals" })
+  );
+
+  await clickBracketLane(page, beside.y, "Comment on the section “Goals”");
+
+  const label = page.getByText("Comment on the section “Goals”");
+  await expect(label).toBeVisible();
+  expect(await isDrawnOnTop(label)).toBe(true);
 });
 
 test("must put the + beside a list item when the user points beside the item's text", async ({ page, review }) => {
@@ -382,15 +566,139 @@ function overflowOf(element: Locator): Promise<number> {
 }
 
 /**
- * @returns the point in the gutter, near its left edge and clear of the +, that is level with the middle of the element
+ * @returns the point in the gutter, relative to it, just left of the prose and clear of the + and the bracket lane, that
+ *   is level with the middle of the element
  */
 async function gutterBeside(page: Page, element: Locator): Promise<{ x: number; y: number }> {
-  const gutter = await page.getByTestId("block-gutter").boundingBox();
-  const box = await element.boundingBox();
-  if (gutter === null || box === null) {
-    throw new Error("The gutter and the element must be on the page");
-  }
-  return { x: 2, y: box.y + box.height / 2 - gutter.y };
+  const gutter = await boxOf(page.getByTestId("block-gutter"));
+  const point = await pointInGutterBeside(page, element);
+  return { x: point.x - gutter.x, y: point.y - gutter.y };
+}
+
+/**
+ * Opens a doc holding a heading, a table of three rows under a header row, and a paragraph
+ *
+ * @returns the table's rows, the header row first
+ */
+async function openTableDocument(page: Page, review: ReviewFixture): Promise<Locator> {
+  await review.writeDocument(
+    "docs/plan.md",
+    "# Plan\n\n| Setting | Value |\n| --- | --- |\n| ttl | 24h |\n| retries | 3 |\n| backoff | 2s |\n\nAfter the table.\n"
+  );
+  await review.open("docs/plan.md");
+  return page.getByRole("article", { name: "docs/plan.md" }).getByRole("row");
+}
+
+function newCommentQuote(page: Page): Locator {
+  return page.getByRole("region", { name: "New comment" }).getByRole("blockquote");
+}
+
+/**
+ * Expects the new comment to quote every row of the table `openTableDocument` opens, and nothing after it
+ */
+async function expectWholeTableQuoted(page: Page): Promise<void> {
+  await expect(newCommentQuote(page)).toContainText("Setting");
+  await expect(newCommentQuote(page)).toContainText("backoff");
+  await expect(newCommentQuote(page)).not.toContainText("After the table.");
+}
+
+/**
+ * Presses the main button in the gutter beside the first row under the header of the table `openTableDocument` opens,
+ * and moves down to the third without letting go
+ *
+ * @param rows the table's rows, the header row first
+ */
+async function dragDownRows(page: Page, rows: Locator): Promise<void> {
+  const from = await pointInGutterBeside(page, rows.nth(1));
+  const to = await pointInGutterBeside(page, rows.nth(3));
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 5 });
+}
+
+/**
+ * Opens a doc of three sections: a title over an intro, and two headings over their paragraphs
+ */
+async function openSectionsDocument(review: ReviewFixture): Promise<void> {
+  await review.writeDocument(
+    "docs/plan.md",
+    "# Plan\n\nIntro.\n\n## Goals\n\nRetries happen three times.\n\nSecond goal.\n\n## Risks\n\nNone yet.\n"
+  );
+  await review.open("docs/plan.md");
+}
+
+/**
+ * Comments on the section under a heading from the bracket beside it, and saves the comment as a draft
+ */
+async function writeSectionComment(page: Page, heading: string, body: string): Promise<void> {
+  const beside = await pointInGutterBeside(
+    page,
+    page.getByRole("article", { name: "docs/plan.md" }).getByRole("heading", { name: heading })
+  );
+  await clickBracketLane(page, beside.y, `Comment on the section “${heading}”`);
+  await saveNewComment(page, body);
+}
+
+/**
+ * Clicks the bracket lane at the given distance down the page once the lane offers a comment on the structure there
+ *
+ * @param label how the frame around the structure names it, such as "Comment on the table"
+ * @returns where the click was on the page
+ */
+async function clickBracketLane(page: Page, y: number, label: string): Promise<{ x: number; y: number }> {
+  const lane = await boxOf(page.getByTestId("bracket-lane"));
+  const point = { x: lane.x + lane.width / 2, y };
+  await page.mouse.move(point.x, point.y);
+  await expect(page.getByTestId("block-target")).toContainText(label);
+  await page.mouse.down();
+  await page.mouse.up();
+  return point;
+}
+
+/**
+ * @returns the point on the page in the gutter, just left of the prose and clear of the +, that is level with the middle
+ *   of the element
+ */
+async function pointInGutterBeside(page: Page, element: Locator): Promise<{ x: number; y: number }> {
+  const gutter = await boxOf(page.getByTestId("block-gutter"));
+  const box = await boxOf(element);
+  return { x: gutter.x + gutter.width - 6, y: box.y + box.height / 2 };
+}
+
+/**
+ * Points at the + beside the element, and rests there for as long as StylesUI takes to show a tooltip, 400ms
+ *
+ * @returns where the + is on the page
+ */
+async function restOnBlockButton(
+  page: Page,
+  element: Locator
+): Promise<{ height: number; width: number; x: number; y: number }> {
+  const beside = await pointInGutterBeside(page, element);
+  await page.mouse.move(beside.x, beside.y);
+  const button = page.getByRole("button", { name: "Comment on this block" });
+  await button.hover();
+  await page.waitForTimeout(500);
+  return boxOf(button);
+}
+
+/**
+ * @returns whether the element is drawn over everything else at its middle. Hit testing finds only what takes the
+ *   pointer, which frames let through, so the frames take it for the check.
+ */
+function isDrawnOnTop(element: Locator): Promise<boolean> {
+  return element.evaluate((node) => {
+    const frames = [...document.querySelectorAll<HTMLElement>("[data-testid='block-target']")];
+    for (const frame of frames) {
+      frame.style.pointerEvents = "auto";
+    }
+    const box = node.getBoundingClientRect();
+    const topmost = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+    for (const frame of frames) {
+      frame.style.pointerEvents = "";
+    }
+    return topmost === node;
+  });
 }
 
 /**

@@ -1,34 +1,50 @@
 import { clsx } from "clsx";
-import type { JSX } from "react";
+import type { JSX, MouseEvent, PointerEvent } from "react";
+import { useRef } from "react";
 
 import { verticalOutset } from "./BlockTarget";
 import styles from "./DocumentView.module.css";
-import type { HoveredBlock } from "./useHoveredBlock";
+import type { SpanBox } from "./SpanBox";
 
 export interface BlockGutterProps {
   /**
-   * The block the + sits beside, or null
+   * Called with the click when the user clicks in the gutter, unless the press started a drag; with ⌥ held, a click
+   * picks the structure around the block level with it
    */
-  hoveredBlock: HoveredBlock | null;
+  onClick: (event: MouseEvent<HTMLDivElement>) => void;
 
   /**
-   * Called with the distance down the page the user clicks the gutter at, to start a comment on the block level with
-   * it
+   * Called when the user presses in the gutter, to start a drag down it from the block level with the press
+   *
+   * @returns whether a drag started, which starts the comment when the user releases it, in place of the click
    */
-  onComment: (clientY: number) => void;
+  onDragStart: (event: PointerEvent<HTMLDivElement>) => boolean;
+
+  /**
+   * The blocks the gutter picks, which its bar runs beside, or null
+   */
+  pickedBox: SpanBox | null;
 }
 
 /**
- * The strip down the left of the doc, where the pointer picks the block level with it: while the pointer is in it, it
- * shows a track and a bar beside that block, and a click in it starts a comment on the block
+ * The strip down the left of the doc, where the pointer picks the block level with it: while it picks blocks, it shows
+ * a track and a bar beside them
  */
-export function BlockGutter({ hoveredBlock, onComment }: BlockGutterProps): JSX.Element {
-  const pickedBox = hoveredBlock?.isPointerInGutter === true ? hoveredBlock.box : null;
+export function BlockGutter({ onClick, onDragStart, pickedBox }: BlockGutterProps): JSX.Element {
+  const isDragClickRef = useRef(false);
   return (
     // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- the + is the control for keyboards and screen readers; the gutter only widens its target for the pointer
     <div
       className={clsx(styles.gutter, { [styles.pickingGutter ?? ""]: pickedBox !== null })}
-      onClick={(event) => onComment(event.clientY)}
+      onClick={(event) => {
+        if (!isDragClickRef.current) {
+          onClick(event);
+        }
+        isDragClickRef.current = false;
+      }}
+      onPointerDown={(event) => {
+        isDragClickRef.current = onDragStart(event);
+      }}
       aria-hidden="true"
       data-md-ignore=""
       data-testid="block-gutter"

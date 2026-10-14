@@ -1,6 +1,6 @@
-// jsdom lays nothing out, so it has no ResizeObserver, no geometry for ranges, no caret at a point and no scrolling;
-// these stand-ins let components that measure or scroll the page run, with every box empty and at the top left and no
-// text under any point
+// jsdom lays nothing out, so it has no ResizeObserver, no geometry for ranges, no caret or element at a point and no
+// scrolling; these stand-ins let components that measure or scroll the page run, with every box empty and at the top
+// left and nothing under any point
 
 class StandInResizeObserver {
   public disconnect(): void {}
@@ -19,3 +19,5 @@ Range.prototype.getClientRects = () => Object.assign([], { item: () => null });
 Element.prototype.scrollIntoView = () => {};
 
 Document.prototype.caretPositionFromPoint = () => null;
+
+Document.prototype.elementFromPoint = () => null;

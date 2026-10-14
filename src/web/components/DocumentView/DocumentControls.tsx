@@ -1,33 +1,30 @@
-import { Button } from "@krelborn/stylesui";
 import type { JSX } from "react";
 
 import type { DocumentSource } from "../../../shared/api/apiResponseSchemas";
+import type { BlockSpan } from "../../../shared/markdown/BlockSpan";
 import { blockPassage } from "../../anchoring/blockPassage";
 import type { NewComment } from "../../review/NewComment";
 
-import type { BlockBox } from "./BlockBox";
-import { BlockCommentButton } from "./BlockCommentButton";
-import { BlockGutter } from "./BlockGutter";
-import { BlockTarget } from "./BlockTarget";
-import styles from "./DocumentView.module.css";
+import { GutterControls } from "./GutterControls";
+import { SelectionCommentButton } from "./SelectionCommentButton";
+import { ThreadBars } from "./ThreadBars";
 import { ThreadMarkers } from "./ThreadMarkers";
+import type { GutterDrag } from "./useGutterDrag";
 import type { HoveredBlock } from "./useHoveredBlock";
+import type { OfferedStructure } from "./useOfferedStructure";
+import type { PendingSpan } from "./usePendingSpan";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
+import type { ThreadBar } from "./measureThreadBars";
 import type { ThreadMarker } from "./useThreadHighlights";
 
 export interface DocumentControlsProps {
   /**
-   * Finds the block level with a distance down the page, as the gutter picks it
-   *
-   * @returns the block's index, or null when no block takes up any height
-   */
-  blockIndexLevelWith: (clientY: number) => number | null;
-
-  /**
    * The doc as the server sent it
    */
   document: DocumentSource;
+
+  gutterDrag: GutterDrag;
 
   /**
    * The block the + sits beside, or null
@@ -42,6 +39,11 @@ export interface DocumentControlsProps {
   markers: ThreadMarker[];
 
   /**
+   * The structure the gutter offers a comment on, or null
+   */
+  offeredStructure: OfferedStructure | null;
+
+  /**
    * Called when the + gains or loses the keyboard focus
    */
   onBlockButtonFocusChange: (isFocused: boolean) => void;
@@ -50,9 +52,9 @@ export interface DocumentControlsProps {
   onSelectThread: (threadId: number) => void;
 
   /**
-   * The block a whole-block comment is being written on, or null
+   * The blocks a comment on whole blocks is being written on, or null
    */
-  pendingBlock: BlockBox | null;
+  pendingSpan: PendingSpan | null;
 
   /**
    * The doc on the page, or null until it has rendered
@@ -61,31 +63,37 @@ export interface DocumentControlsProps {
 
   selectedThreadId: number | null;
   selectionComment: SelectionComment | null;
+
+  /**
+   * A bar beside the blocks of each highlighted comment on two or more whole blocks
+   */
+  threadBars: ThreadBar[];
 }
 
 /**
- * The controls laid over the rendered doc: the gutter down its left, + beside the block the pointer picks, a frame
- * around the block a comment is for, a numbered marker beside each thread's passage, and Comment beside the selected
- * text
+ * The controls laid over the rendered doc: the gutter down its left, with a bracket beside the structure it offers, +
+ * beside the block the pointer picks, a frame around the blocks a comment is for, a bar beside the blocks of each
+ * comment on several whole blocks, a numbered marker beside each thread's passage, and Comment beside the selected text
  */
 export function DocumentControls({
-  blockIndexLevelWith,
   document: shown,
+  gutterDrag,
   hoveredBlock,
   isBlockButtonFocused,
   markers,
+  offeredStructure,
   onBlockButtonFocusChange,
   onComment,
   onSelectThread,
-  pendingBlock,
+  pendingSpan,
   rendered,
   selectedThreadId,
   selectionComment,
+  threadBars,
 }: DocumentControlsProps): JSX.Element {
   // A comment is sent with the hash of the rendering it was made on, which lags the source while a newer one renders
-  const commentOnBlock = (blockIndex: number | null): void => {
-    const anchor =
-      rendered === null || blockIndex === null ? null : blockPassage(rendered.documentText, shown.path, blockIndex);
+  const commentOnSpan = (span: BlockSpan): void => {
+    const anchor = rendered === null ? null : blockPassage(rendered.documentText, shown.path, span);
     if (rendered !== null && anchor !== null) {
       onComment({ anchor, renderedHash: rendered.hash });
     }
@@ -96,34 +104,24 @@ export function DocumentControls({
   };
   return (
     <>
-      <BlockGutter hoveredBlock={hoveredBlock} onComment={(clientY) => commentOnBlock(blockIndexLevelWith(clientY))} />
-      {pendingBlock !== null && <BlockTarget box={pendingBlock} />}
-      {hoveredBlock !== null && (
-        <BlockCommentButton
-          block={hoveredBlock.box}
-          isFocused={isBlockButtonFocused}
-          isFramed={pendingBlock?.index === hoveredBlock.box.index}
-          isPointerInGutter={hoveredBlock.isPointerInGutter}
-          onComment={() => commentOnBlock(hoveredBlock.box.index)}
-          onFocusChange={onBlockButtonFocusChange}
-        />
-      )}
+      <GutterControls
+        gutterDrag={gutterDrag}
+        hoveredBlock={hoveredBlock}
+        isBlockButtonFocused={isBlockButtonFocused}
+        offeredStructure={offeredStructure}
+        onBlockButtonFocusChange={onBlockButtonFocusChange}
+        onComment={commentOnSpan}
+        pendingSpan={pendingSpan}
+      />
+      {/* While the user drags down the gutter, the drag's frame is the only one */}
+      <ThreadBars
+        bars={threadBars}
+        isFraming={gutterDrag.span === null}
+        onSelectThread={onSelectThread}
+        selectedThreadId={selectedThreadId}
+      />
       <ThreadMarkers markers={markers} onSelectThread={onSelectThread} selectedThreadId={selectedThreadId} />
-      {selectionComment !== null && (
-        <div className={styles.selectionLane} style={{ top: selectionComment.top }}>
-          {/* Reaches to where the selection ends, and gives way when Comment would pass the end of the lane */}
-          <span style={{ flexBasis: selectionComment.left }} />
-          <Button
-            className={styles.selectionButton}
-            onClick={() => commentOnSelection(selectionComment)}
-            onMouseDown={(event) => event.preventDefault()}
-            size="sm"
-            data-md-ignore=""
-          >
-            Comment
-          </Button>
-        </div>
-      )}
+      <SelectionCommentButton onComment={commentOnSelection} selectionComment={selectionComment} />
     </>
   );
 }

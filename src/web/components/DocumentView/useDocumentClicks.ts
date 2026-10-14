@@ -5,6 +5,7 @@ import type { Thread } from "../../../shared/review/threadSchema";
 import { offsetAtPoint } from "../../anchoring/offsetAtPoint";
 import { isPlainLeftClick } from "../../navigation/isPlainLeftClick";
 import { threadAtOffset } from "../../review/threadAtOffset";
+import { threadsOnText } from "../../review/threadsOnText";
 
 import { copyHeadingLink } from "./copyHeadingLink";
 import type { RenderedDocument } from "./useRenderedDocument";
@@ -16,7 +17,7 @@ export interface DocumentClickHandlers {
 
 /**
  * Handles clicks in the rendered doc: a link to a heading scrolls to it, a link to another doc shows that doc in the
- * page, and a click on highlighted text selects its thread
+ * page, and a click on text highlighted for a thread selects the thread
  *
  * @param highlightedThreads the threads whose passages are highlighted
  */
@@ -31,6 +32,7 @@ export function useDocumentClicks(
     if (content === null || rendered === null) {
       return;
     }
+    const threadsInText = threadsOnText(rendered.documentText, highlightedThreads);
     const click = (event: MouseEvent): void => {
       const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
       if (link !== null) {
@@ -44,7 +46,7 @@ export function useDocumentClicks(
         document.getSelection()?.isCollapsed === false
           ? null
           : offsetAtPoint(content, rendered.documentText, event.clientX, event.clientY);
-      const thread = offset === null ? null : threadAtOffset(highlightedThreads, offset);
+      const thread = offset === null ? null : threadAtOffset(threadsInText, offset);
       if (thread !== null) {
         onSelectThread(thread.id);
       }

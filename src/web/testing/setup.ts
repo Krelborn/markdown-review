@@ -5,6 +5,7 @@ import { afterEach } from "vitest";
 import "./standInForColorScheme";
 import "./standInForHighlights";
 import "./standInForLayout";
+import "./standInForPointerCapture";
 import "./standInForPopovers";
 
 // Testing Library only cleans up automatically when Vitest globals are on

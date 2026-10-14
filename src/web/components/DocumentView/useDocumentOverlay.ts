@@ -5,14 +5,20 @@ import type { NewPassageAnchor } from "../../../shared/review/newThreadSchema";
 import type { Thread } from "../../../shared/review/threadSchema";
 import { HoveredThreadContext } from "../../review/HoveredThreadContext";
 
-import type { BlockBox } from "./BlockBox";
+import { useBlockIndexLevelWith } from "./useBlockIndexLevelWith";
+import type { GutterDrag } from "./useGutterDrag";
+import { useGutterDrag } from "./useGutterDrag";
 import type { HoveredBlock } from "./useHoveredBlock";
 import { useHoveredBlock } from "./useHoveredBlock";
 import { useHoveredThread } from "./useHoveredThread";
-import { usePendingBlock } from "./usePendingBlock";
+import type { OfferedStructure } from "./useOfferedStructure";
+import { useOfferedStructure } from "./useOfferedStructure";
+import type { PendingSpan } from "./usePendingSpan";
+import { usePendingSpan } from "./usePendingSpan";
 import type { RenderedDocument } from "./useRenderedDocument";
 import type { SelectionComment } from "./useSelectionComment";
 import { useSelectionComment } from "./useSelectionComment";
+import type { ThreadBar } from "./measureThreadBars";
 import type { ThreadMarker } from "./useThreadHighlights";
 import { useThreadHighlights } from "./useThreadHighlights";
 
@@ -41,12 +47,7 @@ export interface DocumentOverlayOptions {
 }
 
 export interface DocumentOverlay {
-  /**
-   * Finds the block level with a distance down the page, as the gutter picks it
-   *
-   * @returns the block's index, or null when no block takes up any height
-   */
-  blockIndexLevelWith: (clientY: number) => number | null;
+  gutterDrag: GutterDrag;
 
   /**
    * The block the + sits beside: the block the pointer picks, or the + kept on its block while it has the focus; or
@@ -62,16 +63,27 @@ export interface DocumentOverlay {
   markers: ThreadMarker[];
 
   /**
-   * The block a whole-block comment is being written on, or null
+   * The structure the gutter offers a comment on, around the block it picks, or null when the pointer is not in the
+   * gutter or the user is dragging
    */
-  pendingBlock: BlockBox | null;
+  offeredStructure: OfferedStructure | null;
+
+  /**
+   * The blocks a comment on whole blocks is being written on, or null
+   */
+  pendingSpan: PendingSpan | null;
 
   selectionComment: SelectionComment | null;
+
+  /**
+   * A bar beside the blocks of each highlighted comment on two or more whole blocks
+   */
+  threadBars: ThreadBar[];
 }
 
 /**
- * Follows what is drawn over the rendered doc: the threads' highlights and markers, the thread and block under the
- * pointer, the block a comment is being written on, and the Comment button beside selected text
+ * Follows what is drawn over the rendered doc: the threads' highlights, markers and bars, the thread and block under the
+ * pointer, a drag down the gutter, the blocks a comment is being written on, and the Comment button beside selected text
  */
 export function useDocumentOverlay(
   viewRef: RefObject<HTMLElement | null>,
@@ -80,15 +92,38 @@ export function useDocumentOverlay(
   { documentPath, highlightedThreads, isBlockButtonFocused, pendingPassage, selectedThreadId }: DocumentOverlayOptions
 ): DocumentOverlay {
   const { hoveredThreadId, onHoverThread } = useContext(HoveredThreadContext);
-  const markers = useThreadHighlights(viewRef, contentRef, rendered, {
+  const blockIndexLevelWith = useBlockIndexLevelWith(viewRef, contentRef, rendered);
+  const gutterDrag = useGutterDrag(viewRef, contentRef, rendered, blockIndexLevelWith);
+  const { bars: threadBars, markers } = useThreadHighlights(viewRef, contentRef, rendered, {
     hoveredThreadId,
-    pendingPassage,
+    // A drag picks new blocks for the comment, so the passage it would replace is not highlighted until the drag ends
+    pendingPassage: gutterDrag.span === null ? pendingPassage : null,
     selectedThreadId,
     threads: highlightedThreads,
   });
   const isPointingAtHighlight = useHoveredThread(viewRef, contentRef, rendered, highlightedThreads, onHoverThread);
   const selectionComment = useSelectionComment(viewRef, contentRef, rendered, documentPath);
-  const { blockIndexLevelWith, hoveredBlock } = useHoveredBlock(viewRef, contentRef, rendered, isBlockButtonFocused);
-  const pendingBlock = usePendingBlock(viewRef, contentRef, rendered, pendingPassage);
-  return { blockIndexLevelWith, hoveredBlock, isPointingAtHighlight, markers, pendingBlock, selectionComment };
+  const hoveredBlock = useHoveredBlock(viewRef, contentRef, rendered, {
+    blockIndexLevelWith,
+    isHeld: isBlockButtonFocused,
+    isPinned: gutterDrag.span !== null,
+  });
+  const isPickingInGutter = hoveredBlock?.isPointerInGutter === true && gutterDrag.span === null;
+  const offeredStructure = useOfferedStructure(
+    viewRef,
+    contentRef,
+    rendered,
+    isPickingInGutter ? hoveredBlock.box.index : null
+  );
+  const pendingSpan = usePendingSpan(viewRef, contentRef, rendered, pendingPassage);
+  return {
+    gutterDrag,
+    hoveredBlock,
+    isPointingAtHighlight,
+    markers,
+    offeredStructure,
+    pendingSpan,
+    selectionComment,
+    threadBars,
+  };
 }

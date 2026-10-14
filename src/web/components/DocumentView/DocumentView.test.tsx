@@ -60,8 +60,35 @@ const todayAnchor = buildPassageAnchor({
   startOffset: 26,
 });
 
+/**
+ * The plan's Goals heading and the paragraph under it, as a saved comment on both whole blocks has them
+ */
+const goalsAnchor = buildPassageAnchor({
+  anchoredText: "Goals\nRetries happen three times.",
+  endLine: 7,
+  endOffset: 84,
+  prefix: "ts for 24h today. See the spec.\n",
+  quote: "Goals\nRetries happen three times.",
+  startLine: 5,
+  startOffset: 51,
+});
+
+/**
+ * The plan's Goals heading and the paragraph under it, as a comment on both whole blocks has them
+ */
+const goalsPassage: NewPassageAnchor = {
+  document: "docs/plan.md",
+  endOffset: 84,
+  kind: "passage",
+  prefix: "ts for 24h today. See the spec.\n",
+  quote: "Goals\nRetries happen three times.",
+  startOffset: 51,
+  suffix: "",
+};
+
 afterEach(() => {
   Reflect.deleteProperty(document, "caretPositionFromPoint");
+  Reflect.deleteProperty(document, "elementFromPoint");
   vi.restoreAllMocks();
 });
 
@@ -167,6 +194,18 @@ describe("DocumentView", () => {
     await user.hover(block);
 
     expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
+  });
+
+  test("must name the + without a tooltip, which would cover the bracket lane or the comments' bars beside it", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await moveInGutter(user, 60);
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toBeInTheDocument();
+    expect(screen.queryByRole("tooltip", { hidden: true })).not.toBeInTheDocument();
   });
 
   test("must keep the block framed when the pointer leaves the + while it has focus", async () => {
@@ -335,6 +374,378 @@ describe("DocumentView", () => {
     );
   });
 
+  test.each([
+    { direction: "down", from: 60, to: 150 },
+    { direction: "up", from: 150, to: 60 },
+  ])(
+    "must start a comment on every block from the first to the last when the user drags $direction the gutter",
+    async ({ from, to }) => {
+      const { onComment, render } = setUpTest();
+      const user = userEvent.setup();
+      await render();
+      layOutBlocks();
+
+      await pressGutter(user, from);
+      await moveInGutter(user, to);
+      await releaseGutter(user);
+
+      expect(onComment).toHaveBeenCalledExactlyOnceWith({
+        anchor: expect.objectContaining({
+          quote: "We cache results for 24h today. See the spec.\nGoals\nRetries happen three times.",
+        }),
+        renderedHash: "hash of the plan",
+      });
+    }
+  );
+
+  test("must start one comment, on the blocks the drag covers, when the user holds ⌥ only as they end a drag down the gutter", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await pressGutter(user, 60);
+    await moveInGutter(user, 150);
+
+    await user.keyboard("{Alt>}");
+    await releaseGutter(user);
+    await user.keyboard("{/Alt}");
+
+    expect(onComment).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        anchor: expect.objectContaining({
+          quote: "We cache results for 24h today. See the spec.\nGoals\nRetries happen three times.",
+        }),
+      })
+    );
+  });
+
+  test("must start a comment on one block when the user releases a drag on the block it started on", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await pressGutter(user, 60);
+    await moveInGutter(user, 150);
+    await moveInGutter(user, 70);
+    await releaseGutter(user);
+
+    expect(onComment).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        anchor: expect.objectContaining({ quote: "We cache results for 24h today. See the spec." }),
+      })
+    );
+  });
+
+  test("must start a comment on every block from the first to the last when the user drags from the +", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await moveInGutter(user, 60);
+    const button = screen.getByRole("button", { name: "Comment on this block" });
+
+    await user.pointer({ coords: { clientX: 20, clientY: 60 }, keys: "[MouseLeft>]", target: button });
+    await moveInGutter(user, 150);
+    await user.pointer({ coords: { clientX: 20, clientY: 150 }, keys: "[/MouseLeft]", target: button });
+
+    expect(onComment).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        anchor: expect.objectContaining({
+          quote: "We cache results for 24h today. See the spec.\nGoals\nRetries happen three times.",
+        }),
+      })
+    );
+  });
+
+  test("must start one comment on the block when the user clicks the + while the gutter picks the block", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await moveInGutter(user, 60);
+
+    await user.pointer({
+      coords: { clientX: 20, clientY: 60 },
+      keys: "[MouseLeft]",
+      target: screen.getByRole("button", { name: "Comment on this block" }),
+    });
+
+    expect(onComment).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        anchor: expect.objectContaining({ quote: "We cache results for 24h today. See the spec." }),
+      })
+    );
+  });
+
+  test("must frame every block the drag covers, and say how many, while the user drags down the gutter", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await pressGutter(user, 60);
+    await moveInGutter(user, 150);
+
+    expect(screen.getByTestId("block-target")).toHaveStyle({ height: "122px", top: "48px" });
+    expect(screen.getByTestId("block-target")).toHaveTextContent("3 blocks");
+  });
+
+  test("must put the + beside the block level with the pointer when the user ends a drag", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await pressGutter(user, 60);
+    await moveInGutter(user, 150);
+
+    await releaseGutter(user);
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "152px" });
+  });
+
+  test.each([
+    { block: "a heading", clientY: 110, height: "78px", top: "90px" },
+    { block: "a paragraph under a heading", clientY: 60, height: "172px", top: "-4px" },
+  ])(
+    "must bracket the heading's section beside the gutter when the pointer is level with $block",
+    async ({ clientY, height, top }) => {
+      const { render } = setUpTest();
+      const user = userEvent.setup();
+      await render();
+      layOutBlocks();
+
+      await moveInGutter(user, clientY);
+
+      expect(screen.getByTestId("structure-bracket")).toHaveStyle({ height, top });
+    }
+  );
+
+  test.each([
+    { block: "its heading", clientY: 110, quote: "Goals\nRetries happen three times." },
+    {
+      block: "a paragraph under its heading",
+      clientY: 60,
+      quote: "Plan\nWe cache results for 24h today. See the spec.\nGoals\nRetries happen three times.",
+    },
+  ])(
+    "must start a comment on the whole section when the user clicks the bracket lane beside $block",
+    async ({ clientY, quote }) => {
+      const { onComment, render } = setUpTest();
+      const user = userEvent.setup();
+      await render();
+      layOutBlocks();
+      const coords = { clientX: 4, clientY };
+
+      await user.pointer([
+        { coords, target: elements.bracketLane() },
+        { coords, keys: "[MouseLeft]", target: elements.bracketLane() },
+      ]);
+
+      expect(onComment).toHaveBeenCalledExactlyOnceWith({
+        anchor: expect.objectContaining({ quote }),
+        renderedHash: "hash of the plan",
+      });
+    }
+  );
+
+  test("must start a comment on the structure level with the pointer when the doc scrolls under the pointer in the bracket lane", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    const coords = { clientX: 4, clientY: 60 };
+    await user.pointer({ coords, target: elements.bracketLane() });
+    Object.assign(document, { elementFromPoint: () => elements.bracketLane() });
+
+    layOutBlocks(50);
+    fireEvent.scroll(document);
+    await user.pointer({ coords, keys: "[MouseLeft]", target: elements.bracketLane() });
+
+    expect(onComment).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ anchor: expect.objectContaining({ quote: "Goals\nRetries happen three times." }) })
+    );
+  });
+
+  test("must frame the structure and name it when the pointer is in the bracket lane", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await user.pointer({ coords: { clientX: 4, clientY: 110 }, target: elements.bracketLane() });
+
+    expect(screen.getByTestId("block-target")).toHaveStyle({ height: "82px", top: "88px" });
+    expect(screen.getByTestId("block-target")).toHaveTextContent("Comment on the section “Goals”");
+  });
+
+  test.each([
+    { control: "the gutter beside its heading", target: () => elements.gutter() },
+    {
+      control: "the + beside its heading",
+      target: () => screen.getByRole("button", { name: "Comment on this block" }),
+    },
+  ])("must start a comment on the whole section when the user ⌥-clicks $control", async ({ target }) => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await moveInGutter(user, 110);
+    const coords = { clientX: 20, clientY: 110 };
+
+    await user.keyboard("{Alt>}");
+    await user.pointer({ coords, keys: "[MouseLeft]", target: target() });
+    await user.keyboard("{/Alt}");
+
+    expect(onComment).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ anchor: expect.objectContaining({ quote: "Goals\nRetries happen three times." }) })
+    );
+  });
+
+  test("must frame the structure while the user holds ⌥ with the pointer in the gutter, and the block once they let go", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await moveInGutter(user, 110);
+
+    await user.keyboard("{Alt>}");
+    const whileHeld = screen.getByTestId("block-target").textContent;
+    await user.keyboard("{/Alt}");
+
+    expect(whileHeld).toBe("Comment on the section “Goals”");
+    expect(screen.getByTestId("block-target")).toHaveTextContent("");
+  });
+
+  test("must not bracket a structure while the pointer is over the doc", async () => {
+    const { render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await user.pointer({
+      coords: { clientX: 100, clientY: 150 },
+      target: within(elements.article()).getByText("Retries happen three times."),
+    });
+
+    expect(screen.queryByTestId("structure-bracket")).not.toBeInTheDocument();
+  });
+
+  test("must start no comment when the user presses Escape during a drag", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await pressGutter(user, 60);
+    await moveInGutter(user, 150);
+
+    await user.keyboard("{Escape}");
+    await releaseGutter(user);
+
+    expect(onComment).not.toHaveBeenCalled();
+    expect(screen.queryByText("3 blocks")).not.toBeInTheDocument();
+  });
+
+  test("must start no comment when the doc renders again during a drag", async () => {
+    const { onComment, render, rerender } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await pressGutter(user, 60);
+
+    await rerender(revisedPlan);
+    await releaseGutter(user);
+
+    expect(onComment).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    { condition: "a comment is being written on other blocks", options: { pendingPassage: goalsPassage } },
+    {
+      condition: "the user points at a comment on other blocks in the comments",
+      options: { hoveredThreadId: 5, threads: [buildThread({ anchor: goalsAnchor, id: 5 })] },
+    },
+    {
+      condition: "the user has selected a comment on other blocks",
+      options: { selectedThreadId: 5, threads: [buildThread({ anchor: goalsAnchor, id: 5 })] },
+    },
+  ])(
+    "must frame only the blocks the drag covers while the user drags down the gutter when $condition",
+    async ({ options }) => {
+      const { render } = setUpTest(options);
+      const user = userEvent.setup();
+      await render();
+      layOutBlocks();
+
+      await pressGutter(user, 10);
+      await moveInGutter(user, 60);
+
+      expect(screen.getAllByTestId("block-target").map(({ textContent }) => textContent)).toEqual(["2 blocks"]);
+    }
+  );
+
+  test("must keep the frame, rather than draw it again and fade it in, when the user clicks the gutter beside the block a comment is being written on", async () => {
+    const { render } = setUpTest({
+      pendingPassage: {
+        document: "docs/plan.md",
+        endOffset: 84,
+        kind: "passage",
+        prefix: "Goals\n",
+        quote: "Retries happen three times.",
+        startOffset: 57,
+        suffix: "",
+      },
+    });
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    const frame = screen.getByTestId("block-target");
+
+    await pressGutter(user, 150);
+    const framesWhilePressed = screen.getAllByTestId("block-target");
+    await releaseGutter(user);
+
+    expect(framesWhilePressed).toEqual([frame]);
+    expect(screen.getAllByTestId("block-target")).toEqual([frame]);
+  });
+
+  test("must frame the blocks a comment is being written on again when the user presses Escape during a drag", async () => {
+    const resizes = standInForResizes();
+    const { render } = setUpTest({ pendingPassage: goalsPassage });
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    resizes.resize();
+    await pressGutter(user, 10);
+    await moveInGutter(user, 60);
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.getAllByTestId("block-target").map((frame) => frame.style.top)).toContain("88px");
+  });
+
+  test("must hide the highlight of the passage a comment is being written on while the user drags down the gutter", async () => {
+    const { render } = setUpTest({
+      pendingPassage: {
+        document: "docs/plan.md",
+        endOffset: 64,
+        kind: "passage",
+        prefix: "Goals\n",
+        quote: "Retries",
+        startOffset: 57,
+        suffix: " happen three times.",
+      },
+    });
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await pressGutter(user, 10);
+    await moveInGutter(user, 60);
+
+    expect(elements.highlighted(pendingHighlightName)).toEqual([]);
+  });
+
   test("must move the + to the block level with the pointer when the pointer is over the doc but between blocks", async () => {
     const { onComment, render } = setUpTest();
     const user = userEvent.setup();
@@ -406,6 +817,30 @@ describe("DocumentView", () => {
     await render();
 
     expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
+  });
+
+  test("must keep the blocks framed when the user writes a comment on several whole blocks", async () => {
+    const resizes = standInForResizes();
+    const { render } = setUpTest({ pendingPassage: goalsPassage });
+    await render();
+    layOutBlocks();
+
+    resizes.resize();
+
+    expect(screen.getByTestId("block-target")).toHaveStyle({
+      height: "82px",
+      left: "36px",
+      top: "88px",
+      width: "608px",
+    });
+  });
+
+  test("must not paint the pending highlight when the user writes a comment on several whole blocks", async () => {
+    const { render } = setUpTest({ pendingPassage: goalsPassage });
+
+    await render();
+
+    expect(elements.highlighted(pendingHighlightName)).toEqual([]);
   });
 
   test("must highlight open and draft passages, and the selected thread's apart, but not resolved or outdated ones", async () => {
@@ -638,6 +1073,142 @@ describe("DocumentView", () => {
     await new Promise(requestAnimationFrame);
 
     expect(caretPositionFromPoint).not.toHaveBeenCalled();
+  });
+
+  test("must draw a bar beside the blocks of a comment on several whole blocks", async () => {
+    const resizes = standInForResizes();
+    const { render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+    await render();
+    layOutBlocks();
+
+    resizes.resize();
+
+    expect(screen.getByTestId("thread-bar")).toHaveStyle({ height: "82px", top: "88px" });
+  });
+
+  test("must draw each bar over the longer bars when three comments on whole blocks share a block", async () => {
+    const resizes = standInForResizes();
+    const wholePlan = "Plan\nWe cache results for 24h today. See the spec.\nGoals\nRetries happen three times.";
+    const { render } = setUpTest({
+      threads: [
+        buildThread({ anchor: goalsAnchor, id: 5 }),
+        buildThread({
+          anchor: buildPassageAnchor({ anchoredText: wholePlan, endOffset: 84, quote: wholePlan, startOffset: 0 }),
+          id: 6,
+        }),
+        buildThread({
+          anchor: buildPassageAnchor({
+            anchoredText: wholePlan.slice(5, 56),
+            endOffset: 56,
+            quote: wholePlan.slice(5, 56),
+            startOffset: 5,
+          }),
+          id: 7,
+        }),
+      ],
+    });
+    await render();
+    layOutBlocks();
+
+    resizes.resize();
+
+    expect(screen.getAllByTestId("thread-bar").map((bar) => bar.style.height)).toEqual(["176px", "90px", "82px"]);
+  });
+
+  test("must select a comment on several whole blocks when the user clicks its bar", async () => {
+    const { onSelectThread, render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+    const user = userEvent.setup();
+    await render();
+
+    await user.click(screen.getByTestId("thread-bar"));
+
+    expect(onSelectThread).toHaveBeenCalledWith(5);
+  });
+
+  test("must report a comment on several whole blocks as hovered when the pointer is on its bar", async () => {
+    const { onHoverThread, render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+    const user = userEvent.setup();
+    await render();
+
+    await user.hover(screen.getByTestId("thread-bar"));
+
+    expect(onHoverThread).toHaveBeenLastCalledWith(5);
+  });
+
+  test.each([
+    { condition: "the user points at it in the comments", hoveredThreadId: 5, selectedThreadId: null },
+    { condition: "the user selects it", hoveredThreadId: null, selectedThreadId: 5 },
+  ])(
+    "must frame the blocks of a comment on several whole blocks when $condition",
+    async ({ hoveredThreadId, selectedThreadId }) => {
+      const resizes = standInForResizes();
+      const { render } = setUpTest({
+        hoveredThreadId,
+        selectedThreadId,
+        threads: [buildThread({ anchor: goalsAnchor, id: 5 })],
+      });
+      await render();
+      layOutBlocks();
+
+      resizes.resize();
+
+      expect(screen.getByTestId("block-target")).toHaveStyle({ height: "82px", top: "88px" });
+    }
+  );
+
+  test("must not paint a comment on several whole blocks, but keep its marker", async () => {
+    const { render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+
+    await render();
+
+    expect(elements.highlighted(threadsHighlightName)).toEqual([]);
+    expect(elements.markers()).toEqual(["Thread #5"]);
+  });
+
+  test("must not deepen another comment's highlight inside a comment on several whole blocks", async () => {
+    const { render } = setUpTest({
+      threads: [buildThread({ anchor: goalsAnchor, id: 5 }), buildThread({ anchor: retriesAnchor, id: 2 })],
+    });
+
+    await render();
+
+    expect(elements.highlighted(threadsHighlightName)).toEqual(["Retries"]);
+    expect(elements.highlighted(overlapHighlightName)).toEqual([]);
+  });
+
+  test("must not select a comment on several whole blocks when the user clicks its text", async () => {
+    const { onSelectThread, render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+    const user = userEvent.setup();
+    await render();
+    const text = within(elements.article()).getByText("Retries happen three times.").firstChild;
+    Object.assign(document, { caretPositionFromPoint: () => ({ offset: 3, offsetNode: text }) });
+
+    await user.click(within(elements.article()).getByText("Retries happen three times."));
+
+    expect(onSelectThread).not.toHaveBeenCalled();
+  });
+
+  test("must pick no block when the pointer moves from the gutter onto a comment's bar", async () => {
+    const resizes = standInForResizes();
+    const { render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    resizes.resize();
+    await moveInGutter(user, 60);
+
+    await user.pointer({ coords: { clientX: 30, clientY: 150 }, target: screen.getByTestId("thread-bar") });
+
+    expect(screen.getByRole("button", { name: "Comment on this block" })).toHaveStyle({ top: "66px" });
+    expect(screen.queryByTestId("structure-bracket")).not.toBeInTheDocument();
+  });
+
+  test("must not frame the blocks of a comment on several whole blocks while nobody points at it or selects it", async () => {
+    const { render } = setUpTest({ threads: [buildThread({ anchor: goalsAnchor, id: 5 })] });
+
+    await render();
+
+    expect(screen.queryByTestId("block-target")).not.toBeInTheDocument();
   });
 
   test("must emphasise the passage of a thread when the user points at it in the comments", async () => {
@@ -962,10 +1533,16 @@ function moveBlockOf(text: HTMLElement, top: number): void {
 /**
  * Lays the plan out with the doc 40px from the view's left edge and its blocks 30px, 24px, 38px and 24px tall at 0px,
  * 54px, 94px and 140px down
+ *
+ * @param scrolledBy how far the doc has scrolled, which moves the view and everything in it up the page by as much
  */
-function layOutBlocks(): void {
+function layOutBlocks(scrolledBy = 0): void {
   const article = elements.article();
-  vi.spyOn(article, "getBoundingClientRect").mockReturnValue(new DOMRect(40, 0, 600, 164));
+  const view = article.parentElement;
+  if (view !== null) {
+    vi.spyOn(view, "getBoundingClientRect").mockReturnValue(new DOMRect(0, -scrolledBy));
+  }
+  vi.spyOn(article, "getBoundingClientRect").mockReturnValue(new DOMRect(40, -scrolledBy, 600, 164));
   const blocks = [
     { text: within(article).getByRole("heading", { level: 1, name: "Plan" }), top: 0, height: 30 },
     { text: within(article).getByText("We cache results for", { exact: false }), top: 54, height: 24 },
@@ -975,9 +1552,24 @@ function layOutBlocks(): void {
   for (const { height, text, top } of blocks) {
     const block = text.closest("[data-md-block]");
     if (block !== null) {
-      vi.spyOn(block, "getBoundingClientRect").mockReturnValue(new DOMRect(40, top, 600, height));
+      vi.spyOn(block, "getBoundingClientRect").mockReturnValue(new DOMRect(40, top - scrolledBy, 600, height));
     }
   }
+}
+
+/**
+ * Presses the main button with the pointer in the gutter, at the given distance down the page
+ */
+async function pressGutter(user: UserEvent, clientY: number): Promise<void> {
+  await user.pointer({ coords: { clientX: 10, clientY }, keys: "[MouseLeft>]", target: elements.gutter() });
+}
+
+async function moveInGutter(user: UserEvent, clientY: number): Promise<void> {
+  await user.pointer({ coords: { clientX: 10, clientY }, target: elements.gutter() });
+}
+
+async function releaseGutter(user: UserEvent): Promise<void> {
+  await user.pointer({ keys: "[/MouseLeft]", target: elements.gutter() });
 }
 
 async function tabToBlockButton(user: UserEvent): Promise<void> {
@@ -1000,6 +1592,7 @@ function selectText(from: string, through: string): void {
 
 const elements = {
   article: () => screen.getByRole("article", { name: "docs/plan.md" }),
+  bracketLane: () => screen.getByTestId("bracket-lane"),
   gutter: () => screen.getByTestId("block-gutter"),
   highlighted: (name: string): string[] => [...(CSS.highlights.get(name) ?? [])].map((range) => range.toString()),
   // NaN when no highlight has the name, as no comparison with NaN passes
