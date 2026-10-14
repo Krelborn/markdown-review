@@ -11,6 +11,13 @@ import type { ThreadBar } from "./measureThreadBars";
 
 export interface ThreadBarsProps {
   bars: ThreadBar[];
+
+  /**
+   * Whether the blocks of a hovered or selected comment are framed, which they are not during a drag down the gutter,
+   * so that the drag's frame is the only one
+   */
+  isFraming: boolean;
+
   onSelectThread: (threadId: number) => void;
   selectedThreadId: number | null;
 }
@@ -19,7 +26,7 @@ export interface ThreadBarsProps {
  * A bar beside the blocks of each comment on two or more whole blocks, which selects the comment and, while the pointer
  * is over it, hovers it; the blocks of a hovered or selected comment are framed
  */
-export function ThreadBars({ bars, onSelectThread, selectedThreadId }: ThreadBarsProps): JSX.Element {
+export function ThreadBars({ bars, isFraming, onSelectThread, selectedThreadId }: ThreadBarsProps): JSX.Element {
   const { hoveredThreadId, onHoverThread } = useContext(HoveredThreadContext);
   const { report, reported } = useThreadReporter(onHoverThread);
   useEffect(() => {
@@ -28,7 +35,9 @@ export function ThreadBars({ bars, onSelectThread, selectedThreadId }: ThreadBar
       report(null);
     }
   }, [bars, report, reported]);
-  const framed = bars.filter(({ threadId }) => threadId === hoveredThreadId || threadId === selectedThreadId);
+  const framed = isFraming
+    ? bars.filter(({ threadId }) => threadId === hoveredThreadId || threadId === selectedThreadId)
+    : [];
   // Longest first, so that a shorter bar sharing a lane is drawn over a longer one and takes the clicks along its length
   const stacked = [...bars].sort((left, right) => right.box.height - left.box.height);
   return (

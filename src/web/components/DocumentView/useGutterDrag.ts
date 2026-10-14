@@ -21,7 +21,8 @@ export interface GutterDrag {
   span: BlockSpan | null;
 
   /**
-   * Starts a drag from a press of the main button, from the block level with the press
+   * Starts a drag from a press of the main button, from the block level with the press, and clears the selected text,
+   * which the blocks replace
    *
    * @param onEnd called with the blocks the drag covers when the user releases the button; not called when the user
    *   presses Escape or the doc renders again first
@@ -122,6 +123,8 @@ export function useGutterDrag(
         return false;
       }
       event.currentTarget.setPointerCapture(event.pointerId);
+      // A press on the gutter, which cannot be selected, leaves the selection as it was
+      document.getSelection()?.removeAllRanges();
       endBlockRef.current = block;
       setDrag({ endBlock: block, onEnd: onDragEnd, startBlock: block });
       return true;

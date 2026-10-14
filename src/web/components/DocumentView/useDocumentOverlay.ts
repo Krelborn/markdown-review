@@ -69,7 +69,7 @@ export interface DocumentOverlay {
   offeredStructure: OfferedStructure | null;
 
   /**
-   * The blocks a comment on whole blocks is being written on, or null
+   * The blocks a comment on whole blocks is being written on, or null, as during a drag down the gutter
    */
   pendingSpan: PendingSpan | null;
 
@@ -92,16 +92,18 @@ export function useDocumentOverlay(
   { documentPath, highlightedThreads, isBlockButtonFocused, pendingPassage, selectedThreadId }: DocumentOverlayOptions
 ): DocumentOverlay {
   const { hoveredThreadId, onHoverThread } = useContext(HoveredThreadContext);
+  const blockIndexLevelWith = useBlockIndexLevelWith(viewRef, contentRef, rendered);
+  const gutterDrag = useGutterDrag(viewRef, contentRef, rendered, blockIndexLevelWith);
+  // A drag picks new blocks for the comment, so the passage it would replace is hidden until the drag ends
+  const shownPendingPassage = gutterDrag.span === null ? pendingPassage : null;
   const { bars: threadBars, markers } = useThreadHighlights(viewRef, contentRef, rendered, {
     hoveredThreadId,
-    pendingPassage,
+    pendingPassage: shownPendingPassage,
     selectedThreadId,
     threads: highlightedThreads,
   });
   const isPointingAtHighlight = useHoveredThread(viewRef, contentRef, rendered, highlightedThreads, onHoverThread);
   const selectionComment = useSelectionComment(viewRef, contentRef, rendered, documentPath);
-  const blockIndexLevelWith = useBlockIndexLevelWith(viewRef, contentRef, rendered);
-  const gutterDrag = useGutterDrag(viewRef, contentRef, rendered, blockIndexLevelWith);
   const hoveredBlock = useHoveredBlock(viewRef, contentRef, rendered, {
     blockIndexLevelWith,
     isHeld: isBlockButtonFocused,
@@ -114,7 +116,7 @@ export function useDocumentOverlay(
     rendered,
     isPickingInGutter ? hoveredBlock.box.index : null
   );
-  const pendingSpan = usePendingSpan(viewRef, contentRef, rendered, pendingPassage);
+  const pendingSpan = usePendingSpan(viewRef, contentRef, rendered, shownPendingPassage);
   return {
     gutterDrag,
     hoveredBlock,

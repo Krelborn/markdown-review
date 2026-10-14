@@ -607,6 +607,64 @@ describe("DocumentView", () => {
     expect(onComment).not.toHaveBeenCalled();
   });
 
+  test.each([
+    { condition: "a comment is being written on other blocks", options: { pendingPassage: goalsPassage } },
+    {
+      condition: "the user has selected a comment on other blocks",
+      options: { selectedThreadId: 5, threads: [buildThread({ anchor: goalsAnchor, id: 5 })] },
+    },
+  ])(
+    "must frame only the blocks the drag covers while the user drags down the gutter when $condition",
+    async ({ options }) => {
+      const { render } = setUpTest(options);
+      const user = userEvent.setup();
+      await render();
+      layOutBlocks();
+
+      await pressGutter(user, 10);
+      await moveInGutter(user, 60);
+
+      expect(screen.getAllByTestId("block-target").map(({ textContent }) => textContent)).toEqual(["2 blocks"]);
+    }
+  );
+
+  test("must frame the blocks a comment is being written on again when the user presses Escape during a drag", async () => {
+    const resizes = standInForResizes();
+    const { render } = setUpTest({ pendingPassage: goalsPassage });
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    resizes.resize();
+    await pressGutter(user, 10);
+    await moveInGutter(user, 60);
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.getAllByTestId("block-target").map((frame) => frame.style.top)).toContain("88px");
+  });
+
+  test("must hide the highlight of the passage a comment is being written on while the user drags down the gutter", async () => {
+    const { render } = setUpTest({
+      pendingPassage: {
+        document: "docs/plan.md",
+        endOffset: 64,
+        kind: "passage",
+        prefix: "Goals\n",
+        quote: "Retries",
+        startOffset: 57,
+        suffix: " happen three times.",
+      },
+    });
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+
+    await pressGutter(user, 10);
+    await moveInGutter(user, 60);
+
+    expect(elements.highlighted(pendingHighlightName)).toEqual([]);
+  });
+
   test("must move the + to the block level with the pointer when the pointer is over the doc but between blocks", async () => {
     const { onComment, render } = setUpTest();
     const user = userEvent.setup();

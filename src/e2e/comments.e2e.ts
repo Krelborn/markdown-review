@@ -90,12 +90,8 @@ test("must start a comment on a block when the user clicks the gutter beside it"
 
 test("must start a comment quoting the rows the user drags over in the gutter", async ({ page, review }) => {
   const rows = await openTableDocument(page, review);
-  const from = await pointInGutterBeside(page, rows.nth(1));
-  const to = await pointInGutterBeside(page, rows.nth(3));
 
-  await page.mouse.move(from.x, from.y);
-  await page.mouse.down();
-  await page.mouse.move(to.x, to.y, { steps: 5 });
+  await dragDownRows(page, rows);
   await page.mouse.up();
 
   await expect(newCommentQuote(page)).toContainText("ttl");
@@ -125,6 +121,21 @@ test("must scroll the doc column, and take in the blocks it brings into view, wh
 
   await expect(newCommentQuote(page)).toContainText("Paragraph 1.");
   await expect(newCommentQuote(page)).toContainText("Paragraph 20.");
+});
+
+test("must clear the selected text, and Comment beside it, when the user starts a drag down the gutter", async ({
+  page,
+  review,
+}) => {
+  const rows = await openTableDocument(page, review);
+  await selectText(page, "After", "table.");
+  await expect(page.getByRole("button", { exact: true, name: "Comment" })).toBeVisible();
+
+  await dragDownRows(page, rows);
+
+  await expect(page.getByRole("button", { exact: true, name: "Comment" })).toBeHidden();
+  expect(await page.evaluate(() => getSelection()?.toString())).toBe("");
+  await page.mouse.up();
 });
 
 test("must start a comment quoting the whole table when the user clicks the bracket beside it", async ({
@@ -517,6 +528,20 @@ async function expectWholeTableQuoted(page: Page): Promise<void> {
   await expect(newCommentQuote(page)).toContainText("Setting");
   await expect(newCommentQuote(page)).toContainText("backoff");
   await expect(newCommentQuote(page)).not.toContainText("After the table.");
+}
+
+/**
+ * Presses the main button in the gutter beside the first row under the header of the table `openTableDocument` opens,
+ * and moves down to the third without letting go
+ *
+ * @param rows the table's rows, the header row first
+ */
+async function dragDownRows(page: Page, rows: Locator): Promise<void> {
+  const from = await pointInGutterBeside(page, rows.nth(1));
+  const to = await pointInGutterBeside(page, rows.nth(3));
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 5 });
 }
 
 /**

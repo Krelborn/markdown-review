@@ -114,7 +114,12 @@ export function DocumentControls({
         onComment={commentOnSpan}
         pendingSpan={pendingSpan}
       />
-      <ThreadBars bars={threadBars} onSelectThread={onSelectThread} selectedThreadId={selectedThreadId} />
+      <ThreadBars
+        bars={threadBars}
+        isFraming={gutterDrag.span === null}
+        onSelectThread={onSelectThread}
+        selectedThreadId={selectedThreadId}
+      />
       {pendingSpan !== null && <BlockTarget box={pendingSpan.box} />}
       <ThreadMarkers markers={markers} onSelectThread={onSelectThread} selectedThreadId={selectedThreadId} />
       <SelectionCommentButton onComment={commentOnSelection} selectionComment={selectionComment} />
