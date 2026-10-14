@@ -19,7 +19,12 @@ export default defineConfig({
           // A server a test starts must not ask the real npm registry for updates
           env: { MARKDOWN_REVIEW_NO_UPDATE_CHECK: "1", TZ: "UTC" },
           environment: "node",
-          include: ["src/cli/**/*.test.ts", "src/server/**/*.test.ts", "src/shared/**/*.test.ts"],
+          include: [
+            "src/cli/**/*.test.ts",
+            "src/screenshots/**/*.test.ts",
+            "src/server/**/*.test.ts",
+            "src/shared/**/*.test.ts",
+          ],
           name: "node",
         },
       },
