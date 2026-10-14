@@ -570,6 +570,8 @@
   border-color: var(--sui-color-warning);
 }
 
+/* Above every frame, as another frame around the same blocks, such as the selected comment's, would draw its edge across
+   the label */
 .blockTargetLabel {
   background-color: var(--sui-color-primary);
   border-radius: var(--sui-radius-full);
@@ -581,10 +583,11 @@
   max-inline-size: calc(100% - 2 * var(--sui-space-3));
   overflow: hidden;
   padding: var(--sui-space-1) var(--sui-space-2);
-  text-overflow: ellipsis;
   position: absolute;
+  text-overflow: ellipsis;
   translate: 0 -50%;
   white-space: nowrap;
+  z-index: 1;
 }
 
 @media (prefers-reduced-motion: no-preference) {

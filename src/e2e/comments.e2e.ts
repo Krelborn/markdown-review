@@ -217,6 +217,24 @@ test("must frame the section when the user points at the card of a comment on it
   await expect.poll(() => isFramed(page, article.getByText("None yet."))).toBe(false);
 });
 
+test("must draw a section's name over the frame of the comment being written on it when the user points at its bracket again", async ({
+  page,
+  review,
+}) => {
+  await openSectionsDocument(review);
+  const beside = await pointInGutterBeside(
+    page,
+    page.getByRole("article", { name: "docs/plan.md" }).getByRole("heading", { name: "Goals" })
+  );
+  const clicked = await clickBracketLane(page, beside.y, "Comment on the section “Goals”");
+
+  await page.mouse.move(clicked.x, clicked.y + 4);
+
+  const label = page.getByText("Comment on the section “Goals”");
+  await expect(label).toBeVisible();
+  expect(await isDrawnOnTop(label)).toBe(true);
+});
+
 test("must put the + beside a list item when the user points beside the item's text", async ({ page, review }) => {
   await review.writeDocument("docs/plan.md", "# Plan\n\n- First item\n- Second item\n");
   await review.open("docs/plan.md");
@@ -634,6 +652,26 @@ async function showBlockButtonTooltip(
   await button.hover();
   await expect(page.getByRole("tooltip", { name: "Comment on this block" })).toBeVisible();
   return boxOf(button);
+}
+
+/**
+ * @returns whether nothing is drawn over the middle of the element once the frames have faded in; the frames, which
+ *   the pointer passes through, take it for the check, so that hit testing finds them
+ */
+function isDrawnOnTop(element: Locator): Promise<boolean> {
+  return element.evaluate(async (node) => {
+    const frames = [...document.querySelectorAll<HTMLElement>("[data-testid='block-target']")];
+    await Promise.all(frames.flatMap((frame) => frame.getAnimations().map((animation) => animation.finished)));
+    for (const frame of frames) {
+      frame.style.pointerEvents = "auto";
+    }
+    const box = node.getBoundingClientRect();
+    const topmost = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+    for (const frame of frames) {
+      frame.style.pointerEvents = "";
+    }
+    return topmost === node;
+  });
 }
 
 /**
