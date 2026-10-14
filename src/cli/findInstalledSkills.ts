@@ -1,9 +1,15 @@
 import { readTextFileOrNull } from "../server/files/readTextFileOrNull";
 
-import { skillInstallPath } from "./skillInstallPath";
+import type { SkillDirectory } from "./skillDirectories";
+import { skillDirectories, skillInstallPath } from "./skillDirectories";
 import { readSkillStamp } from "./skillStamps";
 
 export interface InstalledSkill {
+  /**
+   * The skills directory this copy is in
+   */
+  directory: SkillDirectory;
+
   /**
    * Whether this copy is in the home directory rather than the repo
    */
@@ -18,7 +24,7 @@ export interface InstalledSkill {
 }
 
 /**
- * Finds the copies of the skill installed in the repo and in the home directory
+ * Finds the copies of the skill installed in each skills directory of the repo and of the home directory
  *
  * @param root the repo root
  * @param home the home directory
@@ -26,9 +32,11 @@ export interface InstalledSkill {
  */
 export async function findInstalledSkills(root: string, home: string): Promise<InstalledSkill[]> {
   const locations = [
-    { isGlobal: false, path: skillInstallPath(root) },
-    { isGlobal: true, path: skillInstallPath(home) },
-  ];
+    { base: root, isGlobal: false },
+    { base: home, isGlobal: true },
+  ].flatMap(({ base, isGlobal }) =>
+    skillDirectories.map((directory) => ({ directory, isGlobal, path: skillInstallPath(base, directory) }))
+  );
   const installed: InstalledSkill[] = [];
   for (const location of locations) {
     const contents = await readTextFileOrNull(location.path).catch(() => null);

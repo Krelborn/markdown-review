@@ -11,13 +11,32 @@ import { setUpReviewRepository } from "./testing/setUpReviewRepository";
 const getRepository = setUpReviewRepository();
 
 describe("install-skill", () => {
-  test("must write the skill the package was built with when the agent installs it", async () => {
+  test("must write the skill the package was built with to both skills directories when no --only is given", async () => {
     const repository = getRepository();
 
     const { exitCode } = await repository.run(["install-skill"]);
 
-    const skillPath = path.join(repository.root, ".claude", "skills", "markdown-review", "SKILL.md");
     expect(exitCode).toBe(0);
-    expect(await readFile(skillPath, "utf8")).toBe(stampSkill(skill, packageVersion));
+    expect(await readSkillCopy(repository.root, ".claude")).toBe(stampSkill(skill, packageVersion));
+    expect(await readSkillCopy(repository.root, ".agents")).toBe(stampSkill(skill, packageVersion));
+  });
+
+  test("must write the skill to just the agents' skills directory when the agent passes --only agents", async () => {
+    const repository = getRepository();
+
+    const { exitCode } = await repository.run(["install-skill", "--only", "agents"]);
+
+    expect(exitCode).toBe(0);
+    expect(await readSkillCopy(repository.root, ".agents")).toBe(stampSkill(skill, packageVersion));
+    expect(await readSkillCopy(repository.root, ".claude")).toBeNull();
   });
 });
+
+/**
+ * @param root the repo root
+ * @param directory the directory that holds the skills directory, ".claude" or ".agents"
+ * @returns the copy of the skill installed there, or null when there is none
+ */
+function readSkillCopy(root: string, directory: string): Promise<string | null> {
+  return readFile(path.join(root, directory, "skills", "markdown-review", "SKILL.md"), "utf8").catch(() => null);
+}

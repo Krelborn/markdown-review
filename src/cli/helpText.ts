@@ -4,9 +4,10 @@ const commandHelp: Record<string, string> = {
     "  Print how the user ended the review, if they have, and the threads that need you, then return at once.",
   ].join("\n"),
   "install-skill": [
-    "markdown-review install-skill [--global]",
-    "  Install the skill that teaches agents this workflow in this repository's .claude/skills, or with --global in",
-    "  ~/.claude/skills. Claude Code and OpenCode both read skills from there.",
+    "markdown-review install-skill [--global] [--only claude|agents]",
+    "  Install the skill that teaches agents this workflow in this repository's .claude/skills and .agents/skills, or",
+    "  with --global in ~/.claude/skills and ~/.agents/skills. Claude Code reads .claude/skills; Codex, Gemini CLI and",
+    "  most other agents read .agents/skills. --only claude or --only agents installs just that copy.",
   ].join("\n"),
   open: [
     "markdown-review open [path] [--next-task <text>]",

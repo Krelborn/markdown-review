@@ -5,7 +5,8 @@ import { describe, expect, test } from "vitest";
 import { setUpTemporaryDirectory } from "../server/testing/setUpTemporaryDirectory";
 
 import { findInstalledSkills } from "./findInstalledSkills";
-import { skillInstallPath } from "./skillInstallPath";
+import type { SkillDirectory } from "./skillDirectories";
+import { skillInstallPath } from "./skillDirectories";
 import { stampSkill } from "./skillStamps";
 
 const getDirectory = setUpTemporaryDirectory();
@@ -19,14 +20,29 @@ describe("findInstalledSkills", () => {
     expect(await findInstalledSkills(root, home)).toEqual([]);
   });
 
-  test("must report the version that installed each copy, the repo's first, when both are installed", async () => {
+  test("must report the version that installed each copy, the repo's first, when every location has one", async () => {
     const { home, install, root } = setUpTest();
-    await install(home, stampSkill(skill, "0.3.0"));
-    await install(root, skill);
+    await install(home, "agents", stampSkill(skill, "0.4.0"));
+    await install(home, "claude", stampSkill(skill, "0.3.0"));
+    await install(root, "agents", stampSkill(skill, "0.5.0"));
+    await install(root, "claude", skill);
 
     expect(await findInstalledSkills(root, home)).toEqual([
-      { isGlobal: false, path: skillInstallPath(root), version: null },
-      { isGlobal: true, path: skillInstallPath(home), version: "0.3.0" },
+      { directory: "claude", isGlobal: false, path: skillInstallPath(root, "claude"), version: null },
+      { directory: "agents", isGlobal: false, path: skillInstallPath(root, "agents"), version: "0.5.0" },
+      { directory: "claude", isGlobal: true, path: skillInstallPath(home, "claude"), version: "0.3.0" },
+      { directory: "agents", isGlobal: true, path: skillInstallPath(home, "agents"), version: "0.4.0" },
+    ]);
+  });
+
+  test("must find only the copies that exist when some locations have none", async () => {
+    const { home, install, root } = setUpTest();
+    await install(root, "agents", skill);
+    await install(home, "claude", skill);
+
+    expect(await findInstalledSkills(root, home)).toEqual([
+      { directory: "agents", isGlobal: false, path: skillInstallPath(root, "agents"), version: null },
+      { directory: "claude", isGlobal: true, path: skillInstallPath(home, "claude"), version: null },
     ]);
   });
 });
@@ -34,9 +50,10 @@ describe("findInstalledSkills", () => {
 function setUpTest() {
   const root = path.join(getDirectory(), "repo");
   const home = path.join(getDirectory(), "home");
-  const install = async (base: string, contents: string): Promise<void> => {
-    await mkdir(path.dirname(skillInstallPath(base)), { recursive: true });
-    await writeFile(skillInstallPath(base), contents);
+  const install = async (base: string, directory: SkillDirectory, contents: string): Promise<void> => {
+    const skillPath = skillInstallPath(base, directory);
+    await mkdir(path.dirname(skillPath), { recursive: true });
+    await writeFile(skillPath, contents);
   };
   return { home, install, root };
 }
