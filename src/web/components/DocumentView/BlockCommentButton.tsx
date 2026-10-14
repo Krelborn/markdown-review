@@ -63,6 +63,8 @@ export function BlockCommentButton({
   return (
     <>
       {(isFocused || isPointedAt || isPointerInGutter) && !isFramed && <BlockTarget box={block} />}
+      {/* Its tooltip opens above it, clear of the bracket lane on its left and the comments' bars on its right, which the
+          tooltip would cover while the pointer moves onto it */}
       <IconButton
         className={clsx(styles.blockButton, { [styles.pickingBlockButton ?? ""]: isPointerInGutter })}
         label="Comment on this block"
@@ -79,7 +81,6 @@ export function BlockCommentButton({
         }}
         onPointerEnter={() => setIsPointedAt(true)}
         onPointerLeave={() => setIsPointedAt(false)}
-        placement="start"
         size="sm"
         style={{ top: block.firstLineMiddle }}
         variant="ghost"

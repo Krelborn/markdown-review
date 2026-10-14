@@ -143,13 +143,9 @@ test("must start a comment quoting the whole table when the user clicks the brac
   review,
 }) => {
   const rows = await openTableDocument(page, review);
-  const lane = await boxOf(page.getByTestId("bracket-lane"));
   const beside = await pointInGutterBeside(page, rows.nth(1));
 
-  await page.mouse.move(lane.x + lane.width / 2, beside.y);
-  await expect(page.getByTestId("block-target")).toContainText("Comment on the table");
-  await page.mouse.down();
-  await page.mouse.up();
+  await clickBracketLane(page, beside.y, "Comment on the table");
 
   await expectWholeTableQuoted(page);
 });
@@ -169,6 +165,36 @@ test("must start a comment quoting the whole table when the user ⌥-clicks the 
   await page.keyboard.up("Alt");
 
   await expectWholeTableQuoted(page);
+});
+
+test("must start a comment quoting the whole table when the user moves from the + to the bracket beside it", async ({
+  page,
+  review,
+}) => {
+  // Wide enough for the +'s tooltip to fit left of the +, over the bracket lane, were it to open there
+  await page.setViewportSize({ height: 720, width: 1800 });
+  const rows = await openTableDocument(page, review);
+  const button = await showBlockButtonTooltip(page, rows.nth(1));
+
+  await clickBracketLane(page, button.y + button.height / 2, "Comment on the table");
+
+  await expectWholeTableQuoted(page);
+});
+
+test("must select a comment on a section when the user moves from the + to the comment's bar and clicks it", async ({
+  page,
+  review,
+}) => {
+  await openSectionsDocument(review);
+  await writeSectionComment(page, "Goals", "Rethink these goals.");
+  const secondGoal = page.getByRole("article", { name: "docs/plan.md" }).getByText("Second goal.");
+  const button = await showBlockButtonTooltip(page, secondGoal);
+  const bar = await boxOf(page.getByTestId("thread-bar"));
+
+  await page.mouse.click(bar.x + bar.width / 2, button.y + button.height / 2);
+  await page.mouse.move(0, 0);
+
+  await expect.poll(() => isFramed(page, secondGoal)).toBe(true);
 });
 
 test("must show a bar, and no highlight, beside a saved comment on a section", async ({ page, review }) => {
@@ -559,15 +585,28 @@ async function openSectionsDocument(review: ReviewFixture): Promise<void> {
  * Comments on the section under a heading from the bracket beside it, and saves the comment as a draft
  */
 async function writeSectionComment(page: Page, heading: string, body: string): Promise<void> {
-  const lane = await boxOf(page.getByTestId("bracket-lane"));
   const beside = await pointInGutterBeside(
     page,
     page.getByRole("article", { name: "docs/plan.md" }).getByRole("heading", { name: heading })
   );
-  await page.mouse.move(lane.x + lane.width / 2, beside.y);
+  await clickBracketLane(page, beside.y, `Comment on the section “${heading}”`);
+  await saveNewComment(page, body);
+}
+
+/**
+ * Clicks the bracket lane at the given distance down the page once the lane offers a comment on the structure there
+ *
+ * @param label how the frame around the structure names it, such as "Comment on the table"
+ * @returns where the click was on the page
+ */
+async function clickBracketLane(page: Page, y: number, label: string): Promise<{ x: number; y: number }> {
+  const lane = await boxOf(page.getByTestId("bracket-lane"));
+  const point = { x: lane.x + lane.width / 2, y };
+  await page.mouse.move(point.x, point.y);
+  await expect(page.getByTestId("block-target")).toContainText(label);
   await page.mouse.down();
   await page.mouse.up();
-  await saveNewComment(page, body);
+  return point;
 }
 
 /**
@@ -578,6 +617,23 @@ async function pointInGutterBeside(page: Page, element: Locator): Promise<{ x: n
   const gutter = await boxOf(page.getByTestId("block-gutter"));
   const box = await boxOf(element);
   return { x: gutter.x + gutter.width - 6, y: box.y + box.height / 2 };
+}
+
+/**
+ * Points at the + beside the element until the +'s tooltip shows
+ *
+ * @returns where the + is on the page
+ */
+async function showBlockButtonTooltip(
+  page: Page,
+  element: Locator
+): Promise<{ height: number; width: number; x: number; y: number }> {
+  const beside = await pointInGutterBeside(page, element);
+  await page.mouse.move(beside.x, beside.y);
+  const button = page.getByRole("button", { name: "Comment on this block" });
+  await button.hover();
+  await expect(page.getByRole("tooltip", { name: "Comment on this block" })).toBeVisible();
+  return boxOf(button);
 }
 
 /**
