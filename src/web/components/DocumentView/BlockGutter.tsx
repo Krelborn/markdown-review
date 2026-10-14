@@ -1,5 +1,6 @@
 import { clsx } from "clsx";
 import type { JSX, MouseEvent, PointerEvent } from "react";
+import { useRef } from "react";
 
 import { verticalOutset } from "./BlockTarget";
 import styles from "./DocumentView.module.css";
@@ -7,16 +8,17 @@ import type { SpanBox } from "./SpanBox";
 
 export interface BlockGutterProps {
   /**
-   * Called when the user clicks in the gutter, which picks the structure around the block level with the click when ⌥
-   * is held
+   * Called with the click when the user clicks in the gutter, unless the press started a drag; with ⌥ held, a click
+   * picks the structure around the block level with it
    */
   onClick: (event: MouseEvent<HTMLDivElement>) => void;
 
   /**
-   * Called when the user presses in the gutter, where a press picks the block level with it and a drag the blocks
-   * between
+   * Called when the user presses in the gutter, to start a drag down it from the block level with the press
+   *
+   * @returns whether a drag started, which starts the comment when the user releases it, in place of the click
    */
-  onPointerDown: (event: PointerEvent<HTMLDivElement>) => void;
+  onDragStart: (event: PointerEvent<HTMLDivElement>) => boolean;
 
   /**
    * The blocks the gutter picks, which its bar runs beside, or null
@@ -28,13 +30,21 @@ export interface BlockGutterProps {
  * The strip down the left of the doc, where the pointer picks the block level with it: while it picks blocks, it shows
  * a track and a bar beside them
  */
-export function BlockGutter({ onClick, onPointerDown, pickedBox }: BlockGutterProps): JSX.Element {
+export function BlockGutter({ onClick, onDragStart, pickedBox }: BlockGutterProps): JSX.Element {
+  const isDragClickRef = useRef(false);
   return (
     // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- the + is the control for keyboards and screen readers; the gutter only widens its target for the pointer
     <div
       className={clsx(styles.gutter, { [styles.pickingGutter ?? ""]: pickedBox !== null })}
-      onClick={onClick}
-      onPointerDown={onPointerDown}
+      onClick={(event) => {
+        if (!isDragClickRef.current) {
+          onClick(event);
+        }
+        isDragClickRef.current = false;
+      }}
+      onPointerDown={(event) => {
+        isDragClickRef.current = onDragStart(event);
+      }}
       aria-hidden="true"
       data-md-ignore=""
       data-testid="block-gutter"

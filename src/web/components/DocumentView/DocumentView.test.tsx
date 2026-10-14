@@ -398,6 +398,27 @@ describe("DocumentView", () => {
     }
   );
 
+  test("must start one comment, on the blocks the drag covers, when the user holds ⌥ only as they end a drag down the gutter", async () => {
+    const { onComment, render } = setUpTest();
+    const user = userEvent.setup();
+    await render();
+    layOutBlocks();
+    await pressGutter(user, 60);
+    await moveInGutter(user, 150);
+
+    await user.keyboard("{Alt>}");
+    await releaseGutter(user);
+    await user.keyboard("{/Alt}");
+
+    expect(onComment).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        anchor: expect.objectContaining({
+          quote: "We cache results for 24h today. See the spec.\nGoals\nRetries happen three times.",
+        }),
+      })
+    );
+  });
+
   test("must start a comment on one block when the user releases a drag on the block it started on", async () => {
     const { onComment, render } = setUpTest();
     const user = userEvent.setup();

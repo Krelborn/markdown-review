@@ -83,7 +83,7 @@ export function GutterControls({
             commentOnClick(event, hoveredBlock.box.index);
           }
         }}
-        onPointerDown={(event) => startDrag(event, onComment)}
+        onDragStart={(event) => startDrag(event, onComment)}
         pickedBox={draggedBox ?? pointedBox}
       />
       <StructurePicker isPicking={isPickingStructure} offeredStructure={offeredStructure} onComment={onComment} />
