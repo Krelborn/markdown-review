@@ -17,8 +17,6 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
-      # Install @krelborn/stylesui from GitHub Packages
-      packages: read
       pages: write
       id-token: write
     environment:
@@ -37,9 +35,6 @@ jobs:
           node-version: 22
 
       - run: pnpm install --frozen-lockfile --ignore-scripts
-        env:
-          # .npmrc reads it to install @krelborn/stylesui, whose stylesheet site/stylesui.css links to
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/configure-pages@v6
 
