@@ -11,11 +11,6 @@
     "dist/**",
     "docs/**",
     // The conformance corpus keeps the exact markdown it was written with
-    "src/**/testing/*.md",
-    // Skill pointers written by `fallow agent install`, which rewrites them when they are reformatted
-    ".agents/skills/fallow/**",
-    ".agents/skills/fallow-setup/**",
-    ".claude/skills/fallow/**",
-    ".claude/skills/fallow-setup/**"
+    "src/**/testing/*.md"
   ]
 }

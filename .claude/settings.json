@@ -2,13 +2,26 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "enabledPlugins": {
     "coding-standards@krelborn-standards": true,
-    "agent-skills@addy-agent-skills": true
+    "agent-skills@addy-agent-skills": true,
+    "fallow@fallow-skills": true
   },
   "extraKnownMarketplaces": {
     "krelborn-standards": {
       "source": {
         "source": "github",
         "repo": "Krelborn/agent-coding-standards"
+      }
+    },
+    "addy-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "addyosmani/agent-skills"
+      }
+    },
+    "fallow-skills": {
+      "source": {
+        "source": "github",
+        "repo": "fallow-rs/fallow-skills"
       }
     }
   }
