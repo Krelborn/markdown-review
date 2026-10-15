@@ -48,7 +48,6 @@ jobs:
     needs: check
     permissions:
       contents: read
-      packages: read
     uses: ./.github/workflows/ci.yml
 
   publish:
@@ -58,13 +57,8 @@ jobs:
     environment: npm
     permissions:
       contents: read
-      # Install @krelborn/stylesui from GitHub Packages
-      packages: read
       # npm trusted publishing
       id-token: write
-    env:
-      # .npmrc reads it to install @krelborn/stylesui from GitHub Packages
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
 
@@ -87,8 +81,6 @@ jobs:
     if: ${{ !github.event.release.prerelease }}
     permissions:
       contents: read
-      # Install @krelborn/stylesui from GitHub Packages
-      packages: read
       # Deploy to GitHub Pages
       pages: write
       id-token: write

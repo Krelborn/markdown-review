@@ -162,19 +162,17 @@ The server listens only on `127.0.0.1`. Agent commands need a random token that 
 
 ## Build from source
 
-Building from source needs read access to `@krelborn/stylesui`, a private package on GitHub Packages that the web app is built with. The npm package already includes it, so you don't need it to install or use Markdown Review. If you do want to build from source, [open an issue](https://github.com/Krelborn/markdown-review/issues) asking for access.
-
-With access:
+Building from source needs [pnpm](https://pnpm.io) as well as Node.js:
 
 ```sh
 git clone https://github.com/Krelborn/markdown-review.git
 cd markdown-review
-GITHUB_TOKEN=$(gh auth token) pnpm install
+pnpm install
 pnpm build
 npm link
 ```
 
-The install reads a GitHub token with `read:packages` from `GITHUB_TOKEN`. `npm link` puts `markdown-review` on your `PATH`; you can also run `node <this repo>/dist/cli.js` directly.
+`npm link` puts `markdown-review` on your `PATH`; you can also run `node <this repo>/dist/cli.js` directly.
 
 ## Feedback
 
