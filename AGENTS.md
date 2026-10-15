@@ -53,7 +53,7 @@ Run `pnpm install` first in a new clone or worktree: husky creates the hooks in 
 
 ## Fallow
 
-fallow is a devDependency; run it as `pnpm exec fallow`. `.claude/settings.json` enables the `fallow@fallow-skills` plugin, which provides its skills to Claude Code; other agents can read the skill at `node_modules/fallow/skills/fallow/SKILL.md`. `.mcp.json` and `.codex/config.toml` start its MCP server.
+fallow is a devDependency; run it as `pnpm exec fallow`. `.claude/settings.json` enables the `fallow@fallow-skills` plugin, which provides its skills to Claude Code on your machine. Cloud sessions don't install plugins a repository enables, so there, and in other agents, read the skill at `node_modules/fallow/skills/fallow/SKILL.md` after `pnpm install`; the husky hook below runs `fallow audit` without the plugin. `.mcp.json` and `.codex/config.toml` start its MCP server.
 
 - The husky pre-commit hook runs `fallow audit` on every commit after the first. A `fail` verdict blocks the commit: fix the findings it reports. Only findings the commit introduces count, so every new export must be used by code or tests in the same commit.
 - The commit check estimates test coverage from which tests import a function. For exact CRAP scores run `pnpm test:coverage`, then `pnpm exec fallow health --coverage coverage/istanbul.json`.
