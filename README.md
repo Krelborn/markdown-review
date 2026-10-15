@@ -160,6 +160,8 @@ The server stops itself after 30 minutes with no browser connected, no `poll` wa
 
 The server listens only on `127.0.0.1`. Agent commands need a random token that the server writes to `.markdown-review/server.json` with owner-only permissions, so a web page cannot post comments to your agent. Raw HTML in docs is sanitized before it is shown, and other files from the repository are served as plain content, never run as code.
 
+To report a vulnerability, please use [private vulnerability reporting](https://github.com/Krelborn/markdown-review/security/advisories/new) rather than an issue; [SECURITY.md](https://github.com/Krelborn/markdown-review/blob/main/SECURITY.md) has the details.
+
 ## Build from source
 
 Building from source needs [pnpm](https://pnpm.io) as well as Node.js:

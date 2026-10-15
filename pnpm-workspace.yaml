@@ -1,0 +1,6 @@
+# Skip package versions younger than a week, the window in which a compromised release is usually caught.
+# In minutes.
+minimumReleaseAge: 10080
+# StylesUI is ours, and is often upgraded the day it is released
+minimumReleaseAgeExclude:
+  - "@krelborn/*"
