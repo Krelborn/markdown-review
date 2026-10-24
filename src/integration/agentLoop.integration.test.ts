@@ -146,6 +146,19 @@ describe("agent loop", () => {
     );
   });
 
+  test.each([["poll", "--timeout", "20"], ["inbox"]].map((args) => ({ args, command: args[0] })))(
+    "must fail straight away when $command is given a doc that does not exist",
+    async ({ args }) => {
+      const repository = getRepository();
+      await repository.run(["open"]);
+
+      const { exitCode, stderr } = await repository.run([...args, "--document", "docs/nope.md"]);
+
+      expect(exitCode).toBe(1);
+      expect(stderr).toMatch(/^error: docs\/nope\.md is not a file\n\nnext_step: .+\n$/);
+    }
+  );
+
   test("must report the moved lines when the doc was edited while the server was stopped", async () => {
     const repository = getRepository();
     await repository.run(["open"]);
