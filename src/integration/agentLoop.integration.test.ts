@@ -46,6 +46,19 @@ describe("agent loop", () => {
     );
   });
 
+  test.each([["poll", "--timeout", "20"], ["inbox"]].map((command) => ({ command })))(
+    "must fail straight away when $command is given a doc that does not exist",
+    async ({ command }) => {
+      const repository = getRepository();
+
+      const { exitCode, stderr } = await repository.run([...command, "--document", "docs/nope.md"]);
+
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("error: docs/nope.md is not a file");
+      expect(stderr).toContain("next_step: ");
+    }
+  );
+
   test("must return the same threads when the poll is run again before the agent acts", async () => {
     const repository = getRepository();
     await repository.run(["open"]);

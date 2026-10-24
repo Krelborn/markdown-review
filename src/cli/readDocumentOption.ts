@@ -1,6 +1,4 @@
-import { realpath } from "node:fs/promises";
-import path from "node:path";
-
+import { resolveDocumentFile } from "./resolveDocumentFile";
 import { toRepositoryPath } from "./toRepositoryPath";
 
 /**
@@ -10,11 +8,12 @@ import { toRepositoryPath } from "./toRepositoryPath";
  * @param workingDirectory the directory the command runs in
  * @param value the option's value, if it was given
  * @returns the doc's repo-relative POSIX path, or null when the option was not given
+ * @throws CliError when the doc is not a file inside the repository
  */
 export async function readDocumentOption(
   root: string,
   workingDirectory: string,
   value: string | undefined
 ): Promise<string | null> {
-  return value === undefined ? null : toRepositoryPath(root, path.resolve(await realpath(workingDirectory), value));
+  return value === undefined ? null : toRepositoryPath(root, await resolveDocumentFile(workingDirectory, value));
 }

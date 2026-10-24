@@ -1,4 +1,3 @@
-import { realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
@@ -11,6 +10,7 @@ import { connectToServer } from "../connectToServer";
 import { findRoot } from "../findRoot";
 import { waitForCommentsInRootStep, waitForCommentsStep } from "../nextSteps";
 import { readUpdateNotices } from "../readUpdateNotices";
+import { resolveDocumentFile } from "../resolveDocumentFile";
 import { toRepositoryPath } from "../toRepositoryPath";
 
 export async function openCommand(args: string[], context: CliContext): Promise<number> {
@@ -56,13 +56,9 @@ function readNextTask(value: string | undefined): string | null {
 }
 
 async function locate(workingDirectory: string, target: string): Promise<{ document: string; root: string }> {
-  const absolutePath = path.resolve(workingDirectory, target);
-  const found = await stat(absolutePath).catch(() => null);
-  if (found === null || !found.isFile()) {
-    throw new CliError(`${target} is not a file`, "Check the path and run `markdown-review open <path>` again.");
-  }
-  const root = await findRoot(path.dirname(absolutePath), workingDirectory);
-  return { document: toRepositoryPath(root, await realpath(absolutePath)), root };
+  const realPath = await resolveDocumentFile(workingDirectory, target);
+  const root = await findRoot(path.dirname(realPath), workingDirectory);
+  return { document: toRepositoryPath(root, realPath), root };
 }
 
 async function openUrl(url: string, env: Partial<Record<string, string>>): Promise<string> {

@@ -95,7 +95,7 @@ describe("runCli", () => {
 
     expect(exitCode).toBe(1);
     expect(stderr).toBe(
-      "error: docs/missing.md is not a file\n\nnext_step: Check the path and run `markdown-review open <path>` again.\n"
+      "error: docs/missing.md is not a file\n\nnext_step: Check the path and run the command again with a markdown file.\n"
     );
   });
 
@@ -240,13 +240,13 @@ describe("runCli", () => {
     );
   });
 
-  test("must pass on the server's reason when the server refuses the request", async () => {
+  test("must fail when the document to read the inbox of does not exist", async () => {
     const { run } = await setUpTest({ withServer: true });
 
     const { exitCode, stderr } = await run(["inbox", "--document", "../outside.md"]);
 
     expect(exitCode).toBe(1);
-    expect(stderr).toContain("is not a file inside the repository");
+    expect(stderr).toContain("../outside.md is not a file");
   });
 
   test.each([
