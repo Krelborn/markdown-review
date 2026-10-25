@@ -21,7 +21,7 @@ The website has a tour and the docs: [krelborn.github.io/markdown-review](https:
   <img src="https://raw.githubusercontent.com/Krelborn/markdown-review/main/docs/images/review-light.png" alt="A plan open in Markdown Review. The doc is on the left with two passages highlighted, and the comments column on the right holds a draft comment, an open thread in which the agent asks a question, and resolved threads.">
 </picture>
 
-Markdown Review runs locally on your machine. It is a CLI that starts a small server for each repository and serves a browser app on `127.0.0.1`. The agent talks to it through ordinary shell commands, so it works with Claude Code, Codex, OpenCode or any agent that has a shell tool. No MCP server or plugin needed.
+Markdown Review runs locally on your machine. It is a CLI that starts a small server for each repository and serves a browser app on `127.0.0.1`. The agent talks to it through ordinary shell commands, so it works with Claude Code, Codex, OpenCode or any agent that has a shell tool. It needs no MCP server or plugin.
 
 > [!WARNING]
 > Markdown Review is in beta. It works, but expect rough edges, and expect commands and behaviour to change between releases until 1.0.
