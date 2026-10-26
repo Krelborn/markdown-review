@@ -185,3 +185,5 @@ I'm not accepting pull requests. Markdown Review is a small project I maintain i
 ## License
 
 [MIT](https://github.com/Krelborn/markdown-review/blob/main/LICENSE)
+
+Probe line for the outputs spec.
