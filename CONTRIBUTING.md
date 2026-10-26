@@ -6,4 +6,4 @@ I'm not accepting pull requests. Markdown Review is a small project I maintain i
 
 To build and test it yourself, see [Build from source](README.md#build-from-source) in the README, and [AGENTS.md](AGENTS.md) for the commands and the layout of the code.
 
-To run the unit tests, use `pnpm tset`.
+To run the unit tests, use `pnpm test`.
