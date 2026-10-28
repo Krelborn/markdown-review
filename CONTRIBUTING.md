@@ -6,4 +6,4 @@ I'm not accepting pull requests. Markdown Review is a small project I maintain i
 
 To build and test it yourself, see [Build from source](README.md#build-from-source) in the README, and [AGENTS.md](AGENTS.md) for the commands and the layout of the code.
 
-If you do open a pull request, please run `pnpm verify` first.
+If you do open a pull request, please run `pnpm install` and then `pnpm verify` first.
