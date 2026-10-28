@@ -180,7 +180,7 @@ npm link
 
 Bug reports, questions and ideas are very welcome: please [open an issue](https://github.com/Krelborn/markdown-review/issues).
 
-I'm not accepting pull requests. Markdown Review is a small project I maintain in my spare time, and for now I want to keep its design in one place. If you have a fix in mind, describe it in an issue and I'll take it from there.
+I'm not accepting pull requests. Markdown Review is a small project I maintain in my spare time, and for now I want to keep its design in one place. If you have a fix in mind, describe it in an issue and I'll take it from there. You can also start a thread in GitHub Discussions.
 
 ## License
 
