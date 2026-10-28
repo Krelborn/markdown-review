@@ -13,3 +13,4 @@ Only the latest release on npm gets security fixes.
 ## Scope
 
 The server listens only on `127.0.0.1` and expects to be reached by the browser and by agents on the same machine. Ways around its protections are in scope, such as a web page or another local user reaching the agent routes without the token in `.markdown-review/server.json`, script running from a reviewed doc, or a file outside the repository being served.
+Reports get a reply within a week.
