@@ -241,7 +241,8 @@ describe("runCli", () => {
   });
 
   test("must pass on the server's reason when the server refuses the request", async () => {
-    const { run } = await setUpTest({ withServer: true });
+    const { root, run } = await setUpTest({ withServer: true });
+    await writeFile(path.join(root, "..", "outside.md"), "# Outside\n");
 
     const { exitCode, stderr } = await run(["inbox", "--document", "../outside.md"]);
 

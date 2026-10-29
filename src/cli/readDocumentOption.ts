@@ -1,6 +1,7 @@
-import { realpath } from "node:fs/promises";
+import { realpath, stat } from "node:fs/promises";
 import path from "node:path";
 
+import { CliError } from "./CliError";
 import { toRepositoryPath } from "./toRepositoryPath";
 
 /**
@@ -10,11 +11,20 @@ import { toRepositoryPath } from "./toRepositoryPath";
  * @param workingDirectory the directory the command runs in
  * @param value the option's value, if it was given
  * @returns the doc's repo-relative POSIX path, or null when the option was not given
+ * @throws CliError when the doc does not exist
  */
 export async function readDocumentOption(
   root: string,
   workingDirectory: string,
   value: string | undefined
 ): Promise<string | null> {
-  return value === undefined ? null : toRepositoryPath(root, path.resolve(await realpath(workingDirectory), value));
+  if (value === undefined) {
+    return null;
+  }
+  const absolutePath = path.resolve(await realpath(workingDirectory), value);
+  const found = await stat(absolutePath).catch(() => null);
+  if (found === null) {
+    throw new CliError(`${value} does not exist`, "Check the path and run the command again.");
+  }
+  return toRepositoryPath(root, absolutePath);
 }
