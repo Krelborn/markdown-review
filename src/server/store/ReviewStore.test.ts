@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { createDocumentText } from "../../shared/markdown/createDocumentText";
+import type { Thread } from "../../shared/review/threadSchema";
 import type { NewThread } from "../../shared/review/newThreadSchema";
 import { roundOutcome } from "../../shared/review/roundOutcome";
 import { buildPassageAnchor, buildThread } from "../../shared/review/testing/reviewBuilders";
@@ -274,7 +275,7 @@ describe("ReviewStore", () => {
 
     const comment = store.createDraftThread({ anchor: { document: "docs/Plan.md", kind: "document" }, body: "?" });
 
-    await expect(comment).rejects.toMatchObject({ reason: "invalid-input" });
+    await expect(comment).rejects.toMatchObject({ reason: "invalid-file" });
     expect(JSON.parse(await readFile(threadsFilePath, "utf8"))).toEqual(stored);
   });
 
@@ -374,6 +375,37 @@ describe("ReviewStore", () => {
 
     expect(whileMissing.threads[0]?.anchor).toMatchObject({ outdated: true });
     expect(afterReturn.threads[0]?.anchor).toMatchObject({ outdated: false });
+  });
+
+  test("must report a renamed threads file and leave the other doc's threads alone when their IDs clash", async () => {
+    const { root, store, writeDocument } = await setUpLoadedTest();
+    await writeDocument("docs/b.md", "# B\n");
+    const documents = path.join(root, ".markdown-review", "documents", "docs");
+    const hash = hashSource("# B\n");
+    const clashing = (document: string): Thread[] => [buildThread({ anchor: { document, kind: "document" }, id: 1 })];
+    const planPath = path.join(documents, "plan.md.json");
+    const bPath = path.join(documents, "b.md.json");
+    const renamedPath = path.join(documents, "c.md.json");
+    await mkdir(documents, { recursive: true });
+    await writeJson(planPath, {
+      document: "docs/plan.md",
+      sourceHash: hashSource(plan),
+      threads: clashing("docs/plan.md"),
+      version: 1,
+    });
+    await writeJson(bPath, { document: "docs/b.md", sourceHash: hash, threads: clashing("docs/b.md"), version: 1 });
+    await writeJson(renamedPath, {
+      document: "docs/b.md",
+      sourceHash: hash,
+      threads: clashing("docs/b.md"),
+      version: 1,
+    });
+    const before = await readFile(bPath, "utf8");
+
+    const snapshot = await store.readThreads(null);
+
+    expect(snapshot.problems).toEqual([expect.stringContaining(`${renamedPath} is stored under the name docs/c.md`)]);
+    expect(await readFile(bPath, "utf8")).toBe(before);
   });
 
   test("must report an invalid threads file without overwriting it and still return the other threads", async () => {

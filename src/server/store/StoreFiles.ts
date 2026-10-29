@@ -79,8 +79,16 @@ export class StoreFiles {
    * @param document a repo-relative POSIX path
    * @returns the doc's threads file as stored, or null when the doc has none
    */
-  public readDocumentFile(document: string): Promise<StoreFileResult<DocumentThreadsFile | null>> {
-    return readStoreFile(documentThreadsFilePath(this.root, document), documentThreadsFileSchema);
+  public async readDocumentFile(document: string): Promise<StoreFileResult<DocumentThreadsFile | null>> {
+    const filePath = documentThreadsFilePath(this.root, document);
+    const result = await readStoreFile(filePath, documentThreadsFileSchema);
+    if (result.kind === "valid" && result.value !== null && result.value.document !== document) {
+      return {
+        kind: "invalid",
+        problem: `${filePath} is stored under the name ${document} but holds the threads of ${result.value.document}`,
+      };
+    }
+    return result;
   }
 
   /**
