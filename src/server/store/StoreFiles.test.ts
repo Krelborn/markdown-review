@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 
@@ -50,6 +50,18 @@ describe("StoreFiles", () => {
 
     await expect(files.writeDocumentFile(file)).rejects.toMatchObject({ reason: "invalid-input" });
     expect(await files.listDocuments()).toEqual([]);
+  });
+
+  test("must report a threads file as invalid when its document is not the name it is stored under", async () => {
+    const files = new StoreFiles(getDirectory());
+    await files.writeDocumentFile({ document: "b.md", sourceHash: null, threads: [], version: 1 });
+    const directory = path.join(getDirectory(), ".markdown-review", "documents");
+    await rename(path.join(directory, "b.md.json"), path.join(directory, "c.md.json"));
+
+    expect(await files.readDocumentFile("c.md")).toMatchObject({
+      kind: "invalid",
+      problem: expect.stringContaining("holds the threads of b.md"),
+    });
   });
 
   test("must list no docs when the store has no documents directory", async () => {

@@ -369,9 +369,6 @@ export class ReviewStore {
     document: string
   ): Promise<{ file: DocumentThreadsFile; source: string | null }> {
     const stored = requireValid(await this.files.readDocumentFile(document));
-    if (stored !== null && stored.document !== document) {
-      throw new StoreError("invalid-input", `${document} has its threads stored as ${stored.document}; use that name`);
-    }
     const source = await this.files.readDocumentSource(document);
     const sourceHash = source === null ? null : hashSource(source);
     if (stored === null) {
