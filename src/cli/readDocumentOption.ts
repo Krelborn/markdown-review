@@ -11,7 +11,7 @@ import { toRepositoryPath } from "./toRepositoryPath";
  * @param workingDirectory the directory the command runs in
  * @param value the option's value, if it was given
  * @returns the doc's repo-relative POSIX path, or null when the option was not given
- * @throws CliError when the doc does not exist
+ * @throws CliError when the doc does not exist or is not a file
  */
 export async function readDocumentOption(
   root: string,
@@ -25,6 +25,9 @@ export async function readDocumentOption(
   const found = await stat(absolutePath).catch(() => null);
   if (found === null) {
     throw new CliError(`${value} does not exist`, "Check the path and run the command again.");
+  }
+  if (!found.isFile()) {
+    throw new CliError(`${value} is not a file`, "Check the path and run the command again.");
   }
   return toRepositoryPath(root, absolutePath);
 }

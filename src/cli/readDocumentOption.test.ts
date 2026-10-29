@@ -38,4 +38,13 @@ describe("readDocumentOption", () => {
     await expect(result).rejects.toThrow(CliError);
     await expect(result).rejects.toThrow("docs/nope.md does not exist");
   });
+
+  test("must throw a CliError saying the path is not a file when it names a directory", async () => {
+    const root = await setUpRoot();
+
+    const result = readDocumentOption(root, root, "docs");
+
+    await expect(result).rejects.toThrow(CliError);
+    await expect(result).rejects.toThrow("docs is not a file");
+  });
 });
