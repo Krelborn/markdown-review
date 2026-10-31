@@ -126,6 +126,17 @@ describe("server lifecycle", () => {
     });
   });
 
+  test("must replace an older server that destroys the shutdown request's socket before it stops listening", async () => {
+    const repository = getRepository();
+    const older = await startFakeServer(repository.root, protocolVersion - 1, { destroySocketBeforeClosing: true });
+
+    const { exitCode } = await repository.run(["inbox"]);
+
+    expect(exitCode).toBe(0);
+    expect(older.shutdownRequests()).toBe(1);
+    expect((await repository.readServerFile()).protocol).toBe(protocolVersion);
+  });
+
   test("must not start a second server when the older server cuts off the shutdown request but still listens", async () => {
     const repository = getRepository();
     const older = await startFakeServer(repository.root, protocolVersion - 1, {
@@ -211,6 +222,7 @@ async function startFakeServer(
   protocol: number,
   {
     cutShutdownConnection = false,
+    destroySocketBeforeClosing = false,
     dropShutdownReply = false,
     hangShutdowns = 0,
     refuseShutdown = false,
@@ -218,6 +230,8 @@ async function startFakeServer(
   }: {
     /** closes the shutdown request's connection without an answer, while the server keeps listening */
     cutShutdownConnection?: boolean;
+    /** destroys the shutdown request's socket, then stops listening and closes the other connections */
+    destroySocketBeforeClosing?: boolean;
     dropShutdownReply?: boolean;
     /** how many of the first shutdown requests get no answer */
     hangShutdowns?: number;
@@ -245,6 +259,12 @@ async function startFakeServer(
     if (request.url === "/api/shutdown") {
       shutdownRequests += 1;
       if (shutdownRequests <= hangShutdowns) {
+        return;
+      }
+      if (destroySocketBeforeClosing) {
+        request.socket.destroy();
+        fake.close();
+        fake.closeAllConnections();
         return;
       }
       if (cutShutdownConnection) {

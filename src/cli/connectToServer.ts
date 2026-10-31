@@ -111,8 +111,9 @@ function isTimeout(error: unknown): boolean {
 }
 
 /**
- * Tells whether nothing listens on the server's port any more. A server that still answers is given the time
- * `waitUntilStopped` gives one; any other failure, such as a timeout or an HTTP error, does not show the listener is gone.
+ * Tells whether nothing listens on the server's port any more, which only a refused connection shows. Any other
+ * failure, such as a timeout, an HTTP error or a pooled socket the server has just closed, proves nothing, so it keeps
+ * probing for the time `waitUntilStopped` gives a server to stop.
  */
 async function portRefusesConnections(client: ServerClient): Promise<boolean> {
   const deadline = Date.now() + stopWaitMilliseconds;
@@ -120,7 +121,9 @@ async function portRefusesConnections(client: ServerClient): Promise<boolean> {
     try {
       await client.health();
     } catch (error) {
-      return isConnectionRefused(error);
+      if (isConnectionRefused(error)) {
+        return true;
+      }
     }
     await delay(checkIntervalMilliseconds);
   }
