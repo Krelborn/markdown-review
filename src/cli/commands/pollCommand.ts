@@ -4,6 +4,7 @@ import { roundOutcome } from "../../shared/review/roundOutcome";
 import type { CliContext } from "../CliContext";
 import { CliError } from "../CliError";
 import { connectToServer } from "../connectToServer";
+import { explainMissingDocument } from "../explainMissingDocument";
 import { findRoot } from "../findRoot";
 import { formatInbox } from "../formatInbox";
 import { pollTimeoutAdvice } from "../nextSteps";
@@ -54,7 +55,7 @@ export async function pollCommand(args: string[], context: CliContext): Promise<
       return interruptedExitCodes[interruptedBy] ?? 1;
     }
     if (error instanceof ServerRequestError) {
-      throw error;
+      throw explainMissingDocument(error, values.document);
     }
     throw new CliError(
       "The review server stopped while you were waiting",

@@ -32,7 +32,7 @@ describe("runServer", () => {
     const recorded = serverFileSchema.parse(JSON.parse(await readFile(serverFilePath(root), "utf8")));
     const health = healthSchema.parse(await (await fetch(`http://127.0.0.1:${recorded.port}/api/health`)).json());
 
-    expect(recorded).toMatchObject({ pid: process.pid, port: server.port, protocol: 2, root });
+    expect(recorded).toMatchObject({ pid: process.pid, port: server.port, protocol: 3, root });
     expect((await stat(serverFilePath(root))).mode & 0o777).toBe(0o600);
     expect(health.root).toBe(root);
   });

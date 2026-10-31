@@ -5,7 +5,7 @@ import type { AgentOpenResponse, AgentThreadResponse, ShutdownResponse } from ".
 import type { Thread } from "../../shared/review/threadSchema";
 
 import type { AppDependencies } from "./AppDependencies";
-import { checkDocumentPath, readJsonBody, readThreadId } from "./requestInputs";
+import { checkDocumentPath, checkDocumentToRead, readJsonBody, readThreadId } from "./requestInputs";
 
 const shutdownDelayMilliseconds = 100;
 
@@ -40,7 +40,7 @@ export function registerAgentRoutes(app: Hono, dependencies: AppDependencies): v
   app.get("/api/inbox", async (context) => {
     const document = context.req.query("document");
     if (document !== undefined) {
-      await checkDocumentPath(root, document, true);
+      await checkDocumentToRead(root, store, document);
     }
     return context.json(await store.readInbox(document ?? null));
   });
