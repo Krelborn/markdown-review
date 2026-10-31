@@ -54,6 +54,29 @@ describe("server lifecycle", () => {
     expect((await repository.readServerFile()).protocol).toBe(protocolVersion);
   });
 
+  test("must start exactly one server and ask the older server to shut down once when several commands run at once", async () => {
+    const repository = getRepository();
+    const older = await startFakeServer(repository.root, protocolVersion - 1);
+
+    const results = await Promise.all([1, 2, 3, 4].map(() => repository.run(["inbox"])));
+
+    expect(results.map(({ exitCode }) => exitCode)).toEqual([0, 0, 0, 0]);
+    expect(older.shutdownRequests()).toBe(1);
+    expect(await countServerStarts(repository.root)).toBe(1);
+    expect((await repository.readServerFile()).protocol).toBe(protocolVersion);
+  });
+
+  test("must replace a server of an older protocol that closes the connection without answering the shutdown", async () => {
+    const repository = getRepository();
+    const older = await startFakeServer(repository.root, protocolVersion - 1, { dropShutdownReply: true });
+
+    const { exitCode } = await repository.run(["inbox"]);
+
+    expect(exitCode).toBe(0);
+    expect(older.shutdownRequests()).toBe(1);
+    expect((await repository.readServerFile()).protocol).toBe(protocolVersion);
+  });
+
   test("must leave a server of a newer protocol running and say how to use it", async () => {
     const repository = getRepository();
     const newer = await startFakeServer(repository.root, protocolVersion + 1);
@@ -115,8 +138,12 @@ async function writeServerFile(root: string, { port, protocol }: { port: number;
 /**
  * Starts a stand-in for another version's server, recorded in the root's server.json
  */
-async function startFakeServer(root: string, protocol: number) {
-  let shutdownRequested = false;
+async function startFakeServer(
+  root: string,
+  protocol: number,
+  { dropShutdownReply = false }: { dropShutdownReply?: boolean } = {}
+) {
+  let shutdownRequests = 0;
   const fake = createServer((request, response) => {
     response.setHeader("content-type", "application/json");
     if (request.url === "/api/health") {
@@ -124,7 +151,12 @@ async function startFakeServer(root: string, protocol: number) {
       return;
     }
     if (request.url === "/api/shutdown") {
-      shutdownRequested = true;
+      shutdownRequests += 1;
+      if (dropShutdownReply) {
+        fake.close();
+        fake.closeAllConnections();
+        return;
+      }
       response.end(JSON.stringify({ stopping: true }), () => {
         fake.close();
         fake.closeAllConnections();
@@ -142,6 +174,7 @@ async function startFakeServer(root: string, protocol: number) {
         fake.close(() => resolve());
         fake.closeAllConnections();
       }),
-    shutdownRequested: () => shutdownRequested,
+    shutdownRequested: () => shutdownRequests > 0,
+    shutdownRequests: () => shutdownRequests,
   };
 }
