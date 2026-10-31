@@ -68,8 +68,8 @@ export async function checkDocumentPath(root: string, document: string, allowMis
  *
  * A doc that no longer exists is acceptable while the store knows it, so a doc deleted during the review keeps its
  * threads and the round's outcome readable. The store knows a doc when it holds a thread on it, whatever its status,
- * when the current round lists it, or when the doc's threads file can't be read, which the snapshot then reports. Any
- * other missing doc is a mistyped path.
+ * when the current round lists it, or when the snapshot reports any store problem, such as an unreadable threads file
+ * for the doc or an unreadable `review.json`, so the agent sees the warning. Any other missing doc is a mistyped path.
  *
  * @param root the repo root
  * @param store the review store
