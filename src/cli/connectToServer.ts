@@ -3,16 +3,19 @@ import { mkdir, open } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 
 import type { Health } from "../shared/api/apiResponseSchemas";
-import { serverLogPath, storeDirectory } from "../server/store/storePaths";
+import { serverFilePath, serverLogPath, storeDirectory } from "../server/store/storePaths";
 
 import { CliError } from "./CliError";
 import { findServer } from "./findServer";
 import type { ServerClient } from "./ServerClient";
+import { ServerRequestError } from "./ServerRequestError";
 import { withStartLock } from "./withStartLock";
 
 const startWaitMilliseconds = 10_000;
 
 const stopWaitMilliseconds = 5_000;
+
+const shutdownWaitMilliseconds = 2_000;
 
 const checkIntervalMilliseconds = 100;
 
@@ -43,7 +46,7 @@ export async function connectToServer(root: string, cliPath: string): Promise<Se
       case "newer":
         throw newerServerError(root, recheck.health);
       case "older":
-        await stopServer(recheck.client);
+        await stopServer(recheck.client, root);
         break;
       case "absent":
         break;
@@ -79,27 +82,58 @@ function newerServerError(root: string, health: Health): CliError {
 
 /**
  * Asks a server to shut down and waits for it to stop. A server that closes its connections as it stops may cut off
- * the reply to the request, so a failed request counts as a success when the server no longer answers.
+ * the reply to the request, which counts as a success once the server's port refuses connections. Any other failure
+ * leaves it unknown whether the server stopped, so it is reported rather than risk a second server on the store.
+ *
+ * @throws ServerRequestError when the server refused to shut down
+ * @throws CliError when the server did not answer, or may still be running after the request failed
  */
-async function stopServer(client: ServerClient): Promise<void> {
+async function stopServer(client: ServerClient, root: string): Promise<void> {
   try {
-    await client.shutdown();
+    await client.shutdown(AbortSignal.timeout(shutdownWaitMilliseconds));
   } catch (error) {
-    if (await answers(client)) {
+    if (error instanceof ServerRequestError) {
       throw error;
+    }
+    if (isTimeout(error) || !(await portRefusesConnections(client))) {
+      throw new CliError(
+        `The review server for ${root} is of an older version and could not be stopped to start the current one`,
+        `Run the command again. If it fails again, stop the process named in ${serverFilePath(root)}, then run the command once more.`
+      );
     }
     return;
   }
   await waitUntilStopped(client);
 }
 
-async function answers(client: ServerClient): Promise<boolean> {
-  try {
-    await client.health();
-    return true;
-  } catch {
-    return false;
+function isTimeout(error: unknown): boolean {
+  return error instanceof Error && error.name === "TimeoutError";
+}
+
+/**
+ * Tells whether nothing listens on the server's port any more. A server that still answers is given the time
+ * `waitUntilStopped` gives one; any other failure, such as a timeout or an HTTP error, does not show the listener is gone.
+ */
+async function portRefusesConnections(client: ServerClient): Promise<boolean> {
+  const deadline = Date.now() + stopWaitMilliseconds;
+  while (Date.now() < deadline) {
+    try {
+      await client.health();
+    } catch (error) {
+      return isConnectionRefused(error);
+    }
+    await delay(checkIntervalMilliseconds);
   }
+  return false;
+}
+
+function isConnectionRefused(error: unknown): boolean {
+  return (
+    error instanceof TypeError &&
+    error.cause instanceof Error &&
+    "code" in error.cause &&
+    error.cause.code === "ECONNREFUSED"
+  );
 }
 
 async function spawnServer(root: string, cliPath: string): Promise<void> {
