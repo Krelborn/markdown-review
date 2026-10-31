@@ -54,6 +54,108 @@ describe("server lifecycle", () => {
     expect((await repository.readServerFile()).protocol).toBe(protocolVersion);
   });
 
+  test("must start exactly one server and ask the older server to shut down once when several commands run at once", async () => {
+    const repository = getRepository();
+    const older = await startFakeServer(repository.root, protocolVersion - 1);
+
+    const results = await Promise.all([1, 2, 3, 4].map(() => repository.run(["inbox"])));
+
+    expect(results.map(({ exitCode }) => exitCode)).toEqual([0, 0, 0, 0]);
+    expect(older.shutdownRequests()).toBe(1);
+    expect(await countServerStarts(repository.root)).toBe(1);
+    expect((await repository.readServerFile()).protocol).toBe(protocolVersion);
+  });
+
+  test("must replace a server of an older protocol that closes the connection without answering the shutdown", async () => {
+    const repository = getRepository();
+    const older = await startFakeServer(repository.root, protocolVersion - 1, { dropShutdownReply: true });
+
+    const { exitCode } = await repository.run(["inbox"]);
+
+    expect(exitCode).toBe(0);
+    expect(older.shutdownRequests()).toBe(1);
+    expect((await repository.readServerFile()).protocol).toBe(protocolVersion);
+  });
+
+  test("must give up on an older server that does not answer the shutdown, and release the start lock", async () => {
+    const repository = getRepository();
+    const older = await startFakeServer(repository.root, protocolVersion - 1, { hangShutdowns: Infinity });
+
+    const { exitCode, stderr } = await repository.run(["inbox"]);
+    await older.close();
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("could not be stopped to start the current one");
+    expect(older.shutdownRequests()).toBe(1);
+    await expect(stat(path.join(repository.root, ".markdown-review", "server.lock"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    expect((await repository.readServerFile()).protocol).toBe(protocolVersion - 1);
+  });
+
+  test("must let a waiting command replace the older server when the first command's shutdown request gets no answer", async () => {
+    const repository = getRepository();
+    const older = await startFakeServer(repository.root, protocolVersion - 1, { hangShutdowns: 1 });
+
+    const results = await Promise.all([1, 2].map(() => repository.run(["inbox"])));
+    await older.close();
+
+    expect(results.map(({ exitCode }) => exitCode).toSorted()).toEqual([0, 1]);
+    expect(older.shutdownRequests()).toBe(2);
+    expect(await countServerStarts(repository.root)).toBe(1);
+    expect((await repository.readServerFile()).protocol).toBe(protocolVersion);
+  });
+
+  test("must not start a second server when the older server refuses to shut down and then answers health slowly", async () => {
+    const repository = getRepository();
+    const older = await startFakeServer(repository.root, protocolVersion - 1, {
+      refuseShutdown: true,
+      slowHealthAfter: 2,
+    });
+    const { port } = await repository.readServerFile();
+
+    const { exitCode, stderr } = await repository.run(["inbox"]);
+    await older.close();
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("the review server refused the request");
+    expect(older.shutdownRequests()).toBe(1);
+    expect((await repository.readServerFile()).port).toBe(port);
+    await expect(readFile(path.join(repository.root, ".markdown-review", "server.log"), "utf8")).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+
+  test("must replace an older server that destroys the shutdown request's socket before it stops listening", async () => {
+    const repository = getRepository();
+    const older = await startFakeServer(repository.root, protocolVersion - 1, { destroySocketBeforeClosing: true });
+
+    const { exitCode } = await repository.run(["inbox"]);
+
+    expect(exitCode).toBe(0);
+    expect(older.shutdownRequests()).toBe(1);
+    expect((await repository.readServerFile()).protocol).toBe(protocolVersion);
+  });
+
+  test("must not start a second server when the older server cuts off the shutdown request but still listens", async () => {
+    const repository = getRepository();
+    const older = await startFakeServer(repository.root, protocolVersion - 1, {
+      cutShutdownConnection: true,
+      slowHealthAfter: 2,
+    });
+    const { port } = await repository.readServerFile();
+
+    const { exitCode, stderr } = await repository.run(["inbox"]);
+    await older.close();
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("could not be stopped to start the current one");
+    expect((await repository.readServerFile()).port).toBe(port);
+    await expect(readFile(path.join(repository.root, ".markdown-review", "server.log"), "utf8")).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+
   test("must leave a server of a newer protocol running and say how to use it", async () => {
     const repository = getRepository();
     const newer = await startFakeServer(repository.root, protocolVersion + 1);
@@ -115,16 +217,70 @@ async function writeServerFile(root: string, { port, protocol }: { port: number;
 /**
  * Starts a stand-in for another version's server, recorded in the root's server.json
  */
-async function startFakeServer(root: string, protocol: number) {
-  let shutdownRequested = false;
+async function startFakeServer(
+  root: string,
+  protocol: number,
+  {
+    cutShutdownConnection = false,
+    destroySocketBeforeClosing = false,
+    dropShutdownReply = false,
+    hangShutdowns = 0,
+    refuseShutdown = false,
+    slowHealthAfter = Infinity,
+  }: {
+    /** closes the shutdown request's connection without an answer, while the server keeps listening */
+    cutShutdownConnection?: boolean;
+    /** destroys the shutdown request's socket, then stops listening and closes the other connections */
+    destroySocketBeforeClosing?: boolean;
+    dropShutdownReply?: boolean;
+    /** how many of the first shutdown requests get no answer */
+    hangShutdowns?: number;
+    refuseShutdown?: boolean;
+    /** how many health requests are answered at once; the ones after them take two seconds */
+    slowHealthAfter?: number;
+  } = {}
+) {
+  let shutdownRequests = 0;
+  let healthRequests = 0;
   const fake = createServer((request, response) => {
     response.setHeader("content-type", "application/json");
     if (request.url === "/api/health") {
-      response.end(JSON.stringify({ name: "markdown-review", pid: 999_999, protocol, root, version: "9.9.9" }));
+      healthRequests += 1;
+      const answer = (): void => {
+        response.end(JSON.stringify({ name: "markdown-review", pid: 999_999, protocol, root, version: "9.9.9" }));
+      };
+      if (healthRequests > slowHealthAfter) {
+        setTimeout(answer, 2000);
+        return;
+      }
+      answer();
       return;
     }
     if (request.url === "/api/shutdown") {
-      shutdownRequested = true;
+      shutdownRequests += 1;
+      if (shutdownRequests <= hangShutdowns) {
+        return;
+      }
+      if (destroySocketBeforeClosing) {
+        request.socket.destroy();
+        fake.close();
+        fake.closeAllConnections();
+        return;
+      }
+      if (cutShutdownConnection) {
+        request.socket.destroy();
+        return;
+      }
+      if (refuseShutdown) {
+        response.statusCode = 500;
+        response.end(JSON.stringify({ error: { message: "Cannot stop now", reason: "busy" } }));
+        return;
+      }
+      if (dropShutdownReply) {
+        fake.close();
+        fake.closeAllConnections();
+        return;
+      }
       response.end(JSON.stringify({ stopping: true }), () => {
         fake.close();
         fake.closeAllConnections();
@@ -142,6 +298,7 @@ async function startFakeServer(root: string, protocol: number) {
         fake.close(() => resolve());
         fake.closeAllConnections();
       }),
-    shutdownRequested: () => shutdownRequested,
+    shutdownRequested: () => shutdownRequests > 0,
+    shutdownRequests: () => shutdownRequests,
   };
 }

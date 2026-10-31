@@ -2,16 +2,20 @@ import { spawn } from "node:child_process";
 import { mkdir, open } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 
-import { serverLogPath, storeDirectory } from "../server/store/storePaths";
+import type { Health } from "../shared/api/apiResponseSchemas";
+import { serverFilePath, serverLogPath, storeDirectory } from "../server/store/storePaths";
 
 import { CliError } from "./CliError";
 import { findServer } from "./findServer";
 import type { ServerClient } from "./ServerClient";
+import { ServerRequestError } from "./ServerRequestError";
 import { withStartLock } from "./withStartLock";
 
 const startWaitMilliseconds = 10_000;
 
 const stopWaitMilliseconds = 5_000;
+
+const shutdownWaitMilliseconds = 2_000;
 
 const checkIntervalMilliseconds = 100;
 
@@ -25,26 +29,27 @@ const checkIntervalMilliseconds = 100;
  */
 export async function connectToServer(root: string, cliPath: string): Promise<ServerClient> {
   const found = await findServer(root);
-  switch (found.kind) {
-    case "ready":
-      return found.client;
-    case "newer":
-      throw new CliError(
-        `A newer markdown-review (version ${found.health.version}, protocol ${found.health.protocol}) is serving ${root}`,
-        "Run the newer markdown-review, for example `npx @krelborn/markdown-review@latest <command>`, or stop its server with it."
-      );
-    case "older":
-      await found.client.shutdown();
-      await waitUntilStopped(found.client);
-      break;
-    case "absent":
-      break;
+  if (found.kind === "ready") {
+    return found.client;
+  }
+  if (found.kind === "newer") {
+    throw newerServerError(root, found.health);
   }
   await mkdir(storeDirectory(root), { recursive: true });
+  // An older server is replaced under the lock, so that of the commands that find it, one replaces it and the others
+  // use the server it starts. Another command may have changed things while this one waited, so look again.
   return withStartLock(root, async () => {
     const recheck = await findServer(root);
-    if (recheck.kind === "ready") {
-      return recheck.client;
+    switch (recheck.kind) {
+      case "ready":
+        return recheck.client;
+      case "newer":
+        throw newerServerError(root, recheck.health);
+      case "older":
+        await stopServer(recheck.client, root);
+        break;
+      case "absent":
+        break;
     }
     await spawnServer(root, cliPath);
     return waitUntilReady(root);
@@ -66,6 +71,72 @@ export async function waitUntilStopped(client: ServerClient): Promise<void> {
     }
     await delay(checkIntervalMilliseconds);
   }
+}
+
+function newerServerError(root: string, health: Health): CliError {
+  return new CliError(
+    `A newer markdown-review (version ${health.version}, protocol ${health.protocol}) is serving ${root}`,
+    "Run the newer markdown-review, for example `npx @krelborn/markdown-review@latest <command>`, or stop its server with it."
+  );
+}
+
+/**
+ * Asks a server to shut down and waits for it to stop. A server that closes its connections as it stops may cut off
+ * the reply to the request, which counts as a success once the server's port refuses connections. Any other failure
+ * leaves it unknown whether the server stopped, so it is reported rather than risk a second server on the store.
+ *
+ * @throws ServerRequestError when the server refused to shut down
+ * @throws CliError when the server did not answer, or may still be running after the request failed
+ */
+async function stopServer(client: ServerClient, root: string): Promise<void> {
+  try {
+    await client.shutdown(AbortSignal.timeout(shutdownWaitMilliseconds));
+  } catch (error) {
+    if (error instanceof ServerRequestError) {
+      throw error;
+    }
+    if (isTimeout(error) || !(await portRefusesConnections(client))) {
+      throw new CliError(
+        `The review server for ${root} is of an older version and could not be stopped to start the current one`,
+        `Run the command again. If it fails again, stop the process named in ${serverFilePath(root)}, then run the command once more.`
+      );
+    }
+    return;
+  }
+  await waitUntilStopped(client);
+}
+
+function isTimeout(error: unknown): boolean {
+  return error instanceof Error && error.name === "TimeoutError";
+}
+
+/**
+ * Tells whether nothing listens on the server's port any more, which only a refused connection shows. Any other
+ * failure, such as a timeout, an HTTP error or a pooled socket the server has just closed, proves nothing, so it keeps
+ * probing for the time `waitUntilStopped` gives a server to stop.
+ */
+async function portRefusesConnections(client: ServerClient): Promise<boolean> {
+  const deadline = Date.now() + stopWaitMilliseconds;
+  while (Date.now() < deadline) {
+    try {
+      await client.health();
+    } catch (error) {
+      if (isConnectionRefused(error)) {
+        return true;
+      }
+    }
+    await delay(checkIntervalMilliseconds);
+  }
+  return false;
+}
+
+function isConnectionRefused(error: unknown): boolean {
+  return (
+    error instanceof TypeError &&
+    error.cause instanceof Error &&
+    "code" in error.cause &&
+    error.cause.code === "ECONNREFUSED"
+  );
 }
 
 async function spawnServer(root: string, cliPath: string): Promise<void> {

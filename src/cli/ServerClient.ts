@@ -74,8 +74,11 @@ export class ServerClient {
     return this.request("POST", `/api/agent/threads/${id}/resolve`, agentThreadResponseSchema, { body: { body } });
   }
 
-  public async shutdown(): Promise<void> {
-    await this.request("POST", "/api/shutdown", shutdownResponseSchema);
+  /**
+   * @param signal aborts the request, for a caller that cannot wait for a server that does not answer
+   */
+  public async shutdown(signal?: AbortSignal): Promise<void> {
+    await this.request("POST", "/api/shutdown", shutdownResponseSchema, { signal });
   }
 
   private async request<Value>(
