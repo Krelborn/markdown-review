@@ -3,6 +3,7 @@ import type { ZodType } from "zod";
 import type {
   AgentOpenResponse,
   AgentThreadResponse,
+  DocumentList,
   Health,
   PollResponse,
   ThreadsSnapshot,
@@ -11,6 +12,7 @@ import {
   agentOpenResponseSchema,
   agentThreadResponseSchema,
   apiErrorSchema,
+  documentListSchema,
   healthSchema,
   pollResponseSchema,
   shutdownResponseSchema,
@@ -49,6 +51,13 @@ export class ServerClient {
     return this.request("POST", "/api/agent/open", agentOpenResponseSchema, {
       body: { ...(document === null ? {} : { path: document }), ...(nextTask === null ? {} : { nextTask }) },
     });
+  }
+
+  /**
+   * @returns the docs that have open or draft threads, including docs that have been deleted since
+   */
+  public documents(): Promise<DocumentList> {
+    return this.request("GET", "/api/documents", documentListSchema);
   }
 
   public inbox(document: string | null): Promise<ThreadsSnapshot> {

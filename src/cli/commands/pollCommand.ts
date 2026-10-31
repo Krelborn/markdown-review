@@ -20,8 +20,8 @@ export async function pollCommand(args: string[], context: CliContext): Promise<
   const { values } = parseArgs({ args, options: { document: { type: "string" }, timeout: { type: "string" } } });
   const timeoutSeconds = readTimeout(values.timeout);
   const root = await findRoot(terminal.workingDirectory);
-  const document = await readDocumentOption(root, terminal.workingDirectory, values.document);
   const client = await connectToServer(root, cliPath);
+  const document = await readDocumentOption(root, terminal.workingDirectory, values.document, client);
   const abort = new AbortController();
   let interruptedBy: string | undefined;
   const onSignal = (signal: NodeJS.Signals): void => {

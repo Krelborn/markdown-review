@@ -28,6 +28,12 @@ describe("ServerClient", () => {
     expect(await client.inbox(null)).toMatchObject({ problems: [], threads: [] });
   });
 
+  test("must list the docs that have threads when there are none yet", async () => {
+    const { client } = await setUpTest();
+
+    expect(await client.documents()).toEqual({ documents: [], problems: [], recent: [] });
+  });
+
   test("must start a round and return the doc's URL when the agent opens a doc", async () => {
     const { client } = await setUpTest();
 
