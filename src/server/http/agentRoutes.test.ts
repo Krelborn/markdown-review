@@ -1,8 +1,9 @@
-import { writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test, vi } from "vitest";
 
 import { agentOpenResponseSchema, agentThreadResponseSchema } from "../../shared/api/apiResponseSchemas";
+import { documentThreadsFilePath } from "../store/storePaths";
 import { setUpTemporaryDirectory } from "../testing/setUpTemporaryDirectory";
 
 import { cacheComment, setUpAppTest } from "./testing/setUpAppTest";
@@ -62,6 +63,69 @@ describe("agentRoutes", () => {
 
     expect(await response.json()).toMatchObject({ threads: [{ id: 1, status: "open" }] });
   });
+
+  test("must refuse the inbox of a doc that does not exist when no thread is stored on it", async () => {
+    const { agent } = await setUpAppTest(getDirectory());
+
+    const response = await agent("GET", "/api/inbox?document=docs/nope.md");
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: { reason: "missing-document" } });
+  });
+
+  test("must list the threads of a doc that was deleted during the review", async () => {
+    const { agent, browser, root } = await setUpAppTest(getDirectory());
+    await browser("POST", "/api/threads", cacheComment);
+    await browser("POST", "/api/submit", { verdict: "revise" });
+    await rm(path.join(root, "docs", "plan.md"));
+
+    const response = await agent("GET", "/api/inbox?document=docs/plan.md");
+
+    expect(await response.json()).toMatchObject({ threads: [{ id: 1 }] });
+  });
+
+  test("must accept the inbox of a deleted doc when its only threads are resolved", async () => {
+    const { agent, browser, root } = await setUpAppTest(getDirectory());
+    await browser("POST", "/api/threads", cacheComment);
+    await browser("POST", "/api/submit", { verdict: "revise" });
+    await rm(path.join(root, "docs", "plan.md"));
+    await agent("POST", "/api/agent/threads/1/resolve", { body: null });
+
+    const response = await agent("GET", "/api/inbox?document=docs/plan.md");
+
+    expect(response.status).toBe(200);
+  });
+
+  test("must accept the inbox of a doc deleted after the agent opened it, before any thread was made", async () => {
+    const { agent, root } = await setUpAppTest(getDirectory());
+    await agent("POST", "/api/agent/open", { path: "docs/plan.md" });
+    await rm(path.join(root, "docs", "plan.md"));
+
+    const response = await agent("GET", "/api/inbox?document=docs/plan.md");
+
+    expect(response.status).toBe(200);
+  });
+
+  test.each([
+    { condition: "is not JSON", content: "{" },
+    { condition: "does not have the threads file's shape", content: '{"version":1}' },
+  ])(
+    "must report the problem and not a mistyped path when the deleted doc's threads file $condition",
+    async ({ content }) => {
+      const { agent, browser, root } = await setUpAppTest(getDirectory());
+      await browser("POST", "/api/threads", cacheComment);
+      await browser("POST", "/api/submit", { verdict: "revise" });
+      await rm(path.join(root, "docs", "plan.md"));
+      const file = documentThreadsFilePath(root, "docs/plan.md");
+      await mkdir(path.dirname(file), { recursive: true });
+      await writeFile(file, content);
+
+      const response = await agent("GET", "/api/inbox?document=docs/plan.md");
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ problems: [expect.stringContaining("plan.md.json")] });
+    }
+  );
 
   test("must return the thread and the remaining inbox when the agent resolves a thread", async () => {
     const { agent, browser } = await setUpAppTest(getDirectory());

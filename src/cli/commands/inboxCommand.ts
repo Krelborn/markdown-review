@@ -3,6 +3,7 @@ import { parseArgs } from "node:util";
 import { roundOutcome } from "../../shared/review/roundOutcome";
 import type { CliContext } from "../CliContext";
 import { connectToServer } from "../connectToServer";
+import { explainMissingDocument } from "../explainMissingDocument";
 import { findRoot } from "../findRoot";
 import { formatInbox } from "../formatInbox";
 import { readDocumentOption } from "../readDocumentOption";
@@ -14,7 +15,9 @@ export async function inboxCommand(args: string[], context: CliContext): Promise
   const root = await findRoot(terminal.workingDirectory);
   const document = await readDocumentOption(root, terminal.workingDirectory, values.document);
   const client = await connectToServer(root, cliPath);
-  const inbox = await client.inbox(document);
+  const inbox = await client.inbox(document).catch((error: unknown) => {
+    throw explainMissingDocument(error, values.document);
+  });
   const notices = roundOutcome(inbox.round) === "go-ahead" ? await readUpdateNotices(context, root, true) : [];
   terminal.stdout(formatInbox(inbox, notices));
   return 0;
