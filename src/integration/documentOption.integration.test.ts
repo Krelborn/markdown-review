@@ -185,4 +185,49 @@ describe("--document", () => {
       await rm(other, { force: true, recursive: true });
     }
   });
+
+  test.each([
+    { command: ["inbox"], target: "docs" },
+    { command: ["poll", "--timeout", "5"], target: "docs" },
+    { command: ["inbox"], target: "." },
+  ])("must fail with a CliError when $command is given the directory $target", async ({ command, target }) => {
+    const repository = getRepository();
+    await repository.run(["open", "docs/plan.md"]);
+
+    const { exitCode, stderr } = await repository.run([...command, "--document", target]);
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toMatch(
+      new RegExp(`(^|\\n)error: ${target.replace(".", "\\.")} is not a file\\n\\nnext_step: Pass the path`)
+    );
+  });
+
+  test("must return the verdict for a doc deleted after it was opened, before any comment was made", async () => {
+    const repository = getRepository();
+    await repository.run(["open", "docs/plan.md"]);
+    await rm(path.join(repository.root, "docs", "plan.md"));
+    await repository.browser("POST", "/api/submit", { verdict: "go-ahead" });
+
+    const { exitCode, stdout } = await repository.run(["poll", "--timeout", "5", "--document", "docs/plan.md"]);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("The user said go ahead.");
+  });
+
+  test.each([
+    { target: "." },
+    { target: ".." },
+    { target: "docs" },
+    { target: "../missing.md" },
+    { target: "missing.md" },
+  ])("must say $target is not a file when open is given it", async ({ target }) => {
+    const repository = getRepository();
+
+    const { exitCode, stderr } = await repository.run(["open", target]);
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toBe(
+      `error: ${target} is not a file\n\nnext_step: Check the path and run \`markdown-review open <path>\` again.\n`
+    );
+  });
 });

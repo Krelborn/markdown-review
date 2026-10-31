@@ -4,39 +4,40 @@ import path from "node:path";
 import { findRoot } from "./findRoot";
 import { toRepositoryPath } from "./toRepositoryPath";
 
-export interface LocatedDocument {
-  /**
-   * The doc's repo-relative POSIX path, as the store records it
-   */
-  document: string;
-
-  /**
-   * Whether the path leads to a file now
-   */
-  exists: boolean;
-
-  /**
-   * The real path of the root holding the doc
-   */
-  root: string;
-}
+/**
+ * What a path the agent named leads to
+ *
+ * - `file`: a file now, with its repo-relative POSIX path as the store records it and the real path of the root
+ *   holding it
+ * - `not-a-file`: something that exists and is not a file, such as a directory
+ * - `missing`: nothing; `path` is the real path as far as it exists, with the rest as typed
+ */
+export type LocatedDocument =
+  | { document: string; kind: "file"; root: string }
+  | { kind: "not-a-file" }
+  | { kind: "missing"; path: string };
 
 /**
  * Finds the doc the agent named, the way `open` and `--document` both read it
  *
  * Symbolic links are resolved, and on a case-insensitive filesystem so is the case, so the path matches the one the
- * store records for the doc. A doc that does not exist is resolved as far as its folders do, which are those of the
- * working directory's root.
+ * store records for the doc. A path that does not exist is resolved through its longest existing ancestor.
  *
  * @param workingDirectory the directory the command runs in
  * @param target the path the agent typed, which may be relative to the working directory
- * @throws CliError when the path is not inside the root it belongs to
+ * @throws CliError when the file is not inside the root it belongs to
  */
 export async function locateDocument(workingDirectory: string, target: string): Promise<LocatedDocument> {
   const resolved = await resolveExistingPrefix(path.resolve(workingDirectory, target));
-  const exists = (await stat(resolved).catch(() => null))?.isFile() ?? false;
-  const root = exists ? await findRoot(path.dirname(resolved), workingDirectory) : await findRoot(workingDirectory);
-  return { document: toRepositoryPath(root, resolved), exists, root };
+  const found = await stat(resolved).catch(() => null);
+  if (found === null) {
+    return { kind: "missing", path: resolved };
+  }
+  if (!found.isFile()) {
+    return { kind: "not-a-file" };
+  }
+  const root = await findRoot(path.dirname(resolved), workingDirectory);
+  return { document: toRepositoryPath(root, resolved), kind: "file", root };
 }
 
 /**

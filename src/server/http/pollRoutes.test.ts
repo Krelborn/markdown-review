@@ -1,8 +1,9 @@
-import { rm } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test, vi } from "vitest";
 
 import { pollResponseSchema } from "../../shared/api/apiResponseSchemas";
+import { documentThreadsFilePath } from "../store/storePaths";
 import { setUpTemporaryDirectory } from "../testing/setUpTemporaryDirectory";
 
 import { cacheComment, setUpAppTest } from "./testing/setUpAppTest";
@@ -103,6 +104,54 @@ describe("pollRoutes", () => {
 
     expect(result).toMatchObject({ round: { verdict: { kind: "go-ahead" } }, timedOut: false });
   });
+
+  test("must keep waiting for a doc deleted after the agent opened it, before any thread was made", async () => {
+    const { agent, root } = await setUpAppTest(getDirectory());
+    await agent("POST", "/api/agent/open", { path: "docs/plan.md" });
+    await rm(path.join(root, "docs", "plan.md"));
+
+    const result = pollResponseSchema.parse(
+      await (await agent("GET", "/api/poll?timeout=1&document=docs/plan.md")).json()
+    );
+
+    expect(result).toMatchObject({ threads: [], timedOut: true });
+  });
+
+  test("must return the verdict for a doc deleted after the agent opened it, before any thread was made", async () => {
+    const { agent, browser, root } = await setUpAppTest(getDirectory());
+    await agent("POST", "/api/agent/open", { path: "docs/plan.md" });
+    await rm(path.join(root, "docs", "plan.md"));
+    await browser("POST", "/api/submit", { verdict: "go-ahead" });
+
+    const result = pollResponseSchema.parse(
+      await (await agent("GET", "/api/poll?timeout=5&document=docs/plan.md")).json()
+    );
+
+    expect(result).toMatchObject({ round: { verdict: { kind: "go-ahead" } }, timedOut: false });
+  });
+
+  test.each([
+    { condition: "is not JSON", content: "{" },
+    { condition: "does not have the threads file's shape", content: '{"version":1}' },
+  ])(
+    "must report the problem and not a mistyped path when the deleted doc's threads file $condition",
+    async ({ content }) => {
+      const { agent, browser, root } = await setUpAppTest(getDirectory());
+      await browser("POST", "/api/threads", cacheComment);
+      await browser("POST", "/api/submit", { verdict: "revise" });
+      await rm(path.join(root, "docs", "plan.md"));
+      const file = documentThreadsFilePath(root, "docs/plan.md");
+      await mkdir(path.dirname(file), { recursive: true });
+      await writeFile(file, content);
+
+      const response = await agent("GET", "/api/poll?timeout=1&document=docs/plan.md");
+
+      expect(response.status).toBe(200);
+      expect(pollResponseSchema.parse(await response.json())).toMatchObject({
+        problems: [expect.stringContaining("plan.md.json")],
+      });
+    }
+  );
 
   test("must write spaces to keep the connection alive while it waits", async () => {
     const { agent } = await setUpAppTest(getDirectory());

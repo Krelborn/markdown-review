@@ -63,6 +63,15 @@ describe("readDocumentOption", () => {
     await expect(readDocumentOption(root, root, path.join(outside, "secret.md"))).rejects.toThrow(/not at/);
   });
 
+  test.each([{ target: "docs" }, { target: "." }])(
+    "must refuse the path and say it is not a file when it is the directory $target",
+    async ({ target }) => {
+      const { root } = await setUpRepository();
+
+      await expect(readDocumentOption(root, root, target)).rejects.toThrow(`${target} is not a file`);
+    }
+  );
+
   test("must return the path as typed when the file is missing", async () => {
     const { root } = await setUpRepository();
 
