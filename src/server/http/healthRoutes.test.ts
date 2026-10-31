@@ -13,6 +13,6 @@ describe("healthRoutes", () => {
 
     const health = healthSchema.parse(await (await request("GET", "/api/health", {})).json());
 
-    expect(health).toEqual({ name: "markdown-review", pid: process.pid, protocol: 2, root, version: "0.0.0-test" });
+    expect(health).toEqual({ name: "markdown-review", pid: process.pid, protocol: 3, root, version: "0.0.0-test" });
   });
 });
