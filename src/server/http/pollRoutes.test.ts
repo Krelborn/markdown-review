@@ -1,3 +1,5 @@
+import { rm } from "node:fs/promises";
+import path from "node:path";
 import { describe, expect, test, vi } from "vitest";
 
 import { pollResponseSchema } from "../../shared/api/apiResponseSchemas";
@@ -76,6 +78,30 @@ describe("pollRoutes", () => {
     const result = pollResponseSchema.parse(await (await poll).json());
 
     expect(result).toMatchObject({ threads: [], timedOut: true });
+  });
+
+  test("must refuse a doc that does not exist when no thread is stored on it", async () => {
+    const { agent } = await setUpAppTest(getDirectory());
+
+    const response = await agent("GET", "/api/poll?timeout=5&document=docs/nope.md");
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: { reason: "missing-document" } });
+  });
+
+  test("must return the verdict for a deleted doc when its only threads are resolved", async () => {
+    const { agent, browser, root } = await setUpAppTest(getDirectory());
+    await browser("POST", "/api/threads", cacheComment);
+    await browser("POST", "/api/submit", { verdict: "revise" });
+    await rm(path.join(root, "docs", "plan.md"));
+    await agent("POST", "/api/agent/threads/1/resolve", { body: null });
+    await browser("POST", "/api/submit", { verdict: "go-ahead" });
+
+    const result = pollResponseSchema.parse(
+      await (await agent("GET", "/api/poll?timeout=5&document=docs/plan.md")).json()
+    );
+
+    expect(result).toMatchObject({ round: { verdict: { kind: "go-ahead" } }, timedOut: false });
   });
 
   test("must write spaces to keep the connection alive while it waits", async () => {

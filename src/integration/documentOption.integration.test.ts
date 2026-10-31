@@ -1,9 +1,15 @@
 import { existsSync } from "node:fs";
-import { rm, symlink } from "node:fs/promises";
+import { mkdtemp, realpath, rm, symlink } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 
+import { wentAheadStep } from "../cli/nextSteps";
+
+import { createGitRepository } from "./testing/createGitRepository";
 import { plan, setUpReviewRepository } from "./testing/setUpReviewRepository";
+import { startCli } from "./testing/startCli";
+import { stopReviewServer } from "./testing/stopReviewServer";
 
 const getRepository = setUpReviewRepository();
 
@@ -33,7 +39,7 @@ describe("--document", () => {
 
       expect(exitCode).toBe(1);
       expect(stdout).toBe("");
-      expect(stderr).toMatch(/^error: docs\/nope\.md does not exist.*\n\nnext_step: Check the path/);
+      expect(stderr).toMatch(/(^|\n)error: docs\/nope\.md does not exist.*\n\nnext_step: Check the path/);
     }
   );
 
@@ -109,5 +115,74 @@ describe("--document", () => {
     const { stdout } = await repository.run(["inbox", "--document", "docs/other.md"]);
 
     expect(stdout).not.toContain("#1");
+  });
+
+  test("must find the threads when the path goes through a link to a folder and the doc was deleted", async () => {
+    const repository = getRepository();
+    await symlink(path.join(repository.root, "docs"), path.join(repository.root, "linked"));
+    await repository.run(["open", "linked/plan.md"]);
+    await repository.browser("POST", "/api/threads", cacheComment);
+    await repository.browser("POST", "/api/submit", { verdict: "revise" });
+    await rm(path.join(repository.root, "docs", "plan.md"));
+
+    const { exitCode, stdout } = await repository.run(["inbox", "--document", "linked/plan.md"]);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("#1 docs/plan.md");
+  });
+
+  test("must return the verdict when poll is given a deleted doc whose threads were all resolved", async () => {
+    const repository = getRepository();
+    await repository.run(["open", "docs/plan.md"]);
+    await repository.browser("POST", "/api/threads", cacheComment);
+    await repository.browser("POST", "/api/submit", { verdict: "revise" });
+    await rm(path.join(repository.root, "docs", "plan.md"));
+    await repository.run(["resolve", "1", "Dropped the doc."]);
+    await repository.browser("POST", "/api/submit", { verdict: "go-ahead" });
+
+    const { exitCode, stdout } = await repository.run(["poll", "--timeout", "5", "--document", "docs/plan.md"]);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain(`The user said go ahead. No threads need you.\n\nnext_step: ${wentAheadStep}`);
+  });
+
+  test("must find the threads when the doc is named by a link outside the repository, run from a folder in it", async () => {
+    const repository = getRepository();
+    const links = await realpath(await mkdtemp(path.join(os.tmpdir(), "markdown-review-links-")));
+    try {
+      await symlink(path.join(repository.root, "docs", "plan.md"), path.join(links, "plan.md"));
+      await repository.run(["open", "docs/plan.md"]);
+      await repository.browser("POST", "/api/threads", cacheComment);
+      await repository.browser("POST", "/api/submit", { verdict: "revise" });
+
+      const { exitCode, stdout } = await startCli(path.join(repository.root, "docs"), [
+        "inbox",
+        "--document",
+        path.join(links, "plan.md"),
+      ]).result;
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("#1 docs/plan.md:3");
+    } finally {
+      await rm(links, { force: true, recursive: true });
+    }
+  });
+
+  test("must open the doc in the repository a link leads to when open is given a link to another repository", async () => {
+    const repository = getRepository();
+    const other = await createGitRepository({ "docs/notes.md": "# Notes\n" });
+    try {
+      await symlink(path.join(other, "docs", "notes.md"), path.join(repository.root, "notes.md"));
+
+      const { exitCode, stdout } = await repository.run(["open", "notes.md"]);
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("Opened docs/notes.md for review");
+      expect(stdout).toContain(`so run markdown-review commands from that directory`);
+      expect(stdout).toContain(other);
+    } finally {
+      await stopReviewServer(other);
+      await rm(other, { force: true, recursive: true });
+    }
   });
 });

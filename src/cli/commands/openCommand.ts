@@ -55,7 +55,7 @@ function readNextTask(value: string | undefined): string | null {
 
 async function locate(workingDirectory: string, target: string): Promise<{ document: string; root: string }> {
   const located = await locateDocument(workingDirectory, target);
-  if (located === null) {
+  if (!located.exists) {
     throw new CliError(`${target} is not a file`, "Check the path and run `markdown-review open <path>` again.");
   }
   return located;

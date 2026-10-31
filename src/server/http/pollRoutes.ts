@@ -3,7 +3,7 @@ import { stream } from "hono/streaming";
 
 import type { AppDependencies } from "./AppDependencies";
 import { HttpError } from "./HttpError";
-import { checkDocumentPath } from "./requestInputs";
+import { checkDocumentToRead } from "./requestInputs";
 import { waitForInbox } from "./waitForInbox";
 
 const defaultTimeoutSeconds = 540;
@@ -16,7 +16,7 @@ export function registerPollRoutes(app: Hono, dependencies: AppDependencies): vo
   app.get("/api/poll", async (context) => {
     const document = context.req.query("document") ?? null;
     if (document !== null) {
-      await checkDocumentPath(root, document, true);
+      await checkDocumentToRead(root, store, document);
     }
     const timeoutMilliseconds = readTimeoutSeconds(context.req.query("timeout")) * 1000;
     context.header("Content-Type", "application/json");

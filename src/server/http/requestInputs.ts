@@ -3,6 +3,7 @@ import type { ZodType } from "zod";
 
 import { resolveRepositoryPath } from "../files/resolveRepositoryPath";
 import { parseStoreInput } from "../store/parseStoreInput";
+import type { ReviewStore } from "../store/ReviewStore";
 
 import { HttpError } from "./HttpError";
 
@@ -60,4 +61,32 @@ export async function checkDocumentPath(root: string, document: string, allowMis
     case "inside":
       return;
   }
+}
+
+/**
+ * Checks the doc an agent's inbox or poll is limited to
+ *
+ * A doc that no longer exists is acceptable while the store still holds a thread on it, whatever its status, so a doc
+ * deleted during the review keeps its threads and the round's outcome readable. Any other missing doc is a mistyped
+ * path, which no thread could ever match.
+ *
+ * @param root the repo root
+ * @param store the review store
+ * @param document a repo-relative POSIX path
+ * @throws HttpError as `checkDocumentPath` does for a doc that must exist, unless the store holds a thread on it
+ */
+export async function checkDocumentToRead(root: string, store: ReviewStore, document: string): Promise<void> {
+  try {
+    await checkDocumentPath(root, document, false);
+  } catch (error) {
+    if (error instanceof HttpError && error.reason === "missing-document" && (await hasStoredThread(store, document))) {
+      return;
+    }
+    throw error;
+  }
+}
+
+async function hasStoredThread(store: ReviewStore, document: string): Promise<boolean> {
+  const { threads } = await store.readThreads(document);
+  return threads.some((thread) => thread.anchor.kind !== "review" && thread.anchor.document === document);
 }
