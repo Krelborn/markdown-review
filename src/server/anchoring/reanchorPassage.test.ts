@@ -104,6 +104,14 @@ describe("reanchorPassage", () => {
     expect(reanchorPassage(anchor, createDocumentText(plan)).outdated).toBe(false);
   });
 
+  test("must leave out the line break before an approximate match that starts on it", () => {
+    const anchor = anchorOn("# Plan\n\nXGamma delta\n", "XGamma delta");
+
+    const moved = reanchorPassage(anchor, createDocumentText("# Plan\n\nAlpha.\n\nGamma delta\n"));
+
+    expect(moved).toMatchObject({ anchoredText: "Gamma delta", endLine: 5, outdated: false, startLine: 5 });
+  });
+
   test("must mark the anchor outdated when its text is empty", () => {
     const anchor = { ...anchorOn(plan, "cache results for 24h"), anchoredText: "" };
 

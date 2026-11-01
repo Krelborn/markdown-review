@@ -33,6 +33,15 @@ describe("rangeForPassage", () => {
     expect(range?.toString()).toBe("24h today.\nRetries");
   });
 
+  test("must start in the next block when the passage starts on the line break between two blocks", async () => {
+    const { container, documentText } = await mountDocument("Alpha beta.\n\nGamma\n");
+    const start = documentText.text.indexOf("\n");
+
+    const range = rangeForPassage(container, documentText, start, start + "\nGamma".length);
+
+    expect(range?.toString()).toBe("\nGamma");
+  });
+
   test("must cover the whole block when the passage is in a block that takes whole-block comments only", async () => {
     const { container, documentText } = await mountDocument(source);
     const start = documentText.text.indexOf("<div>");

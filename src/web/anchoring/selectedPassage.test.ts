@@ -22,6 +22,8 @@ const source = [
   "",
 ].join("\n");
 
+const withImage = "# Plan\n\nFirst paragraph.\n\n![diagram](d.png)\n\nLast paragraph.\n";
+
 describe("selectedPassage", () => {
   test("must anchor to the canonical text the user selected when the selection crosses inline markup", async () => {
     const { container, documentText, pointAt } = await mountDocument(source);
@@ -110,6 +112,48 @@ describe("selectedPassage", () => {
     );
 
     expect(anchor?.quote).toBe("3600\n<div>\nRaw HTML\n</div>");
+  });
+
+  test("must leave out an image when the selection ends at the start of its block", async () => {
+    const { container, documentText, pointAt } = await mountDocument(withImage);
+    const image = container.querySelector('[data-md-block="2"]') ?? container;
+
+    const anchor = selectedPassage(
+      container,
+      documentText,
+      "docs/plan.md",
+      select(pointAt("First"), { node: image, offset: 0 })
+    );
+
+    expect(anchor?.quote).toBe("First paragraph.");
+  });
+
+  test("must leave out an image when the selection starts at the end of its block", async () => {
+    const { container, documentText, pointAt } = await mountDocument(withImage);
+    const image = container.querySelector('[data-md-block="2"]') ?? container;
+
+    const anchor = selectedPassage(
+      container,
+      documentText,
+      "docs/plan.md",
+      select({ node: image, offset: image.childNodes.length }, pointAt("Last", true))
+    );
+
+    expect(anchor?.quote).toBe("Last");
+  });
+
+  test("must take in the whole image when the selection lies inside its block", async () => {
+    const { container, documentText } = await mountDocument(withImage);
+    const image = container.querySelector('[data-md-block="2"]') ?? container;
+
+    const anchor = selectedPassage(
+      container,
+      documentText,
+      "docs/plan.md",
+      select({ node: image, offset: 0 }, { node: image, offset: image.childNodes.length })
+    );
+
+    expect(anchor?.quote).toBe("![diagram](d.png)");
   });
 
   test("must not count the app's own controls when a block holds one", async () => {

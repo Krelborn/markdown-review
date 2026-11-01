@@ -29,6 +29,18 @@ describe("offsetAtPoint", () => {
     expect(offsetAtPoint(container, documentText, 120, 40)).toBe(documentText.text.indexOf("24h"));
   });
 
+  test("must find the image when the browser reports a caret after it", async () => {
+    const { container, documentText } = await mountDocument(
+      "# Plan\n\nFirst paragraph.\n\n![diagram](d.png)\n\nLast.\n"
+    );
+    const image = container.querySelector('[data-md-block="2"]') ?? container;
+    Object.assign(document, {
+      caretPositionFromPoint: vi.fn(() => ({ offset: image.childNodes.length, offsetNode: image })),
+    });
+
+    expect(offsetAtPoint(container, documentText, 120, 40)).toBe(documentText.text.indexOf("![diagram]"));
+  });
+
   test("must find nothing when the point is outside the doc", async () => {
     const { container, documentText } = await mountDocument(source);
     const outside = document.createElement("p");

@@ -42,10 +42,9 @@ function pointAt(container: Element, documentText: DocumentText, offset: number,
   if (position === null || element === null) {
     return null;
   }
-  const atBlockEdge =
-    edge === "start" ? { node: element, offset: 0 } : { node: element, offset: element.childNodes.length };
+  const atBlockEnd = { node: element, offset: element.childNodes.length };
   if (position.block.wholeBlockOnly) {
-    return atBlockEdge;
+    return edge === "start" ? { node: element, offset: 0 } : atBlockEnd;
   }
   const { segments } = layOutBlockText(element);
   const characterOffset = position.offsetInBlock;
@@ -54,7 +53,8 @@ function pointAt(container: Element, documentText: DocumentText, offset: number,
       ? segments.find((candidate) => characterOffset < candidate.offset + candidate.node.length)
       : segments.findLast((candidate) => characterOffset >= candidate.offset);
   if (segment === undefined) {
-    return atBlockEdge;
+    // The offset is the "\n" after the block's text, so a passage starting there begins with the next block
+    return atBlockEnd;
   }
   const offsetInNode = characterOffset - segment.offset + (edge === "start" ? 0 : 1);
   return { node: segment.node, offset: Math.min(Math.max(offsetInNode, 0), segment.node.length) };
