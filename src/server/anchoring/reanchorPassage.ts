@@ -62,7 +62,19 @@ function exactCandidates(pattern: string, text: string): Candidate[] {
 
 function approximateCandidates(pattern: string, text: string): Candidate[] {
   const maxErrors = Math.floor(maxErrorRatio * pattern.length);
-  return maxErrors === 0 ? [] : search(text, pattern, maxErrors);
+  return maxErrors === 0 ? [] : search(text, pattern, maxErrors).flatMap((candidate) => trimmed(candidate, text));
+}
+
+/**
+ * An approximate match can start or end on whitespace, which a new selection never does
+ *
+ * @returns the candidate without whitespace at either end, or nothing when only whitespace is left
+ */
+function trimmed({ end, errors, start }: Candidate, text: string): Candidate[] {
+  const matched = text.slice(start, end);
+  const trimmedStart = start + matched.length - matched.trimStart().length;
+  const trimmedEnd = end - (matched.length - matched.trimEnd().length);
+  return trimmedStart < trimmedEnd ? [{ end: trimmedEnd, errors, start: trimmedStart }] : [];
 }
 
 function chooseCandidate(candidates: readonly Candidate[], anchor: PassageAnchor, text: string): Candidate | undefined {

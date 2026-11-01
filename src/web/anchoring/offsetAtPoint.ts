@@ -1,6 +1,6 @@
 import type { DocumentText } from "../../shared/markdown/DocumentText";
 
-import { offsetInDocument } from "./offsetInDocument";
+import { offsetUnderPointer } from "./offsetInDocument";
 import type { PagePoint } from "./PagePoint";
 
 /**
@@ -17,7 +17,7 @@ export function offsetAtPoint(container: Element, documentText: DocumentText, x:
   if (caret === null || !container.contains(caret.node)) {
     return null;
   }
-  return offsetInDocument(container, documentText, caret, "start");
+  return offsetUnderPointer(container, documentText, caret);
 }
 
 function caretAt(document: Document, x: number, y: number): PagePoint | null {

@@ -42,19 +42,26 @@ function pointAt(container: Element, documentText: DocumentText, offset: number,
   if (position === null || element === null) {
     return null;
   }
-  const atBlockEdge =
-    edge === "start" ? { node: element, offset: 0 } : { node: element, offset: element.childNodes.length };
+  const atBlockEnd = { node: element, offset: element.childNodes.length };
   if (position.block.wholeBlockOnly) {
-    return atBlockEdge;
+    // The "\n" after the block's text is the block's last offset, but a passage starting there begins with the next block
+    const startsInBlock = edge === "start" && position.offsetInBlock < position.block.text.length;
+    return startsInBlock ? { node: element, offset: 0 } : atBlockEnd;
   }
+  return pointInText(element, position.offsetInBlock, edge) ?? atBlockEnd;
+}
+
+/**
+ * @returns the point in the block's text, or null when the offset is not on any of it
+ */
+function pointInText(element: Element, characterOffset: number, edge: PassageEdge): PagePoint | null {
   const { segments } = layOutBlockText(element);
-  const characterOffset = position.offsetInBlock;
   const segment =
     edge === "start"
       ? segments.find((candidate) => characterOffset < candidate.offset + candidate.node.length)
       : segments.findLast((candidate) => characterOffset >= candidate.offset);
   if (segment === undefined) {
-    return atBlockEdge;
+    return null;
   }
   const offsetInNode = characterOffset - segment.offset + (edge === "start" ? 0 : 1);
   return { node: segment.node, offset: Math.min(Math.max(offsetInNode, 0), segment.node.length) };

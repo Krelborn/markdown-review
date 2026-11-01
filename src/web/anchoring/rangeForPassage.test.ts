@@ -33,6 +33,21 @@ describe("rangeForPassage", () => {
     expect(range?.toString()).toBe("24h today.\nRetries");
   });
 
+  test.each([
+    { condition: "a block", markdown: "Alpha beta.\n\nGamma\n" },
+    { condition: "a block that takes whole-block comments only", markdown: "<div>Alpha beta.</div>\n\nGamma\n" },
+  ])(
+    "must start in the next block when the passage starts on the line break after $condition",
+    async ({ markdown }) => {
+      const { container, documentText } = await mountDocument(markdown);
+      const start = documentText.text.indexOf("\n");
+
+      const range = rangeForPassage(container, documentText, start, start + "\nGamma".length);
+
+      expect(range?.toString()).toBe("\nGamma");
+    }
+  );
+
   test("must cover the whole block when the passage is in a block that takes whole-block comments only", async () => {
     const { container, documentText } = await mountDocument(source);
     const start = documentText.text.indexOf("<div>");
