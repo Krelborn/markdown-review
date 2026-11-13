@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@hono/node-server':
         specifier: ^2.1.4
-        version: 2.1.4(hono@4.13.13)
+        version: 2.1.4(hono@4.13.16)
       '@mdit/plugin-alert':
         specifier: ^2.0.2
         version: 2.0.2(markdown-it@15.0.3)
@@ -25,7 +25,7 @@ importers:
         version: 5.0.0
       hono:
         specifier: ^4.13.13
-        version: 4.13.13
+        version: 4.13.16
       markdown-it:
         specifier: ^15.0.2
         version: 15.0.3
@@ -1527,8 +1527,8 @@ packages:
   hast-util-whitespace@3.0.0:
     resolution: {integrity: sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw==}
 
-  hono@4.13.13:
-    resolution: {integrity: sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA==}
+  hono@4.13.16:
+    resolution: {integrity: sha512-AOLOEhvrV+iH92xXCnFr/5+3KjPKcI3xP63XJtX5spAnkznPdHijlIsUTpi7/9EhWqrTCekw5c5zh1K+YsVw7A==}
     engines: {node: '>=16.9.0'}
 
   html-encoding-sniffer@7.0.0:
@@ -2379,9 +2379,9 @@ snapshots:
 
   '@fontsource-variable/nunito@5.3.0': {}
 
-  '@hono/node-server@2.1.4(hono@4.13.13)':
+  '@hono/node-server@2.1.4(hono@4.13.16)':
     dependencies:
-      hono: 4.13.13
+      hono: 4.13.16
 
   '@iconify/types@2.0.0': {}
 
@@ -3336,7 +3336,7 @@ snapshots:
     dependencies:
       '@types/hast': 3.0.5
 
-  hono@4.13.13: {}
+  hono@4.13.16: {}
 
   html-encoding-sniffer@7.0.0:
     dependencies:
